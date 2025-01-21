@@ -1,14 +1,34 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const Joi = require('joi');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET
 
+const userSchema = Joi.object({
+    firstName: Joi.string().max(50).required(),
+    lastName: Joi.string().max(100).required(),
+    email: Joi.string().email().max(320).required(),
+    password: Joi.string().max(64).required(),
+    cpf: Joi.string().length(11).required(),
+    phone: Joi.string().length(11).required(),
+    userType: Joi.string().valid('CONTRATANTE', 'OUTRO_TIPO').default('CONTRATANTE')
+});
+
+const loginSchema = userSchema.fork(['firstName', 'lastName', 'cpf', 'phone', 'userType'], (schema) => schema.optional());
+
 exports.register = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, cpf, phone, userType } = req.body;
+
+        const { error, value } = userSchema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
+        const { firstName, lastName, email, password, cpf, phone, userType } = value;
 
         // Verifica se o email ou CPF já está em uso
         const existingUser = await prisma.user.findFirst({
@@ -49,7 +69,13 @@ exports.login = async (req, res) => {
     }
 
     try {
-        const { email, password } = req.body;
+        const { error, value } = loginSchema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
+        const { email, password } = value;
 
         const user = await prisma.user.findUnique({
             where: { email },
