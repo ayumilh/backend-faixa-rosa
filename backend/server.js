@@ -10,12 +10,17 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+//  routes
+const authRoutes = require('./routes/authRoutes');
+
+
 // Rotas
 app.get('/', (req, res) => {
   res.send('API funcionando!');
 });
 
-// Inicialização do Servidor
+app.use('/api/auth', authRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
