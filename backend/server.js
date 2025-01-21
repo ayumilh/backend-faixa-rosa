@@ -9,7 +9,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: ["https://interface-acompanhantes.vercel.app", "http://localhost:3000"],
+    origin: ["https://interface-faixa-rosa.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );
