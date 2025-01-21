@@ -7,12 +7,12 @@ const app = express();
 
 // Middlewares
 app.use(helmet());
-app.use(cors(
-  {
-    origin: 'http://localhost:3000' || 'https://interface-acompanhantes.vercel.app',
+app.use(
+  cors({
+    origin: ["https://interface-acompanhantes.vercel.app", "http://localhost:3000"],
     credentials: true,
-  }
-));
+  })
+);
 app.use(express.json());
 
 //  routes
