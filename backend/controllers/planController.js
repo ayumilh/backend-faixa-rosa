@@ -24,6 +24,8 @@ exports.subscribeToPlan = async (req, res) => {
             where: { id: userId },
         });
 
+        console.log('Usuário:', user);
+
         if (!user || user.userType !== 'ACOMPANHANTE') {
             return res.status(403).json({ error: 'Apenas acompanhantes podem assinar planos.' });
         }
