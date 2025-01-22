@@ -13,7 +13,7 @@ exports.listPlans = async (req, res) => {
 
 exports.subscribeToPlan = async (req, res) => {
     const { planId } = req.body;
-    const userId = req.user.id; // ID do usuário autenticado (recuperado do middleware)
+    const userId = req.user?.id; // ID do usuário autenticado (recuperado do middleware)
 
     try {
         // Verifica se o usuário é um acompanhante
