@@ -14,14 +14,15 @@ const userSchema = Joi.object({
     password: Joi.string().max(64).required(),
     cpf: Joi.string().length(11).required(),
     phone: Joi.string().length(11).required(),
-    userType: Joi.string().valid('CONTRATANTE', 'OUTRO_TIPO').default('CONTRATANTE')
+    userType: Joi.string()
+    .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA') 
+    .required(),
 });
 
 const loginSchema = userSchema.fork(['firstName', 'lastName', 'cpf', 'phone', 'userType'], (schema) => schema.optional());
 
 exports.register = async (req, res) => {
     try {
-
         const { error, value } = userSchema.validate(req.body);
 
         if (error) {
@@ -58,7 +59,10 @@ exports.register = async (req, res) => {
 
         res.status(201).json({ message: 'Usuário registrado com sucesso', user: { id: newUser.id, email: newUser.email } });
     } catch (error) {
-        console.error(error);
+        if (error.code === 'P2002') {
+            return res.status(400).json({ error: 'Email ou CPF já está em uso' });
+        }
+        console.error('Erro ao registrar usuário:', error);
         res.status(500).json({ error: 'Erro ao registrar usuário' });
     }
 };

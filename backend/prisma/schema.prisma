@@ -121,33 +121,33 @@ enum MediaType {
 }
 
 // Modelo de Usuário (Contratante, Anunciante/Acompanhante ou Empresa)
-model User {
-  id              Int          @id @default(autoincrement())
-  firstName       String       @db.VarChar(50)
-  lastName        String       @db.VarChar(100)
-  email           String       @unique @db.VarChar(320)
-  password        String       @db.VarChar(64)
-  cpf             String       @unique @db.VarChar(11) 
-  phone           String       @db.VarChar(11) 
-  userType        UserType     @default(CONTRATANTE)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  model User {
+    id              Int          @id @default(autoincrement())
+    firstName       String       @db.VarChar(50)
+    lastName        String       @db.VarChar(100)
+    email           String       @unique @db.VarChar(320)
+    password        String       @db.VarChar(64)
+    cpf             String       @unique @db.VarChar(11) 
+    phone           String       @db.VarChar(11) 
+    userType        UserType     @default(CONTRATANTE)
+    createdAt       DateTime     @default(now())
+    updatedAt       DateTime     @updatedAt
 
-  // Campos adicionais para EMPRESA
-  companyName     String?
-  companyAddress  String?
-  companyCity     String?
-  companyState    String?
-  companyBio      String?
+    // Campos adicionais para EMPRESA
+    companyName     String?
+    companyAddress  String?
+    companyCity     String?
+    companyState    String?
+    companyBio      String?
 
-  reviews         Review[]
-  conveniosCriados Convenio[] 
-  denunciasFeitas  Denuncia[] @relation("UserDenunciasFeitas")
-  planSubscriptions PlanSubscription[]
-  payments         Payment[]
-  companion        Companion?
+    reviews         Review[]
+    conveniosCriados Convenio[] 
+    denunciasFeitas  Denuncia[] @relation("UserDenunciasFeitas")
+    planSubscriptions PlanSubscription[]
+    payments         Payment[]
+    companion        Companion?
 
-}
+  }
 
 // Perfil de Acompanhante
 model Companion {
