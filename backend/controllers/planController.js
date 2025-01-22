@@ -13,28 +13,37 @@ exports.listPlans = async (req, res) => {
 
 exports.subscribeToPlan = async (req, res) => {
     const { planId } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id; // ID do usuário autenticado (recuperado do middleware)
 
     try {
+        // Verifica se o usuário é um acompanhante
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user || user.userType !== 'ACOMPANHANTE') {
+            return res.status(403).json({ error: 'Apenas acompanhantes podem assinar planos.' });
+        }
+
         // Verifica se o plano existe
         const plan = await prisma.plan.findUnique({
             where: { id: planId },
         });
 
         if (!plan) {
-            return res.status(404).json({ error: 'Plano não encontrado' });
+            return res.status(404).json({ error: 'Plano não encontrado.' });
         }
 
-        // Verifica se o usuário já possui uma assinatura ativa
+        // Verifica se o acompanhante já possui uma assinatura ativa
         const existingSubscription = await prisma.planSubscription.findFirst({
             where: {
                 userId: userId,
-                endDate: null, // Assinatura ativa (sem data de término definida)
+                endDate: null, // Assinatura ativa
             },
         });
 
         if (existingSubscription) {
-            return res.status(400).json({ error: 'Você já possui uma assinatura ativa' });
+            return res.status(400).json({ error: 'Você já possui uma assinatura ativa.' });
         }
 
         // Cria uma nova assinatura
@@ -43,16 +52,16 @@ exports.subscribeToPlan = async (req, res) => {
                 userId,
                 planId,
                 startDate: new Date(),
-                endDate: null, // Pode ser definido no futuro (ex.: após expiração)
+                endDate: null, // Pode ser definido no futuro
             },
             include: {
-                plan: true, // Inclui informações do plano relacionado
+                plan: true, // Inclui detalhes do plano na resposta
             },
         });
 
-        return res.status(201).json({ message: 'Plano selecionado com sucesso', subscription });
+        return res.status(201).json({ message: 'Plano assinado com sucesso.', subscription });
     } catch (error) {
-        console.error('Erro ao selecionar plano:', error);
-        return res.status(500).json({ error: 'Erro ao selecionar plano' });
+        console.error('Erro ao assinar plano:', error);
+        return res.status(500).json({ error: 'Erro ao processar a assinatura.' });
     }
 };
