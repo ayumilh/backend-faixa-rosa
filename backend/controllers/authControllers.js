@@ -96,7 +96,7 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET, {
-            expiresIn: '1h', // Token válido por 1 hora
+            expiresIn: '1d', // Token válido por 1 hora
         });
 
         res.status(200).json({
