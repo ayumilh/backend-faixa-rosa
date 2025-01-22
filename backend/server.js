@@ -17,7 +17,7 @@ app.use(express.json());
 
 //  routes
 const authRoutes = require('./routes/authRoutes');
-
+const verifyToken = require('./routes/utils/utils.js');
 
 // Rotas
 app.get('/', (req, res) => {
@@ -25,6 +25,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/', verifyToken);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
