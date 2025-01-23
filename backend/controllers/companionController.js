@@ -208,7 +208,6 @@ async function deleteCompanion(req, res) {
 }
 
 module.exports = {
-    addCompanionInfo,
     listCompanions,
     getCompanionById,
     updateCompanion,
