@@ -109,9 +109,8 @@ exports.addCompanionInfo = async (req, res) => {
     }
 };
 
-
 // Listar todos os acompanhantes
-async function listCompanions(req, res) {
+exports.listCompanions = async (req, res) => {
     try {
         const companions = await prisma.companion.findMany({
             include: {
@@ -127,7 +126,7 @@ async function listCompanions(req, res) {
 }
 
 // Obter detalhes de um acompanhante específico
-async function getCompanionById(req, res) {
+exports.getCompanionById = async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -150,7 +149,7 @@ async function getCompanionById(req, res) {
 }
 
 // Atualizar informações de um acompanhante
-async function updateCompanion(req, res) {
+exports.updateCompanion = async (req, res) => {
     const { id } = req.params;
     const { name, age, description, city, state, paymentMethods } = req.body;
 
@@ -186,7 +185,7 @@ async function updateCompanion(req, res) {
 }
 
 // Excluir um acompanhante
-async function deleteCompanion(req, res) {
+exports.deleteCompanion = async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -206,10 +205,3 @@ async function deleteCompanion(req, res) {
         return res.status(500).json({ error: 'Erro ao excluir acompanhante' });
     }
 }
-
-module.exports = {
-    listCompanions,
-    getCompanionById,
-    updateCompanion,
-    deleteCompanion,
-};
