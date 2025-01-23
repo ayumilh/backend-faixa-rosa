@@ -12,7 +12,7 @@ exports.listPlans = async (req, res) => {
 }
 
 exports.subscribeToPlan = async (req, res) => {
-    const { planId } = req.body;
+    const { planId } = req.query;
     const userId = req.user?.id; // ID do usuário autenticado (recuperado do middleware)
 
     console.log('ID do plano:', planId);
@@ -36,7 +36,7 @@ exports.subscribeToPlan = async (req, res) => {
 
         // Verifica se o plano existe
         const plan = await prisma.plan.findUnique({
-            where: { id: planId },
+            where: { id: parseInt(planId) },
         });
 
         if (!plan) {
