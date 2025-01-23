@@ -41,6 +41,11 @@ exports.addCompanionInfo = async (req, res) => {
             return res.status(403).json({ error: 'Apenas usuários do tipo ACOMPANHANTE podem adicionar informações.' });
         }
 
+        // Validação de campos obrigatórios
+        if (!name || !age || !description || !city || !state || !status) {
+            return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos.' });
+        }
+
         // Verifica se já existe um perfil na tabela Companion
         const existingCompanion = await prisma.companion.findUnique({
             where: { userId: userId },
@@ -61,43 +66,43 @@ exports.addCompanionInfo = async (req, res) => {
                 state,
                 status,
                 ageCategories: {
-                    create: ageCategories?.map((category) => ({ ageCategory: category })),
+                    create: ageCategories?.map((category) => ({ ageCategory: category })) || [],
                 },
                 atendimentos: {
-                    create: atendimentos?.map((item) => ({ atendimento: item })),
+                    create: atendimentos?.map((item) => ({ atendimento: item })) || [],
                 },
                 cabelos: {
-                    create: cabelos?.map((item) => ({ cabelo: item })),
+                    create: cabelos?.map((item) => ({ cabelo: item })) || [],
                 },
                 contactMethods: {
-                    create: contactMethods?.map((method) => ({ contactMethod: method })),
+                    create: contactMethods?.map((method) => ({ contactMethod: method })) || [],
                 },
                 corpos: {
-                    create: corpos?.map((item) => ({ corpo: item })),
+                    create: corpos?.map((item) => ({ corpo: item })) || [],
                 },
                 estaturas: {
-                    create: estaturas?.map((item) => ({ estatura: item })),
+                    create: estaturas?.map((item) => ({ estatura: item })) || [],
                 },
                 etnias: {
-                    create: etnias?.map((item) => ({ etnia: item })),
+                    create: etnias?.map((item) => ({ etnia: item })) || [],
                 },
                 lugares: {
-                    create: lugares?.map((item) => ({ lugar: item })),
+                    create: lugares?.map((item) => ({ lugar: item })) || [],
                 },
                 paymentMethods: {
-                    create: paymentMethods?.map((method) => ({ paymentMethod: method })),
+                    create: paymentMethods?.map((method) => ({ paymentMethod: method })) || [],
                 },
                 pubis: {
-                    create: pubis?.map((item) => ({ pubis: item })),
+                    create: pubis?.map((item) => ({ pubis: item })) || [],
                 },
                 seios: {
-                    create: seios?.map((item) => ({ seios: item })),
+                    create: seios?.map((item) => ({ seios: item })) || [],
                 },
                 servicosEspeciais: {
-                    create: servicosEspeciais?.map((item) => ({ servico: item })),
+                    create: servicosEspeciais?.map((item) => ({ servico: item })) || [],
                 },
                 servicosGerais: {
-                    create: servicosGerais?.map((item) => ({ servico: item })),
+                    create: servicosGerais?.map((item) => ({ servico: item })) || [],
                 },
             },
         });
@@ -108,6 +113,7 @@ exports.addCompanionInfo = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar as informações de acompanhante.' });
     }
 };
+
 
 // Listar todos os acompanhantes
 exports.listCompanions = async (req, res) => {
