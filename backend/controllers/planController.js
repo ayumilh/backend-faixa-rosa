@@ -12,16 +12,15 @@ exports.listPlans = async (req, res) => {
 }
 
 exports.subscribeToPlan = async (req, res) => {
-    const { planId } = req.query;
+    const planId = parseInt(req.query.planId);
     const userId = req.user?.id; // ID do usuário autenticado (recuperado do middleware)
 
     console.log('ID do plano:', planId);
 
     // Validação do planId
-    if (!planId) {
+    if (!planId || isNaN(planId)) {
         return res.status(400).json({ error: 'O ID do plano é obrigatório.' });
     }
-
     try {
         // Verifica se o usuário é um acompanhante
         const user = await prisma.user.findUnique({
