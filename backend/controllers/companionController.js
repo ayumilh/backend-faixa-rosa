@@ -1,20 +1,56 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Criar um novo acompanhante
-async function createCompanion(req, res) {
-    const { name, age, description, city, state, paymentMethods } = req.body;
-    const userId = req.user.id; // Usuário autenticado (pego do middleware)
+// adicionar informações de acompanhante
+exports.addCompanionInfo = async (req, res) => {
+    const {
+        name,
+        age,
+        description,
+        city,
+        state,
+        status,
+        ageCategories,
+        atendimentos,
+        cabelos,
+        contactMethods,
+        corpos,
+        estaturas,
+        etnias,
+        lugares,
+        paymentMethods,
+        pubis,
+        seios,
+        servicosEspeciais,
+        servicosGerais,
+    } = req.body;
+
+    const userId = req.user?.id; // ID do usuário autenticado
 
     try {
-        // Verifica se o usuário tem permissão
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        // Verifica se o usuário existe e é do tipo ACOMPANHANTE
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
 
-        if (!user || user.userType !== 'ACOMPANHANTE') {
-            return res.status(403).json({ error: 'Você não tem permissão para criar um acompanhante' });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
 
-        // Cria o registro de acompanhante
+        if (user.userType !== 'ACOMPANHANTE') {
+            return res.status(403).json({ error: 'Apenas usuários do tipo ACOMPANHANTE podem adicionar informações.' });
+        }
+
+        // Verifica se já existe um perfil na tabela Companion
+        const existingCompanion = await prisma.companion.findUnique({
+            where: { userId: userId },
+        });
+
+        if (existingCompanion) {
+            return res.status(400).json({ error: 'Perfil de acompanhante já existe. Use a função de atualização.' });
+        }
+
+        // Cria o perfil de acompanhante
         const companion = await prisma.companion.create({
             data: {
                 userId,
@@ -23,18 +59,56 @@ async function createCompanion(req, res) {
                 description,
                 city,
                 state,
+                status,
+                ageCategories: {
+                    create: ageCategories?.map((category) => ({ ageCategory: category })),
+                },
+                atendimentos: {
+                    create: atendimentos?.map((item) => ({ atendimento: item })),
+                },
+                cabelos: {
+                    create: cabelos?.map((item) => ({ cabelo: item })),
+                },
+                contactMethods: {
+                    create: contactMethods?.map((method) => ({ contactMethod: method })),
+                },
+                corpos: {
+                    create: corpos?.map((item) => ({ corpo: item })),
+                },
+                estaturas: {
+                    create: estaturas?.map((item) => ({ estatura: item })),
+                },
+                etnias: {
+                    create: etnias?.map((item) => ({ etnia: item })),
+                },
+                lugares: {
+                    create: lugares?.map((item) => ({ lugar: item })),
+                },
                 paymentMethods: {
-                    create: paymentMethods.map((method) => ({ paymentMethod: method })),
+                    create: paymentMethods?.map((method) => ({ paymentMethod: method })),
+                },
+                pubis: {
+                    create: pubis?.map((item) => ({ pubis: item })),
+                },
+                seios: {
+                    create: seios?.map((item) => ({ seios: item })),
+                },
+                servicosEspeciais: {
+                    create: servicosEspeciais?.map((item) => ({ servico: item })),
+                },
+                servicosGerais: {
+                    create: servicosGerais?.map((item) => ({ servico: item })),
                 },
             },
         });
 
-        return res.status(201).json({ message: 'Acompanhante criado com sucesso', companion });
+        return res.status(201).json({ message: 'Informações de acompanhante adicionadas com sucesso.', companion });
     } catch (error) {
-        console.error('Erro ao criar acompanhante:', error);
-        return res.status(500).json({ error: 'Erro ao criar acompanhante' });
+        console.error('Erro ao adicionar informações de acompanhante:', error.message);
+        return res.status(500).json({ error: 'Erro ao processar as informações de acompanhante.' });
     }
-}
+};
+
 
 // Listar todos os acompanhantes
 async function listCompanions(req, res) {

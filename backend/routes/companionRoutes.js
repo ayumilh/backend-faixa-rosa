@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-    createCompanion,
+    addCompanionInfo,
     listCompanions,
     getCompanionById,
     updateCompanion,
@@ -9,8 +9,7 @@ const {
 } = require('../controllers/companionController');
 const { authenticate } = require('../middleware/authMiddleware');
 
-// Rota para criar um acompanhante (protegida)
-router.post('/', authenticate, createCompanion);
+router.post('/addInfo', authenticate, addCompanionInfo);
 
 // Rota para listar todos os acompanhantes
 router.get('/', listCompanions);
