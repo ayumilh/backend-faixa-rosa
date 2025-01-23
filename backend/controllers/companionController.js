@@ -25,6 +25,8 @@ exports.addCompanionInfo = async (req, res) => {
         servicosGerais,
     } = req.body;
 
+    console.log(req.body);
+
     const userId = req.user?.id; // ID do usuário autenticado
 
     try {
