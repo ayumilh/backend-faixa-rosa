@@ -71,7 +71,7 @@ exports.subscribeToPlan = async (req, res) => {
     }
 };
 
-// finalizar plano
+// finalizar assinatura
 exports.finalizePlan = async (req, res) => {
     const subscriptionId = parseInt(req.query.subscriptionId);
     const userId = req.user?.id; // ID do usuário autenticado
@@ -80,7 +80,7 @@ exports.finalizePlan = async (req, res) => {
 
     // Valida o ID da assinatura
     if (!subscriptionId || isNaN(subscriptionId)) {
-        return res.status(400).json({ error: 'O ID da assinatura é obrigatório e deve ser um número válido.' });
+        return res.status(400).json({ error: 'O ID da assinatura é obrigatório.' });
     }
 
     try {
@@ -109,3 +109,53 @@ exports.finalizePlan = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar a finalização do plano.' });
     }
 };
+
+
+
+
+// FUNÇÕES DE CRUD PARA ADMINISTRADORES
+
+// exports.updatePlan = async (req, res) => {
+//     const planId = parseInt(req.query.planId);
+//     const { name, price, description, isDarkMode } = req.body;
+
+//     if (!planId || isNaN(planId)) {
+//         return res.status(400).json({ error: 'O ID do plano é obrigatório.' });
+//     }
+
+//     try {
+//         const updatedPlan = await prisma.plan.update({
+//             where: { id: parseInt(planId) },
+//             data: {
+//                 name,
+//                 price: price ? parseFloat(price) : undefined,
+//                 description,
+//                 isDarkMode: isDarkMode !== undefined ? isDarkMode : undefined,
+//             },
+//         });
+
+//         return res.status(200).json({ message: 'Plano atualizado com sucesso.', plan: updatedPlan });
+//     } catch (error) {
+//         console.error('Erro ao atualizar plano:', error.message);
+//         return res.status(500).json({ error: 'Erro ao processar a atualização do plano.' });
+//     }
+// };
+
+// exports.deletePlan = async (req, res) => {
+//     const { planId } = req.query;
+
+//     if (!planId || isNaN(planId)) {
+//         return res.status(400).json({ error: 'O ID do plano é obrigatório.' });
+//     }
+
+//     try {
+//         await prisma.plan.delete({
+//             where: { id: parseInt(planId) },
+//         });
+
+//         return res.status(200).json({ message: 'Plano deletado com sucesso.' });
+//     } catch (error) {
+//         console.error('Erro ao deletar plano:', error.message);
+//         return res.status(500).json({ error: 'Erro ao processar a exclusão do plano.' });
+//     }
+// };
