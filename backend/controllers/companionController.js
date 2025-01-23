@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 // adicionar informações de acompanhante
 exports.addCompanionInfo = async (req, res) => {
     const {
-        name,
         age,
         description,
         city,
@@ -25,8 +24,6 @@ exports.addCompanionInfo = async (req, res) => {
         servicosGerais,
     } = req.body;
 
-    console.log(req.body);
-
     const userId = req.user?.id; // ID do usuário autenticado
 
     try {
@@ -43,10 +40,8 @@ exports.addCompanionInfo = async (req, res) => {
             return res.status(403).json({ error: 'Apenas usuários do tipo ACOMPANHANTE podem adicionar informações.' });
         }
 
-        // Validação de campos obrigatórios
-        if (!name || !age || !description || !city || !state || !status) {
-            return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos.' });
-        }
+        // Gera o valor do campo `name` com base no nome completo do usuário
+        const fullName = `${user.firstName} ${user.lastName}`;
 
         // Verifica se já existe um perfil na tabela Companion
         const existingCompanion = await prisma.companion.findUnique({
@@ -61,7 +56,7 @@ exports.addCompanionInfo = async (req, res) => {
         const companion = await prisma.companion.create({
             data: {
                 userId,
-                name,
+                name: fullName, // Preenche o campo `name` com o nome completo do usuário
                 age,
                 description,
                 city,
@@ -115,6 +110,7 @@ exports.addCompanionInfo = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar as informações de acompanhante.' });
     }
 };
+
 
 
 // Listar todos os acompanhantes
