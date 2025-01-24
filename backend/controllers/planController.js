@@ -41,17 +41,21 @@ exports.listUserPlans = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const userPlans = await prisma.plan.findMany({
-            where: { userId },
+        const userPlans = await prisma.plan.findUnique({
+            where: { id: userId },
             include: {
-                planType: true, // Inclui informações do PlanType
-                user: {
-                    select: {
-                        extraPlans: true, // Inclui os planos extras
+                plan:{
+                    include: {
+                        planType: true, // Inclui informações do PlanType
                     },
                 },
+                extraPlans: true, // Inclui os planos extras
             },
         });
+
+        if (!userPlans) {
+            return res.status(404).json({ error: 'Usuário não encontrado ou sem planos.' });
+        }
 
         return res.status(200).json(userPlans);
     } catch (error) {
