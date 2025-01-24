@@ -91,6 +91,8 @@ model PlanType {
   isDarkMode        Boolean @default(false)
   duration          Int?
   users             User[]  @relation("UserPlanTypes")
+
+  Plan Plan[]
 }
 
 model ExtraPlan {
@@ -120,11 +122,13 @@ model Plan {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   extraPlanId       Int?
+  planTypeId        Int?
   isBasic           Boolean            @default(false)
   convenios         Convenio[]
   payments          Payment[]
   planSubscriptions PlanSubscription[]
   User              User[]
+  PlanType          PlanType?          @relation(fields: [extraPlanId], references: [id])
 }
 
 model PlanSubscription {
