@@ -14,6 +14,7 @@ const userSchema = Joi.object({
     password: Joi.string().max(64).required(),
     cpf: Joi.string().length(11).required(),
     phone: Joi.string().length(11).required(),
+    googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
     .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA') 
     .required(),
@@ -79,14 +80,37 @@ exports.login = async (req, res) => {
             return res.status(400).json({ error: error.details[0].message });
         }
 
-        const { email, password } = value;
+        const { email, password, googleLogin } = value;
 
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado' });
+            if (googleLogin) {
+                // Cria um novo usuário se o login for pelo Google e o usuário não existir
+                user = await prisma.user.create({
+                    data: {
+                        email,
+                        firstName,
+                        lastName,
+                        password: '', // Pode ser vazio, pois o login é feito pelo Google
+                        cpf: '', // Pode ser vazio ou preenchido posteriormente
+                        phone: '', // Pode ser vazio ou preenchido posteriormente
+                        userType: 'CONTRATANTE', // Tipo de usuário padrão
+                    },
+                });
+            } else {
+                return res.status(404).json({ error: 'Usuário não encontrado' });
+            }
+        }
+
+        if (!googleLogin) {
+            // Verifica se a senha está correta para login com credenciais
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (!passwordMatch) {
+                return res.status(401).json({ error: 'Credenciais inválidas' });
+            }
         }
 
         // Verifica se a senha está correta
