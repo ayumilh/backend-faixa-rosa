@@ -12,7 +12,55 @@ exports.listPlans = async (req, res) => {
     }
 }
 
-// assinar plano
+// listar planos disponíveis
+exports.listAvailablePlanTypes = async (req, res) => {
+    try {
+        const planTypes = await prisma.planType.findMany({
+            orderBy: { points: 'desc' }, // Ordena pelos pontos, por exemplo
+        });
+        return res.status(200).json(planTypes);
+    } catch (error) {
+        console.error('Erro ao listar tipos de planos:', error);
+        return res.status(500).json({ error: 'Erro ao listar tipos de planos.' });
+    }
+};
+
+// obter funcionalidades dos plano
+exports.listPlanTypes = async (req, res) => {
+    try {
+        const planTypes = await prisma.planType.findMany();
+        return res.status(200).json(planTypes);
+    } catch (error) {
+        console.error('Erro ao listar tipos de planos:', error);
+        return res.status(500).json({ error: 'Erro ao listar tipos de planos.' });
+    }
+};
+
+// Lista os planos assinados por um usuário
+exports.listUserPlans = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const userPlans = await prisma.plan.findMany({
+            where: { userId },
+            include: {
+                planType: true, // Inclui informações do PlanType
+                user: {
+                    select: {
+                        extraPlans: true, // Inclui os planos extras
+                    },
+                },
+            },
+        });
+
+        return res.status(200).json(userPlans);
+    } catch (error) {
+        console.error('Erro ao listar planos do usuário:', error);
+        return res.status(500).json({ error: 'Erro ao listar planos do usuário.' });
+    }
+};
+
+// assinar plano basico
 exports.subscribeToPlan = async (req, res) => {
     const planId = parseInt(req.query.planId);
     const userId = req.user?.id; // ID do usuário autenticado (recuperado do middleware)
@@ -68,6 +116,89 @@ exports.subscribeToPlan = async (req, res) => {
     } catch (error) {
         console.error('Erro ao assinar plano:', error);
         return res.status(500).json({ error: 'Erro ao processar a assinatura.' });
+    }
+};
+
+// criar plano e adicionar extras, durante o processo de criar plano
+exports.createUserPlan = async (req, res) => {
+    const userId = req.user.id;
+    const { planTypeId, extras } = req.body;
+
+    try {
+        // Verifica se o tipo de plano existe
+        const planType = await prisma.planType.findUnique({
+            where: { id: planTypeId },
+        });
+        if (!planType) return res.status(404).json({ error: 'Tipo de plano não encontrado.' });
+
+        // Verifica se o usuário já possui um plano básico
+        const existingPlan = await prisma.plan.findFirst({
+            where: { userId },
+        });
+        if (existingPlan) {
+            return res.status(400).json({ error: 'Você já possui um plano básico.' });
+        }
+
+        // Cria o plano básico
+        const userPlan = await prisma.plan.create({
+            data: {
+                userId,
+                planTypeId,
+                price: planType.cityChangeFee, // Exemplo de preço relacionado ao plano
+                startDate: new Date(),
+            },
+        });
+
+        // Adiciona os planos extras
+        if (extras && extras.length > 0) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    extraPlans: {
+                        connect: extras.map((extraId) => ({ id: extraId })),
+                    },
+                },
+            });
+        }
+
+        return res.status(201).json({ message: 'Plano criado com sucesso.', userPlan });
+    } catch (error) {
+        console.error('Erro ao criar plano:', error);
+        return res.status(500).json({ error: 'Erro ao criar plano.' });
+    }
+};
+
+// adicionar planos extras, se ja tem plano basico
+exports.addUserExtras = async (req, res) => {
+    const userId = req.user.id;
+    const { extras } = req.body;
+
+    try {
+        // Verifica se o usuário possui um plano básico
+        const existingPlan = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { plan: true },
+        });           
+        if (existingPlan && existingPlan.plan) {
+            return res.status(400).json({ error: 'Você já possui um plano básico.' });
+        }
+
+        // Adiciona os planos extras ao usuário
+        if (extras && extras.length > 0) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    extraPlans: {
+                        connect: extras.map((extraId) => ({ id: extraId })),
+                    },
+                },
+            });
+        }
+
+        return res.status(200).json({ message: 'Planos extras adicionados com sucesso.' });
+    } catch (error) {
+        console.error('Erro ao adicionar planos extras:', error);
+        return res.status(500).json({ error: 'Erro ao adicionar planos extras.' });
     }
 };
 

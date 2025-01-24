@@ -23,12 +23,23 @@ model User {
   companyCity       String?
   companyState      String?
   companyBio        String?
+  basePoints        Int                @default(0)
+  planId            Int?
+  points            Int                @default(0)
+  profileVisibility Boolean            @default(true)
+  rank              Int?
+  temporaryPoints   Int                @default(0)
+  totalPoints       Int                @default(0)
   companion         Companion?
   conveniosCriados  Convenio[]
   denunciasFeitas   Denuncia[]         @relation("UserDenunciasFeitas")
   payments          Payment[]
   planSubscriptions PlanSubscription[]
   reviews           Review[]
+  Top10             Top10?
+  plan              Plan?              @relation(fields: [planId], references: [id])
+  extraPlans        ExtraPlan[]        @relation("UserExtraPlans")
+  planTypes         PlanType[]         @relation("UserPlanTypes")
 }
 
 model Companion {
@@ -66,17 +77,54 @@ model Companion {
   servicosGerais     ServicosGeraisCompanion[]
 }
 
+model PlanType {
+  id                Int     @id @default(autoincrement())
+  name              String  @unique
+  size              String
+  isOnline          Boolean @default(true)
+  accessDashboard   Boolean @default(false)
+  accessMetrics     Boolean @default(false)
+  accessConvenio    Boolean @default(false)
+  points            Int     @default(0)
+  cityChangeAllowed Boolean @default(true)
+  cityChangeFee     Float
+  isDarkMode        Boolean @default(false)
+  duration          Int?
+  users             User[]  @relation("UserPlanTypes")
+}
+
+model ExtraPlan {
+  id               Int     @id @default(autoincrement())
+  name             String  @unique
+  description      String
+  isTemporary      Boolean @default(false)
+  duration         Int?
+  pointsBonus      Int     @default(0)
+  tempPoints       Int     @default(0)
+  isEnabled        Boolean @default(true)
+  hasContact       Boolean @default(false)
+  canHideAge       Boolean @default(false)
+  hasPublicReviews Boolean @default(false)
+  hasDarkMode      Boolean @default(false)
+  hasStories       Boolean @default(false)
+
+  // Relação com User (muitos para muitos)
+  users User[] @relation("UserExtraPlans")
+}
+
 model Plan {
   id                Int                @id @default(autoincrement())
-  name              String
+  name              String             @unique
   price             Float
   description       String?
-  isDarkMode        Boolean            @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  extraPlanId       Int?
+  isBasic           Boolean            @default(false)
   convenios         Convenio[]
   payments          Payment[]
   planSubscriptions PlanSubscription[]
+  User              User[]
 }
 
 model PlanSubscription {
@@ -89,6 +137,16 @@ model PlanSubscription {
   updatedAt DateTime  @updatedAt
   plan      Plan      @relation(fields: [planId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+}
+
+model Top10 {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  points    Int
+  rank      Int
+  userId    Int         @unique
+  Companion Companion[] @relation("Top10Companions")
+  user      User        @relation(fields: [userId], references: [id])
 }
 
 model Convenio {
@@ -110,13 +168,6 @@ model Convenio {
   updatedAt   DateTime        @updatedAt
   createdBy   User            @relation(fields: [createdById], references: [id])
   plan        Plan            @relation(fields: [planId], references: [id])
-}
-
-model Top10 {
-  id         Int         @id @default(autoincrement())
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  companions Companion[] @relation("Top10Companions")
 }
 
 model PaymentMethodCompanion {
