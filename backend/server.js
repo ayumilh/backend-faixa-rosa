@@ -15,22 +15,22 @@ app.use(
   })
 );
 app.use(express.json());
+
+
+// Rotas publicas
 const authRoutes = require('./routes/authRoutes');
+
 app.use('/api/auth', authRoutes);
-
-app.use(authenticate);
-
-//  routes
-const verifyToken = require('./routes/utils/utils.js');
-const plansRoutes = require('./routes/plansRoutes.js');
-const companionRoutes = require('./routes/companionRoutes.js');
-
-
-// Rotas
 app.get('/', (req, res) => {
   res.send('API funcionando!');
 });
 
+app.use(authenticate);
+
+// Rotas privadas
+const verifyToken = require('./routes/utils/utils.js');
+const plansRoutes = require('./routes/plansRoutes.js');
+const companionRoutes = require('./routes/companionRoutes.js');
 
 app.use('/api/', verifyToken);
 app.use('/api/plans', plansRoutes);
