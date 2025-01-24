@@ -92,7 +92,7 @@ model PlanType {
   duration          Int?
   users             User[]  @relation("UserPlanTypes")
 
-  Plan Plan[]
+  plans             Plan[]  // Relacionamento bidirecional
 }
 
 model ExtraPlan {
@@ -122,13 +122,15 @@ model Plan {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   extraPlanId       Int?
-  planTypeId        Int?
   isBasic           Boolean            @default(false)
+
+  planTypeId        Int?
+  PlanType          PlanType?          @relation(fields: [planTypeId], references: [id])  // mudei o extraPlanId, ver se quebra algo no seed de planos, verificar a criação do plano NItro basico para o extra
+  
   convenios         Convenio[]
   payments          Payment[]
   planSubscriptions PlanSubscription[]
   User              User[]
-  PlanType          PlanType?          @relation(fields: [extraPlanId], references: [id])
 }
 
 model PlanSubscription {
