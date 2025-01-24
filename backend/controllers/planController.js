@@ -41,7 +41,7 @@ exports.listUserPlans = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const userPlans = await prisma.plan.findUnique({
+        const userPlans = await prisma.user.findUnique({
             where: { id: userId },
             include: {
                 plan:{
