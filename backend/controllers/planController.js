@@ -133,7 +133,7 @@ exports.createUserPlan = async (req, res) => {
 
         // Verifica se o usuário já possui um plano básico
         const existingPlan = await prisma.plan.findFirst({
-            where: { userId },
+            where: { id: userId },
         });
         if (existingPlan) {
             return res.status(400).json({ error: 'Você já possui um plano básico.' });
