@@ -16,8 +16,8 @@ const userSchema = Joi.object({
     phone: Joi.string().length(11).required(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
-    .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA') 
-    .required(),
+        .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA')
+        .required(),
 });
 
 const loginSchema = userSchema.fork(['firstName', 'lastName', 'cpf', 'phone', 'userType'], (schema) => schema.optional());
@@ -92,8 +92,8 @@ exports.login = async (req, res) => {
                 user = await prisma.user.create({
                     data: {
                         email,
-                        firstName,
-                        lastName,
+                        firstName: '',  // Pode ser vazio ou preenchido posteriormente
+                        lastName: '',       // Pode ser vazio ou preenchido posteriormente
                         password: '', // Pode ser vazio, pois o login é feito pelo Google
                         cpf: '', // Pode ser vazio ou preenchido posteriormente
                         phone: '', // Pode ser vazio ou preenchido posteriormente
