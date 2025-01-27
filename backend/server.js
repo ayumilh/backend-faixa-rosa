@@ -29,10 +29,12 @@ app.use(authenticate);
 
 // Rotas privadas
 const verifyToken = require('./routes/utils/utils.js');
+const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
 
 app.use('/api/', verifyToken);
+app.use('/api/users/', userRoutes);
 app.use('/api/plans', plansRoutes);
 app.use('/api/companions', companionRoutes);
 
