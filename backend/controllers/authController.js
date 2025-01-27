@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
 
         const { email, password, googleLogin } = value;
 
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
             where: { email },
         });
 
@@ -111,12 +111,6 @@ exports.login = async (req, res) => {
             if (!passwordMatch) {
                 return res.status(401).json({ error: 'Credenciais inválidas' });
             }
-        }
-
-        // Verifica se a senha está correta
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch) {
-            return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
         const token = jwt.sign(
