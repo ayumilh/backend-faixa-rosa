@@ -8,12 +8,12 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET
 
 const userSchema = Joi.object({
-    firstName: Joi.string().max(50).required(),
-    lastName: Joi.string().max(100).required(),
+    firstName: Joi.string().max(50).optional(),
+    lastName: Joi.string().max(100).optional(),
     email: Joi.string().email().max(320).required(),
     password: Joi.string().max(64).optional(),
-    cpf: Joi.string().length(11).required(),
-    phone: Joi.string().length(11).required(),
+    cpf: Joi.string().length(11).optional(),
+    phone: Joi.string().length(11).optional(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
         .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA')
