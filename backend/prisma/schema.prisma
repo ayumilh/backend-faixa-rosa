@@ -9,12 +9,12 @@ datasource db {
 
 model User {
   id                Int                @id @default(autoincrement())
-  firstName         String
-  lastName          String
-  email             String             @unique
-  password          String
-  cpf               String             @unique
-  phone             String
+  firstName         String?            @default("") @db.VarChar(50)
+  lastName          String?            @default("") @db.VarChar(100)
+  email             String             @unique @db.VarChar(320)
+  password          String?            @default("") @db.VarChar(64)
+  cpf               String?            @default("") @unique @db.VarChar(11)
+  phone             String?            @default("") @db.VarChar(11)
   userType          UserType           @default(CONTRATANTE)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
