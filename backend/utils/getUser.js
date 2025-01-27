@@ -9,6 +9,9 @@ const prisma = new PrismaClient();
 const getUserIdBd = async (req, res) => {
     try {
         const userid = parseInt(GetUserId());
+        if (isNaN(userid)) {
+            return res.status(400).json({ message: 'ID de usuário inválido.' });
+        }
         console.log(userid);
         const user = await prisma.user.findUnique({
             where: { id: userid },
