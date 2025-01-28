@@ -8,19 +8,17 @@ const prisma = new PrismaClient();
 // Get User por Id no Banco
 const getUserIdBd = async (req, res) => {
     try {
-        const userid = parseInt(GetUserId());
-        console.log(userid);
-        if (isNaN(userid)) {
+        const userid = req.user.id;
+
+        if (!userid || isNaN(userid)) {
             return res.status(400).json({ message: 'ID de usuário inválido.' });
         }
-        console.log(userid);
+
         const user = await prisma.user.findUnique({
             where: { id: userid },
         });
 
-        if (!user) {
-            return res.status(404).json({ message: 'Usuário não encontrado.' });
-        }
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
 
         res.status(200).json({ user });
     } catch (error) {
