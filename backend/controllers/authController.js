@@ -95,7 +95,7 @@ exports.login = async (req, res) => {
                         firstName: '',  // Pode ser vazio ou preenchido posteriormente
                         lastName: '',       // Pode ser vazio ou preenchido posteriormente
                         password: '', // Pode ser vazio, pois o login é feito pelo Google
-                        cpf: '', // Pode ser vazio ou preenchido posteriormente
+                        cpf: null, // Pode ser vazio ou preenchido posteriormente
                         phone: '', // Pode ser vazio ou preenchido posteriormente
                         userType: 'CONTRATANTE', // Tipo de usuário padrão
                     },
