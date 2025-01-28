@@ -220,6 +220,7 @@ exports.finalizePlan = async (req, res) => {
     const userId = req.user?.id; // ID do usuário autenticado
 
     console.log('ID da assinatura:', subscriptionId);
+    console.log('ID do usuário:', userId);
 
     // Valida o ID da assinatura
     if (!subscriptionId || isNaN(subscriptionId)) {
@@ -234,12 +235,13 @@ exports.finalizePlan = async (req, res) => {
                 userId: userId,
             },
         });
+        console.log('Assinatura:', subscription);
 
         if (!subscription) {
             console.error('Assinatura não encontrada ou já finalizada:', { subscriptionId, userId });
             return res.status(404).json({ error: 'Assinatura não encontrada ou já finalizada.' });
         }
-        
+
         // Valida manualmente o estado ativo
         if (subscription.endDate !== null) {
             return res.status(400).json({ error: "Assinatura já finalizada." });
@@ -250,6 +252,7 @@ exports.finalizePlan = async (req, res) => {
             where: { id: subscriptionId },
             data: { endDate: new Date() },
         });
+        console.log('Assinatura finalizada:', updatedSubscription);
 
         return res.status(200).json({ message: 'Assinatura finalizada com sucesso.', updatedSubscription });
     } catch (error) {
