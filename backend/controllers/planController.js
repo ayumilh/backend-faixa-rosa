@@ -232,13 +232,17 @@ exports.finalizePlan = async (req, res) => {
             where: {
                 id: subscriptionId,
                 userId: userId,
-                endDate: null, // Somente assinaturas ativas
             },
         });
 
         if (!subscription) {
             console.error('Assinatura não encontrada ou já finalizada:', { subscriptionId, userId });
             return res.status(404).json({ error: 'Assinatura não encontrada ou já finalizada.' });
+        }
+        
+        // Valida manualmente o estado ativo
+        if (subscription.endDate !== null) {
+            return res.status(400).json({ error: "Assinatura já finalizada." });
         }
 
         // Atualiza a assinatura para definir a data de término
