@@ -243,7 +243,7 @@ exports.finalizePlan = async (req, res) => {
 
         // Atualiza a assinatura para definir a data de término
         const updatedSubscription = await prisma.planSubscription.update({
-            where: { id: parseInt(subscriptionId) },
+            where: { id: subscriptionId },
             data: { endDate: new Date() },
         });
 
