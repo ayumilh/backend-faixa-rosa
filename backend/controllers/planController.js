@@ -84,7 +84,7 @@ exports.subscribeToPlan = async (req, res) => {
 
         // Verifica se o plano existe
         const plan = await prisma.plan.findUnique({
-            where: { id: parseInt(planId) },
+            where: { id: planId },
         });
 
         if (!plan) {
@@ -113,6 +113,14 @@ exports.subscribeToPlan = async (req, res) => {
             },
             include: {
                 plan: true, // Inclui detalhes do plano na resposta
+            },
+        });
+
+        // Atualiza o campo `planId` no usuário
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                planId: planId,
             },
         });
 
@@ -182,7 +190,7 @@ exports.addUserExtras = async (req, res) => {
         const existingPlan = await prisma.user.findUnique({
             where: { id: userId },
             select: { plan: true },
-        });           
+        });
         if (existingPlan && existingPlan.plan) {
             return res.status(400).json({ error: 'Você já possui um plano básico.' });
         }
