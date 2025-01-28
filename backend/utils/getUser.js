@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 const getUserIdBd = async (req, res) => {
     try {
         const userid = parseInt(GetUserId());
+        console.log(userid);
         if (isNaN(userid)) {
             return res.status(400).json({ message: 'ID de usuário inválido.' });
         }

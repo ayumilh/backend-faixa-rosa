@@ -2,8 +2,11 @@ let userId = ''
 
 exports.userId = async (req, res) => {
     try {
+        console.log(req.body.userid)
         //recebendo userid do front end
         const saveUserid = req.body.userid;
+
+        console.log(saveUserid)
 
         userId = saveUserid;
 
