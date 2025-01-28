@@ -230,13 +230,14 @@ exports.finalizePlan = async (req, res) => {
         // Verifica se a assinatura existe e pertence ao usuário autenticado
         const subscription = await prisma.planSubscription.findFirst({
             where: {
-                id: parseInt(subscriptionId),
+                id: subscriptionId,
                 userId: userId,
                 endDate: null, // Somente assinaturas ativas
             },
         });
 
         if (!subscription) {
+            console.error('Assinatura não encontrada ou já finalizada:', { subscriptionId, userId });
             return res.status(404).json({ error: 'Assinatura não encontrada ou já finalizada.' });
         }
 
