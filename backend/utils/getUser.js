@@ -1,8 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config();
 const { PrismaClient } = require('@prisma/client');
-const { GetUserId } = require('./verifyToken.js');
-
 const prisma = new PrismaClient();
 
 // Get User por Id no Banco
