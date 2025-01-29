@@ -25,14 +25,21 @@ const validarCpf = async (cpf) => {
             console.log("CPF inválido");
         }
 
+        // Convertendo a data de nascimento
         const nascimento = new Date(dados.data_nascimento);
         const hoje = new Date();
-        const idade = hoje.getFullYear() - nascimento.getFullYear();
-        const mes = hoje.getMonth() - nascimento.getMonth();
-        const dia = hoje.getDate() - nascimento.getDate();
 
-        const maiorDeIdade =
-            idade > 18 || (idade === 18 && (mes > 0 || (mes === 0 && dia >= 0)));
+        // Cálculo correto da idade
+        let idade = hoje.getFullYear() - nascimento.getFullYear();
+        const aniversarioNaoOcorrido =
+            hoje.getMonth() < nascimento.getMonth() ||
+            (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
+
+        if (aniversarioNaoOcorrido) {
+            idade--; // Se o aniversário ainda não ocorreu este ano, diminui a idade
+        }
+
+        const maiorDeIdade = idade >= 18;
 
         return {
             nome: dados.nome,
