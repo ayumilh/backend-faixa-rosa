@@ -6,7 +6,7 @@ exports.verificarCPF = async (req, res) => {
     }
 
     try {
-        const { cpf } = req.body;
+        const { cpf } = req.params;
         console.log(cpf);
 
         const resultado = await validarCpf(cpf);
