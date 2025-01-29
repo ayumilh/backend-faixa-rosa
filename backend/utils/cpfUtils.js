@@ -43,4 +43,4 @@ const validarCpf = async (cpf) => {
     }
 };
 
-module.exports = validarCpf;
+module.exports = { validarCpf };

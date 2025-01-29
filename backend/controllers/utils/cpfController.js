@@ -1,6 +1,6 @@
-import { validarCpf } from ".../../../utils/cpfUtils";
+const { validarCpf } = require("../../utils/cpfUtils");
 
-async function verificarCPF(req, res) {
+exports.verificarCPF = async (req, res) => {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Método não permitido" });
       }
@@ -13,5 +13,3 @@ async function verificarCPF(req, res) {
         return res.status(500).json({ error: error.message });
       }
 }
-
-module.exports = { verificarCPF };
