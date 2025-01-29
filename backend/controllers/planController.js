@@ -252,7 +252,12 @@ exports.finalizePlan = async (req, res) => {
             where: { id: subscriptionId },
             data: { endDate: new Date() },
         });
-        console.log('Assinatura finalizada:', updatedSubscription);
+
+        // Limpa o campo `planId` no usuário
+        await prisma.user.update({
+            where: { id: userId },
+            data: { planId: null },
+        });
 
         return res.status(200).json({ message: 'Assinatura finalizada com sucesso.', updatedSubscription });
     } catch (error) {
