@@ -1,4 +1,4 @@
-const { validarCPF, verificarCPFNaAPI } = require('../utils/cpfUtils');
+const { validarCPF, verificarCPFNaAPI } = require('../../utils/cpfUtils');
 
 async function verificarCPF(req, res) {
     const { cpf } = req.params;
