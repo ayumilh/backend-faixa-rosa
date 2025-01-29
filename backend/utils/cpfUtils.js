@@ -1,39 +1,46 @@
-const axios = require('axios');
+const axios = require("axios");
 
-/**
- * Função para validar CPF localmente sem chamar API externa.
- */
-function validarCPF(cpf) {
-    cpf = cpf.replace(/\D/g, ''); // Remove caracteres não numéricos
-    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+const validarCpf = async (cpf) => {
+    const API_KEY = process.env.NEXT_PUBLIC_HUB_API_KEY;
 
-    let soma = 0, resto;
-    for (let i = 1; i <= 9; i++) soma += parseInt(cpf.charAt(i - 1)) * (11 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    if (resto !== parseInt(cpf.charAt(9))) return false;
-
-    soma = 0;
-    for (let i = 1; i <= 10; i++) soma += parseInt(cpf.charAt(i - 1)) * (12 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-
-    return resto === parseInt(cpf.charAt(10));
-}
-
-/**
- * Função para calcular idade com base na data de nascimento.
- */
-function calcularIdade(dataNascimento) {
-    const hoje = new Date();
-    const nascimento = new Date(dataNascimento);
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const mes = hoje.getMonth() - nascimento.getMonth();
-    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-        idade--;
+    if (!cpf) {
+        console.log("CPF não informado");
     }
-    return idade;
-}
 
+    try {
+        const response = await axios.get(
+            `https://www.hubdodesenvolvedor.com.br/api/cpf/${cpf}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${API_KEY}`,
+                },
+            }
+        );
 
-module.exports = { validarCPF, calcularIdade };
+        const dados = response.data;
+
+        if (!dados.data_nascimento) {
+            console.log("CPF inválido");
+        }
+
+        const nascimento = new Date(dados.data_nascimento);
+        const hoje = new Date();
+        const idade = hoje.getFullYear() - nascimento.getFullYear();
+        const mes = hoje.getMonth() - nascimento.getMonth();
+        const dia = hoje.getDate() - nascimento.getDate();
+
+        const maiorDeIdade =
+            idade > 18 || (idade === 18 && (mes > 0 || (mes === 0 && dia >= 0)));
+
+        return {
+            nome: dados.nome,
+            cpf: dados.cpf,
+            data_nascimento: dados.data_nascimento,
+            maior_de_idade: maiorDeIdade,
+        };
+    } catch {
+        return null
+    }
+};
+
+module.exports = validarCpf;
