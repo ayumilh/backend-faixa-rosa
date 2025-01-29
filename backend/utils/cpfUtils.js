@@ -1,21 +1,23 @@
 const axios = require("axios");
 
 const validarCpf = async (cpf) => {
+    const API_URL = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/`;
     const API_KEY = process.env.NEXT_PUBLIC_HUB_API_KEY;
 
     if (!cpf) {
         console.log("CPF não informado");
     }
 
+    console.log(`Consultando o CPF ${cpf}`);
+    console.log(`API_KEY: ${API_KEY}`);
+
     try {
-        const response = await axios.get(
-            `https://www.hubdodesenvolvedor.com.br/api/cpf/${cpf}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${API_KEY}`,
-                },
-            }
-        );
+        const response = await axios.get(API_URL, {
+            params: {
+                cpf: cpf,
+                token: API_KEY,
+            },
+        });
 
         const dados = response.data;
 
