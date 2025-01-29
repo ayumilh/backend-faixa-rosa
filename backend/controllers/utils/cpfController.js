@@ -3,13 +3,15 @@ const { validarCpf } = require("../../utils/cpfUtils");
 exports.verificarCPF = async (req, res) => {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Método não permitido" });
-      }
-    
-      try {
+    }
+
+    try {
         const { cpf } = req.body;
+        console.log(cpf);
+        
         const resultado = await validarCpf(cpf);
         return res.status(200).json(resultado);
-      } catch (error) {
+    } catch (error) {
         return res.status(500).json({ error: error.message });
-      }
+    }
 }
