@@ -23,7 +23,8 @@ const validarCpf = async (cpf) => {
 
         if (!dados.data_nascimento) {
             console.log("CPF inválido");
-        }
+        } 
+        console.log(dados.data_nascimento);
 
         // Convertendo a data de nascimento
         const nascimento = new Date(dados.data_nascimento);
