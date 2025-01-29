@@ -1,4 +1,4 @@
-const { validarCPF, verificarCPFNaAPI } = require('../../utils/cpfUtils');
+const { validarCPF, calcularIdade } = require('../../utils/cpfUtils');
 
 async function verificarCPF(req, res) {
     const { cpf } = req.params;
@@ -12,14 +12,16 @@ async function verificarCPF(req, res) {
 
     const cpfLimpo = cpf.replace(/\D/g, ''); // Remove caracteres não numéricos
 
+    // Valida o CPF apenas pelo algoritmo local (não verifica na Receita Federal)
     if (!validarCPF(cpfLimpo)) {
         return res.status(400).json({ sucesso: false, mensagem: "CPF inválido" });
     }
 
-    // Passando o CPF e o token do usuário autenticado para a API externa
-    const resultado = await verificarCPFNaAPI(cpfLimpo, req.user.token);
-
-    return res.json(resultado);
+    return res.json({ 
+        sucesso: true, 
+        cpf: cpfLimpo, 
+        mensagem: "CPF válido pelo algoritmo local"
+    });
 }
 
 module.exports = { verificarCPF };

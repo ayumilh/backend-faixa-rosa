@@ -35,25 +35,5 @@ function calcularIdade(dataNascimento) {
     return idade;
 }
 
-/**
- * Função para verificar CPF na API externa e calcular a idade.
- */
-async function verificarCPFNaAPI(cpf) {
-    try {
-        const response = await axios.get(`https://api-de-validacao.com/cpf/${cpf}`);
-        const dataNascimento = response.data.nascimento; // Retorna algo como "2000-05-10"
 
-        return {
-            sucesso: true,
-            cpf,
-            existe: true,
-            maiorDeIdade: calcularIdade(dataNascimento) >= 18,
-            idade: calcularIdade(dataNascimento)
-        };
-
-    } catch (error) {
-        return { sucesso: false, mensagem: "CPF inexistente ou erro na API" };
-    }
-}
-
-module.exports = { validarCPF, calcularIdade, verificarCPFNaAPI };
+module.exports = { validarCPF, calcularIdade };
