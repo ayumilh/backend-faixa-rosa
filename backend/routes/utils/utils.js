@@ -4,7 +4,7 @@ const cpfController = require('../../controllers/utils/cpfController.js');
 const router = express.Router();
 
 router.post('/userId', verifyToken.userId);
-router.get('/verify-cpf/:cpf', cpfController.verificarCPF);
+router.post('/verify-cpf/', cpfController.verificarCPF);
 
 
 module.exports = router;

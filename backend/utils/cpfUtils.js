@@ -1,35 +1,30 @@
 const axios = require("axios");
 
-const validarCpf = async (cpf) => {
+const validarCpf = async (cpf, data_nascimento) => {
     const API_URL = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/`;
     const API_KEY = process.env.NEXT_PUBLIC_HUB_API_KEY;
 
-    if (!cpf) {
+    if (!cpf || cpf.length !== 11 || !data_nascimento) {
         console.log("CPF não informado");
     }
 
-    console.log(`Consultando o CPF ${cpf}`);
-    console.log(`API_KEY: ${API_KEY}`);
+    console.log("Nascimento: ", data_nascimento);
 
     try {
         const response = await axios.get(API_URL, {
             params: {
                 cpf: cpf,
+                data: data_nascimento,
                 token: API_KEY,
             },
         });
 
         const dados = response.data;
-
-        console.log(dados);
-
-        if (!dados.data_nascimento) {
-            console.log("CPF inválido");
-        } 
-        console.log(dados.data_nascimento);
+        console.log("Dados: ", dados);
 
         // Convertendo a data de nascimento
-        const nascimento = new Date(dados.data_nascimento);
+        const nascimentoConvertido = dados.result.data_nascimento.split('/').reverse().join('-');
+        const nascimento = new Date(nascimentoConvertido);
         const hoje = new Date();
 
         // Cálculo correto da idade
@@ -45,9 +40,9 @@ const validarCpf = async (cpf) => {
         const maiorDeIdade = idade >= 18;
 
         return {
-            nome: dados.nome,
-            cpf: dados.cpf,
-            data_nascimento: dados.data_nascimento,
+            nome: dados.result.nome_da_pf,
+            cpf: dados.result.numero_de_cpf,
+            data_nascimento: dados.result.data_nascimento,
             maior_de_idade: maiorDeIdade,
         };
     } catch {
