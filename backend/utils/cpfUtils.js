@@ -19,6 +19,8 @@ const validarCpf = async (cpf) => {
 
         const dados = response.data;
 
+        console.log(dados);
+
         if (!dados.data_nascimento) {
             console.log("CPF inválido");
         }
