@@ -62,10 +62,9 @@ exports.addPhysicalCharacteristics = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-        if (!gender) return res.status(400).json({ error: 'O campo "gender" é obrigatório.' });
 
         const validData = {
-            gender,
+            gender: gender || null,
             genitalia: genitalia || null,
             weight: weight ?? null,
             height: height ?? null,
