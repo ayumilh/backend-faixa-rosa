@@ -7,7 +7,7 @@ const {
     updateCompanionServices,
     updateCompanionSchedule,
     updateCompanionLocation,
-    updateCompanionFinance,
+    updateCompanionFinanceAndServices,
     listCompanions,
     deleteCompanion
 } = require('../controllers/companionController');
@@ -21,7 +21,7 @@ router.put('/update-contact', updateCompanionContact);
 router.put('/update-services', updateCompanionServices);
 router.put('/update-schedule', updateCompanionSchedule);
 router.put('/update-location', updateCompanionLocation);
-router.put('/update-finance', updateCompanionFinance);
+router.put('/update-finance', updateCompanionFinanceAndServices);
 router.get('/list', listCompanions);
 router.delete('/delete/:id', deleteCompanion);
 

@@ -234,7 +234,7 @@ exports.updateCompanionSchedule = async (req, res) => {
     }
 };
 
-// Atualizar Cidade e Estado
+// Atualizar Cidade e Estado onde a acompanhante atende
 exports.updateCompanionLocation = async (req, res) => {
     const userId = req.user?.id;
     const { city, state } = req.body;
@@ -253,34 +253,50 @@ exports.updateCompanionLocation = async (req, res) => {
     }
 };
 
-// Adicionar Dados Financeiros
-exports.updateCompanionFinance = async (req, res) => {
+// Adicionar Dados Financeiros e Serviços Oferecidos
+exports.updateCompanionFinanceAndServices = async (req, res) => {
     const userId = req.user?.id;
-    const { paymentMethods } = req.body; // Array [{ type: "PIX" }]
+    const { paymentMethods, services } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
 
-        await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
+        // Atualizar formas de pagamento
+        if (paymentMethods) {
+            await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
 
-        const payments = paymentMethods.map(method => ({
-            companionId: companion.id,
-            paymentMethod: method
-        }));
+            const paymentData = paymentMethods.map((method) => ({
+                companionId: companion.id,
+                paymentMethod: method,
+            }));
 
-        await prisma.paymentMethodCompanion.createMany({ data: payments });
+            await prisma.paymentMethodCompanion.createMany({ data: paymentData });
+        }
 
-        return res.status(200).json({ message: 'Dados financeiros cadastrados com sucesso.' });
+        // Atualizar serviços oferecidos
+        if (services) {
+            await prisma.serviceCompanion.deleteMany({ where: { companionId: companion.id } });
+            
+            const serviceData = services.map((service) => ({
+                companionId: companion.id,
+                serviceId: service.id, // Relaciona com a tabela Service
+                isOffered: service.isOffered, // Indica se o serviço é oferecido ou não
+                price: service.price || null, // Preço opcional
+            }));
 
+            await prisma.serviceCompanion.createMany({ data: serviceData });
+        }
+
+        return res.status(200).json({ message: 'Dados financeiros e serviços atualizados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao cadastrar dados financeiros:', error);
+        console.error('Erro ao atualizar dados financeiros e serviços:', error);
         return res.status(500).json({ error: 'Erro ao processar os dados.' });
     }
 };
-
-
 
 // Excluir um acompanhante
 exports.deleteCompanion = async (req, res) => {
