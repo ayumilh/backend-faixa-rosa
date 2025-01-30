@@ -57,6 +57,9 @@ exports.addPhysicalCharacteristics = async (req, res) => {
         hasPiercings, smoker, pubis, bodyType, breastType
     } = req.body;
 
+    console.log(req.body);
+
+
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
