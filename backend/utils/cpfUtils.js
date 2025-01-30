@@ -21,11 +21,11 @@ const validarCpf = async (cpf, data_nascimento) => {
         console.log("Dados: ", dados);
 
         if (!dados.result || !dados.result.data_nascimento) {
-            return { error: "CPF não encontrado ou inválido." };
+            return res.status(400).json({ error: "CPF inválido." });
         }
 
         if (dados.result.data_nascimento !== data_nascimento) {
-            return { error: "Data de nascimento não confere." };
+            return res.status(400).json({ error: "Data de nascimento inválida." });
         }
 
         // Convertendo a data de nascimento
