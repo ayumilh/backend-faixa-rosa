@@ -13,6 +13,7 @@ model User {
   lastName          String?            @default("") @db.VarChar(100)
   email             String             @unique @db.VarChar(320)
   password          String?            @default("") @db.VarChar(64)
+  birthDate         DateTime?          @db.Date
   cpf               String?            @unique @db.VarChar(11)
   phone             String?            @default("") @db.VarChar(11)
   userType          UserType           @default(CONTRATANTE)
@@ -31,52 +32,20 @@ model User {
   temporaryPoints   Int                @default(0)
   totalPoints       Int                @default(0)
   companion         Companion?
+  Top10             Top10?
+
+  // Relacionamentos
   conveniosCriados  Convenio[]
   denunciasFeitas   Denuncia[]         @relation("UserDenunciasFeitas")
   payments          Payment[]
   planSubscriptions PlanSubscription[]
   reviews           Review[]
-  Top10             Top10?
   plan              Plan?              @relation(fields: [planId], references: [id])
   extraPlans        ExtraPlan[]        @relation("UserExtraPlans")
   planTypes         PlanType[]         @relation("UserPlanTypes")
 }
 
-model Companion {
-  id                 Int                          @id @default(autoincrement())
-  userId             Int                          @unique
-  name               String
-  age                Int
-  description        String
-  city               String
-  state              String
-  status             String
-  lastOnline         DateTime
-  points             Int                          @default(0)
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
-  top10Id            Int?
-  ageCategories      AgeCategoryCompanion[]
-  atendimentos       AtendimentoCompanion[]
-  cabelos            CabeloCompanion[]
-  top10              Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
-  user               User                         @relation(fields: [userId], references: [id])
-  contactMethods     ContactMethodCompanion[]
-  corpos             CorpoCompanion[]
-  denunciasRecebidas Denuncia[]                   @relation("CompanionDenunciasRecebidas")
-  estaturas          EstaturaCompanion[]
-  etnias             EtniaCompanion[]
-  feedPosts          FeedPost[]
-  lugares            LugarCompanion[]
-  media              Media[]
-  paymentMethods     PaymentMethodCompanion[]
-  pubis              PubisCompanion[]
-  reviews            Review[]
-  seios              SeiosCompanion[]
-  servicosEspeciais  ServicosEspeciaisCompanion[]
-  servicosGerais     ServicosGeraisCompanion[]
-}
-
+// PLANOS
 model PlanType {
   id                Int     @id @default(autoincrement())
   name              String  @unique
@@ -145,6 +114,119 @@ model PlanSubscription {
   user      User      @relation(fields: [userId], references: [id])
 }
 
+// MODELOS DE DADOS DE ACOMPANHANTES
+model Companion {
+  id                 Int                          @id @default(autoincrement())
+  userId             Int                          @unique
+  name               String
+  age                Int                          @default(0)
+  description        String
+  city               String
+  state              String
+  status             String
+  lastOnline         DateTime
+  points             Int                          @default(0)
+  top10Id            Int?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+
+  // relacionamentos
+  top10              Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
+  user               User                         @relation(fields: [userId], references: [id])
+  PhysicalCharacteristics PhysicalCharacteristics[]
+  atendimentos       ServiceCompanion[]
+  contactMethods     ContactMethodCompanion[]
+  lugares            LugarCompanion[]
+  paymentMethods     PaymentMethodCompanion[]
+  servicosEspeciais  ServicosEspeciaisCompanion[]
+  servicosGerais     ServicosGeraisCompanion[]
+  ageCategories      AgeCategoryCompanion[]
+  feedPosts          FeedPost[]
+  media              Media[]
+  reviews            Review[]
+  denunciasRecebidas Denuncia[]                   @relation("CompanionDenunciasRecebidas")
+}
+
+model ContactMethodCompanion {
+  id            Int           @id @default(autoincrement())
+  companionId   Int
+  contactMethod ContactMethod
+  details       String
+
+  companion     Companion     @relation(fields: [companionId], references: [id])
+}
+
+model ServiceCompanion {
+  id          Int         @id @default(autoincrement())
+  companionId Int
+  atendimento Atendimento
+
+  companion   Companion   @relation(fields: [companionId], references: [id])
+}
+
+model PaymentMethodCompanion {
+  id            Int           @id @default(autoincrement())
+  companionId   Int
+  paymentMethod PaymentMethod
+
+  companion     Companion     @relation(fields: [companionId], references: [id])
+}
+
+model PhysicalCharacteristics {
+  id           Int       @id @default(autoincrement())
+  companionId  Int       @unique
+  gender       String
+  genitalia    String
+  weight       Float
+  height       Int
+  estatura     Estatura
+  ethnicity    Etnia
+  eyeColor     String
+  hairStyle    Cabelo
+  hairLength   String
+  shoeSize     Int
+  hasSilicone  Boolean
+  hasTattoos   Boolean
+  hasPiercings Boolean
+  smoker       Boolean
+  pubis        Pubis
+  bodyType     Corpo
+  breastType   Seios
+
+  companion    Companion  @relation(fields: [companionId], references: [id])
+}
+
+model AgeCategoryCompanion {
+  id          Int          @id @default(autoincrement())
+  companionId Int
+  ageCategory AgeCategory
+
+  companion   Companion    @relation(fields: [companionId], references: [id])
+}
+
+model ServicosGeraisCompanion {
+  id          Int            @id @default(autoincrement())
+  companionId Int
+  servico     ServicosGerais
+  companion   Companion      @relation(fields: [companionId], references: [id])
+}
+
+model ServicosEspeciaisCompanion {
+  id          Int               @id @default(autoincrement())
+  companionId Int
+  servico     ServicosEspeciais
+  companion   Companion         @relation(fields: [companionId], references: [id])
+}
+
+model LugarCompanion {
+  id          Int       @id @default(autoincrement())
+  companionId Int
+  lugar       Lugar
+  companion   Companion @relation(fields: [companionId], references: [id])
+}
+
+// 
 model Top10 {
   id        Int         @id @default(autoincrement())
   createdAt DateTime    @default(now())
@@ -174,97 +256,6 @@ model Convenio {
   updatedAt   DateTime        @updatedAt
   createdBy   User            @relation(fields: [createdById], references: [id])
   plan        Plan            @relation(fields: [planId], references: [id])
-}
-
-model PaymentMethodCompanion {
-  id            Int           @id @default(autoincrement())
-  companionId   Int
-  paymentMethod PaymentMethod
-  companion     Companion     @relation(fields: [companionId], references: [id])
-}
-
-model AgeCategoryCompanion {
-  id          Int         @id @default(autoincrement())
-  companionId Int
-  ageCategory AgeCategory
-  companion   Companion   @relation(fields: [companionId], references: [id])
-}
-
-model AtendimentoCompanion {
-  id          Int         @id @default(autoincrement())
-  companionId Int
-  atendimento Atendimento
-  companion   Companion   @relation(fields: [companionId], references: [id])
-}
-
-model ContactMethodCompanion {
-  id            Int           @id @default(autoincrement())
-  companionId   Int
-  contactMethod ContactMethod
-  companion     Companion     @relation(fields: [companionId], references: [id])
-}
-
-model EtniaCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  etnia       Etnia
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model CabeloCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  cabelo      Cabelo
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model EstaturaCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  estatura    Estatura
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model CorpoCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  corpo       Corpo
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model SeiosCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  seios       Seios
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model PubisCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  pubis       Pubis
-  companion   Companion @relation(fields: [companionId], references: [id])
-}
-
-model ServicosGeraisCompanion {
-  id          Int            @id @default(autoincrement())
-  companionId Int
-  servico     ServicosGerais
-  companion   Companion      @relation(fields: [companionId], references: [id])
-}
-
-model ServicosEspeciaisCompanion {
-  id          Int               @id @default(autoincrement())
-  companionId Int
-  servico     ServicosEspeciais
-  companion   Companion         @relation(fields: [companionId], references: [id])
-}
-
-model LugarCompanion {
-  id          Int       @id @default(autoincrement())
-  companionId Int
-  lugar       Lugar
-  companion   Companion @relation(fields: [companionId], references: [id])
 }
 
 model Review {
@@ -338,6 +329,9 @@ model Payment {
   user          User     @relation(fields: [userId], references: [id])
 }
 
+
+
+// ENUMS
 enum UserType {
   CONTRATANTE
   ACOMPANHANTE

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const { PrismaClient } = require('@prisma/client');
+const { calculateAge } = require('../utils/helpers');
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,7 @@ const userSchema = Joi.object({
     lastName: Joi.string().max(100).optional(),
     email: Joi.string().email().max(320).required(),
     password: Joi.string().max(64).optional(),
+    birthDate: Joi.date().iso().optional(),
     cpf: Joi.string().length(11).optional(),
     phone: Joi.string().length(11).optional(),
     googleLogin: Joi.boolean().optional(),
@@ -20,7 +22,7 @@ const userSchema = Joi.object({
         .required(),
 });
 
-const loginSchema = userSchema.fork(['firstName', 'lastName', 'cpf', 'phone', 'userType'], (schema) => schema.optional());
+const loginSchema = userSchema.fork(['firstName', 'lastName', 'birthDate', 'cpf', 'phone', 'userType'], (schema) => schema.optional());
 
 exports.register = async (req, res) => {
     try {
@@ -30,7 +32,7 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: error.details[0].message });
         }
 
-        const { firstName, lastName, email, password, cpf, phone, userType } = value;
+        const { firstName, lastName, email, password, birthDate, cpf, phone, userType } = value;
 
         // Verifica se o email ou CPF já está em uso
         const existingUser = await prisma.user.findFirst({
@@ -43,22 +45,50 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Email ou CPF já está em uso' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
-        // Cria o novo usuário no banco de dados
-        const newUser = await prisma.user.create({
-            data: {
-                firstName,
-                lastName,
-                email,
-                password: hashedPassword,
-                cpf,
-                phone,
-                userType, // Default: CONTRATANTE
-            },
+        // Cria o usuário e o perfil de acompanhante em uma transação
+        const newUser = await prisma.$transaction(async (prisma) => {
+            // Criar o usuário
+            const createdUser = await prisma.user.create({
+                data: {
+                    firstName,
+                    lastName,
+                    email,
+                    password: hashedPassword,
+                    birthDate: birthDate ? new Date(birthDate) : null,
+                    cpf,
+                    phone,
+                    userType,
+                },
+            });
+
+            // Se for acompanhante, criar o perfil na tabela Companion
+            if (userType === 'ACOMPANHANTE') {
+                await prisma.companion.create({
+                    data: {
+                        userId: createdUser.id,
+                        name: `${firstName} ${lastName}`.trim(),
+                        age: birthDate ? calculateAge(birthDate) : 0,
+                        description: '',
+                        city: '',
+                        state: '',
+                        status: 'INCOMPLETO', // Status inicial
+                        lastOnline: new Date(),
+                        points: 0,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    },
+                });
+            }
+
+            return createdUser;
         });
 
-        res.status(201).json({ message: 'Usuário registrado com sucesso', user: { id: newUser.id, email: newUser.email } });
+        res.status(201).json({
+            message: 'Usuário registrado com sucesso',
+            user: { id: newUser.id, email: newUser.email }
+        });
     } catch (error) {
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'Email ou CPF já está em uso' });
@@ -133,5 +163,34 @@ exports.login = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Erro ao realizar login' });
+    }
+};
+
+// Atualiza a data de nascimento do usuário e a idade do acompanhante
+exports.updateBirthDate = async (req, res) => {
+    const userId = req.user?.id;
+    const { birthDate } = req.body;
+
+    try {
+        if (!birthDate) {
+            return res.status(400).json({ error: 'A data de nascimento é obrigatória.' });
+        }
+
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: { birthDate },
+        });
+
+        // Atualiza a idade na tabela Companion
+        await prisma.companion.updateMany({
+            where: { userId },
+            data: { age: calculateAge(birthDate) },
+        });
+
+        return res.status(200).json({ message: 'Data de nascimento e idade atualizadas com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao atualizar data de nascimento:', error);
+        return res.status(500).json({ error: 'Erro ao atualizar os dados.' });
     }
 };

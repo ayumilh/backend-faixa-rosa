@@ -1,118 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// adicionar informações de acompanhante
-exports.addCompanionInfo = async (req, res) => {
-    const {
-        age,
-        description,
-        city,
-        state,
-        status,
-        ageCategories,
-        atendimentos,
-        cabelos,
-        contactMethods,
-        corpos,
-        estaturas,
-        etnias,
-        lugares,
-        paymentMethods,
-        pubis,
-        seios,
-        servicosEspeciais,
-        servicosGerais,
-    } = req.body;
-
-    const userId = req.user?.id; // ID do usuário autenticado
-
-    try {
-        // Verifica se o usuário existe e é do tipo ACOMPANHANTE
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
-
-        if (user.userType !== 'ACOMPANHANTE') {
-            return res.status(403).json({ error: 'Apenas usuários do tipo ACOMPANHANTE podem adicionar informações.' });
-        }
-
-        // Gera o valor do campo `name` com base no nome completo do usuário
-        const fullName = `${user.firstName} ${user.lastName}`;
-
-        // Verifica se já existe um perfil na tabela Companion
-        const existingCompanion = await prisma.companion.findUnique({
-            where: { userId: userId },
-        });
-
-        if (existingCompanion) {
-            return res.status(400).json({ error: 'Perfil de acompanhante já existe. Use a função de atualização.' });
-        }
-
-        // Cria o perfil de acompanhante
-        const companion = await prisma.companion.create({
-            data: {
-                userId,
-                name: fullName, // Preenche o campo `name` com o nome completo do usuário
-                age,
-                description,
-                city,
-                state,
-                status,
-                ageCategories: {
-                    create: ageCategories?.map((category) => ({ ageCategory: category })) || [],
-                },
-                atendimentos: {
-                    create: atendimentos?.map((item) => ({ atendimento: item })) || [],
-                },
-                cabelos: {
-                    create: cabelos?.map((item) => ({ cabelo: item })) || [],
-                },
-                contactMethods: {
-                    create: contactMethods?.map((method) => ({ contactMethod: method })) || [],
-                },
-                corpos: {
-                    create: corpos?.map((item) => ({ corpo: item })) || [],
-                },
-                estaturas: {
-                    create: estaturas?.map((item) => ({ estatura: item })) || [],
-                },
-                etnias: {
-                    create: etnias?.map((item) => ({ etnia: item })) || [],
-                },
-                lugares: {
-                    create: lugares?.map((item) => ({ lugar: item })) || [],
-                },
-                paymentMethods: {
-                    create: paymentMethods?.map((method) => ({ paymentMethod: method })) || [],
-                },
-                pubis: {
-                    create: pubis?.map((item) => ({ pubis: item })) || [],
-                },
-                seios: {
-                    create: seios?.map((item) => ({ seios: item })) || [],
-                },
-                servicosEspeciais: {
-                    create: servicosEspeciais?.map((item) => ({ servico: item })) || [],
-                },
-                servicosGerais: {
-                    create: servicosGerais?.map((item) => ({ servico: item })) || [],
-                },
-            },
-        });
-
-        return res.status(201).json({ message: 'Informações de acompanhante adicionadas com sucesso.', companion });
-    } catch (error) {
-        console.error('Erro ao adicionar informações de acompanhante:', error.message);
-        return res.status(500).json({ error: 'Erro ao processar as informações de acompanhante.' });
-    }
-};
-
-
-
 // Listar todos os acompanhantes
 exports.listCompanions = async (req, res) => {
     try {
@@ -129,55 +17,27 @@ exports.listCompanions = async (req, res) => {
     }
 }
 
-// Obter detalhes de um acompanhante específico
-exports.getCompanionById = async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const companion = await prisma.companion.findUnique({
-            where: { id: parseInt(id) },
-            include: {
-                paymentMethods: true, // Incluir métodos de pagamento
-            },
-        });
-
-        if (!companion) {
-            return res.status(404).json({ error: 'Acompanhante não encontrado' });
-        }
-
-        return res.status(200).json(companion);
-    } catch (error) {
-        console.error('Erro ao obter acompanhante:', error);
-        return res.status(500).json({ error: 'Erro ao obter acompanhante' });
-    }
-}
-
 // Atualizar informações de um acompanhante
 exports.updateCompanion = async (req, res) => {
-    const { id } = req.params;
-    const { name, age, description, city, state, paymentMethods } = req.body;
+    const userId = req.user?.id;
+    const { name, description, city, state } = req.body;
 
     try {
         // Verifica se o acompanhante existe
-        const companion = await prisma.companion.findUnique({ where: { id: parseInt(id) } });
+        const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) {
-            return res.status(404).json({ error: 'Acompanhante não encontrado' });
+            return res.status(404).json({ error: 'Acompanhante não encontrada' });
         }
 
         // Atualiza o registro
         const updatedCompanion = await prisma.companion.update({
-            where: { id: parseInt(id) },
+            where: { userId },
             data: {
                 name,
-                age,
                 description,
                 city,
                 state,
-                paymentMethods: {
-                    deleteMany: {}, // Remove todos os métodos de pagamento antigos
-                    create: paymentMethods.map((method) => ({ paymentMethod: method })), // Adiciona os novos
-                },
             },
         });
 
@@ -186,7 +46,215 @@ exports.updateCompanion = async (req, res) => {
         console.error('Erro ao atualizar acompanhante:', error);
         return res.status(500).json({ error: 'Erro ao atualizar acompanhante' });
     }
-}
+};
+
+
+// Adicionar Características Físicas
+exports.addPhysicalCharacteristics = async (req, res) => {
+    const userId = req.user?.id;
+    const {
+        gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
+        hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
+        hasPiercings, smoker, pubis, bodyType, breastType
+    } = req.body;
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        await prisma.physicalCharacteristics.upsert({
+            where: { companionId: companion.id },
+            update: {
+                gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
+                hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
+                hasPiercings, smoker, pubis, bodyType, breastType
+            },
+            create: {
+                companionId: companion.id,
+                gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
+                hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
+                hasPiercings, smoker, pubis, bodyType, breastType
+            },
+        });
+
+        return res.status(200).json({ message: 'Características físicas cadastradas com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar características físicas:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+// Adicionar Mídia de Comparação (Vídeo obrigatório)
+exports.uploadCompanionMedia = async (req, res) => {
+    const userId = req.user?.id;
+    const { videoUrl } = req.body; // URL do vídeo
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        await prisma.media.create({
+            data: {
+                companionId: companion.id,
+                url: videoUrl,
+                mediaType: 'VIDEO',
+            },
+        });
+
+        return res.status(200).json({ message: 'Vídeo de comparação adicionado com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao adicionar vídeo de comparação:', error);
+        return res.status(500).json({ error: 'Erro ao processar o vídeo.' });
+    }
+};
+
+// Adicionar Contato
+exports.updateCompanionContact = async (req, res) => {
+    const userId = req.user?.id;
+    const { contactMethods } = req.body; // Array [{ type: "WHATSAPP", details: "5511999999999" }]
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        // Remove contatos antigos e insere novos
+        await prisma.contactMethodCompanion.deleteMany({ where: { companionId: companion.id } });
+
+        const contacts = contactMethods.map(contact => ({
+            companionId: companion.id,
+            contactMethod: contact.type,
+            details: contact.details
+        }));
+
+        await prisma.contactMethodCompanion.createMany({ data: contacts });
+
+        return res.status(200).json({ message: 'Dados de contato atualizados com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar contato:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+// Adicionar Serviços
+exports.updateCompanionServices = async (req, res) => {
+    const userId = req.user?.id;
+    const { generalServices, specialServices } = req.body; // Arrays com tipos de serviço
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        // Remove serviços antigos
+        await prisma.servicosGeraisCompanion.deleteMany({ where: { companionId: companion.id } });
+        await prisma.servicosEspeciaisCompanion.deleteMany({ where: { companionId: companion.id } });
+
+        // Insere novos serviços
+        await prisma.servicosGeraisCompanion.createMany({
+            data: generalServices.map(service => ({
+                companionId: companion.id,
+                servico: service
+            }))
+        });
+
+        await prisma.servicosEspeciaisCompanion.createMany({
+            data: specialServices.map(service => ({
+                companionId: companion.id,
+                servico: service
+            }))
+        });
+
+        return res.status(200).json({ message: 'Serviços cadastrados com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar serviços:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+// Adicionar Horários
+exports.updateCompanionSchedule = async (req, res) => {
+    const userId = req.user?.id;
+    const { schedule } = req.body; // Array [{ dayOfWeek: "Segunda", startTime: "10:00", endTime: "18:00" }]
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        // Remove horários antigos e insere novos
+        await prisma.scheduleCompanion.deleteMany({ where: { companionId: companion.id } });
+
+        const schedules = schedule.map(horario => ({
+            companionId: companion.id,
+            dayOfWeek: horario.dayOfWeek,
+            startTime: horario.startTime,
+            endTime: horario.endTime
+        }));
+
+        await prisma.scheduleCompanion.createMany({ data: schedules });
+
+        return res.status(200).json({ message: 'Horários cadastrados com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar horários:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+// Atualizar Cidade e Estado
+exports.updateCompanionLocation = async (req, res) => {
+    const userId = req.user?.id;
+    const { city, state } = req.body;
+
+    try {
+        await prisma.companion.update({
+            where: { userId },
+            data: { city, state }
+        });
+
+        return res.status(200).json({ message: 'Localização atualizada com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao atualizar localização:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+// Adicionar Dados Financeiros
+exports.updateCompanionFinance = async (req, res) => {
+    const userId = req.user?.id;
+    const { paymentMethods } = req.body; // Array [{ type: "PIX" }]
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+
+        await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
+
+        const payments = paymentMethods.map(method => ({
+            companionId: companion.id,
+            paymentMethod: method
+        }));
+
+        await prisma.paymentMethodCompanion.createMany({ data: payments });
+
+        return res.status(200).json({ message: 'Dados financeiros cadastrados com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar dados financeiros:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+
 
 // Excluir um acompanhante
 exports.deleteCompanion = async (req, res) => {
