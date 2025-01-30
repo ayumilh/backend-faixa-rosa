@@ -146,6 +146,8 @@ model Companion {
   reviews                 Review[]
   denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
   ServiceCompanionOffered ServiceCompanionOffered[]
+
+  WeeklySchedule WeeklySchedule[]
 }
 
 model ContactMethodCompanion {
@@ -269,6 +271,17 @@ model Location {
   id         Int                 @id @default(autoincrement())
   name       String              @unique
   companions LocationCompanion[]
+}
+
+model WeeklySchedule {
+  id          Int      @id @default(autoincrement())
+  companionId Int      // Relaciona o horário a uma acompanhante
+  dayOfWeek   String    // Nome do dia da semana (ex.: Segunda-feira, Terça-feira)
+  startTime   String?   // Horário de início (formato HH:mm)
+  endTime     String?   // Horário de fim (formato HH:mm)
+  isActive    Boolean   @default(false) // Indica se o dia está ativo
+
+  companion   Companion @relation(fields: [companionId], references: [id])
 }
 
 model Top10 {

@@ -5,7 +5,7 @@ const {
     uploadCompanionMedia,
     updateCompanionContact,
     updateCompanionServicesAndPrices,
-    updateCompanionSchedule,
+    updateWeeklySchedule,
     updateCompanionLocation,
     updateAttendedLocations,
     updateCompanionFinanceAndServices,
@@ -20,7 +20,7 @@ router.post('/physical-characteristics', addPhysicalCharacteristics);
 router.post('/upload-media', uploadCompanionMedia);
 router.put('/update-contact', updateCompanionContact);
 router.put('/update-services', updateCompanionServicesAndPrices);
-router.put('/update-schedule', updateCompanionSchedule);
+router.put('/update-schedule', updateWeeklySchedule);
 router.put('/update-location', updateCompanionLocation);                               // atualizar localização da acompanhante
 router.put("/attended-locations", updateAttendedLocations);                            // atualizar locais atendidos pela acompanhante
 router.put('/update-finance', updateCompanionFinanceAndServices);

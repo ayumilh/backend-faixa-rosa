@@ -156,12 +156,10 @@ exports.updateCompanionContact = async (req, res) => {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
-        // Remove contatos antigos antes de salvar os novos
         await prisma.contactMethodCompanion.deleteMany({
             where: { companionId: companion.id },
         });
 
-        // Insere os novos dados de contato
         await prisma.contactMethodCompanion.create({
             data: {
                 companionId: companion.id,
@@ -184,7 +182,6 @@ exports.updateCompanionContact = async (req, res) => {
 
 // Adicionar Serviços e Preços
 exports.updateCompanionServicesAndPrices = async (req, res) => {
-    console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
     const { services } = req.body;
 
@@ -248,34 +245,38 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
 };
 
 // Adicionar Horários
-exports.updateCompanionSchedule = async (req, res) => {
+exports.updateWeeklySchedule = async (req, res) => {
     const userId = req.user?.id;
-    const { schedule } = req.body; // Array [{ dayOfWeek: "Segunda", startTime: "10:00", endTime: "18:00" }]
+    const { schedule } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
 
-        // Remove horários antigos e insere novos
-        await prisma.scheduleCompanion.deleteMany({ where: { companionId: companion.id } });
+        await prisma.weeklySchedule.deleteMany({
+            where: { companionId: companion.id },
+        });
 
-        const schedules = schedule.map(horario => ({
+        const scheduleData = schedule.map((day) => ({
             companionId: companion.id,
-            dayOfWeek: horario.dayOfWeek,
-            startTime: horario.startTime,
-            endTime: horario.endTime
+            dayOfWeek: day.dayOfWeek,
+            startTime: day.startTime || null,
+            endTime: day.endTime || null,
+            isActive: day.isActive || false,
         }));
 
-        await prisma.scheduleCompanion.createMany({ data: schedules });
+        await prisma.weeklySchedule.createMany({ data: scheduleData });
 
-        return res.status(200).json({ message: 'Horários cadastrados com sucesso.' });
-
+        return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao cadastrar horários:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+        console.error('Erro ao atualizar horários semanais:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
+
 
 // Atualizar Cidade e Estado onde a acompanhante atende
 exports.updateCompanionLocation = async (req, res) => {
