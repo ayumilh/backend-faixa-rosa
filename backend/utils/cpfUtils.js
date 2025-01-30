@@ -5,10 +5,8 @@ const validarCpf = async (cpf, data_nascimento) => {
     const API_KEY = process.env.NEXT_PUBLIC_HUB_API_KEY;
 
     if (!cpf || cpf.length !== 11 || !data_nascimento) {
-        console.log("CPF não informado");
+        return { error: "CPF e data de nascimento são obrigatórios." };
     }
-
-    console.log("Nascimento: ", data_nascimento);
 
     try {
         const response = await axios.get(API_URL, {
@@ -21,6 +19,14 @@ const validarCpf = async (cpf, data_nascimento) => {
 
         const dados = response.data;
         console.log("Dados: ", dados);
+
+        if (!dados.result || !dados.result.data_nascimento) {
+            return { error: "CPF não encontrado ou inválido." };
+        }
+
+        if (dados.result.data_nascimento !== data_nascimento) {
+            return { error: "Data de nascimento não confere." };
+        }
 
         // Convertendo a data de nascimento
         const nascimentoConvertido = dados.result.data_nascimento.split('/').reverse().join('-');
