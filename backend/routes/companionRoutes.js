@@ -9,6 +9,7 @@ const {
     updateCompanionLocation,
     updateAttendedLocations,
     updateCompanionFinanceAndServices,
+    updateUnavailableDates,
     listCompanions,
     deleteCompanion
 } = require('../controllers/companionController');
@@ -21,6 +22,7 @@ router.post('/upload-media', uploadCompanionMedia);
 router.put('/update-contact', updateCompanionContact);
 router.put('/update-services', updateCompanionServicesAndPrices);
 router.put('/update-schedule', updateWeeklySchedule);
+router.put('/unavailable-date', updateUnavailableDates);
 router.put('/update-location', updateCompanionLocation);                               // atualizar localização da acompanhante
 router.put("/attended-locations", updateAttendedLocations);                            // atualizar locais atendidos pela acompanhante
 router.put('/update-finance', updateCompanionFinanceAndServices);

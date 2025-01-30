@@ -277,6 +277,40 @@ exports.updateWeeklySchedule = async (req, res) => {
     }
 };
 
+// dias indisponíveis
+exports.updateUnavailableDates = async (req, res) => {
+    const userId = req.user?.id;
+    const { unavailableDates } = req.body; 
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
+
+        await prisma.unavailableDates.deleteMany({
+            where: { companionId: companion.id },
+        });
+
+        const datesData = unavailableDates.map((date) => ({
+            companionId: companion.id,
+            date: new Date(date),
+        }));
+
+        await prisma.unavailableDates.createMany({ data: datesData });
+
+        return res.status(200).json({ message: 'Datas indisponíveis atualizadas com sucesso.' });
+    } catch (error) {
+        console.error('Erro ao atualizar datas indisponíveis:', error);
+        return res.status(500).json({
+            error: 'Erro ao processar os dados.',
+            details: error.message,
+        });
+    }
+};
+
+
 
 // Atualizar Cidade e Estado onde a acompanhante atende
 exports.updateCompanionLocation = async (req, res) => {
