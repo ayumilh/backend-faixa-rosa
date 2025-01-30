@@ -259,10 +259,8 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
-        // Remove locais antigos antes de inserir os novos
         await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
 
-        // Buscar os IDs dos locais com base nos nomes enviados
         const locationRecords = await prisma.location.findMany({
             where: {
                 name: { in: locations.map(loc => loc.name) }
@@ -272,6 +270,7 @@ exports.updateAttendedLocations = async (req, res) => {
         console.log("Locais encontrados no banco:", locationRecords);
 
         // Se algum local enviado não existir no banco, retorna erro
+        const foundLocationIds = locationRecords.map(loc => loc.id);
         const foundLocationNames = locationRecords.map(loc => loc.name);
         const missingLocations = locations.map(loc => loc.name).filter(name => !foundLocationNames.includes(name));
 
@@ -279,11 +278,10 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(400).json({ error: `Os seguintes locais não existem no banco: ${missingLocations.join(', ')}` });
         }
 
-        // Criar os registros corretamente, garantindo que 'lugar' seja do tipo correto
-        const locationData = locationRecords.map(location => ({
+        // Criar os registros corretamente, garantindo que 'locationId' seja preenchido corretamente
+        const locationData = foundLocationIds.map(locationId => ({
             companionId: companion.id,
-            locationId: location.id,
-            lugar: location.name.toUpperCase().replace(/\s+/g, '_') // Converte para o formato esperado do enum
+            locationId
         }));
 
         await prisma.locationCompanion.createMany({ data: locationData });

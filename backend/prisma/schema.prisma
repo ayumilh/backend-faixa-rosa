@@ -237,7 +237,6 @@ model ServicosEspeciaisCompanion {
 model LocationCompanion {
   id          Int   @id @default(autoincrement())
   companionId Int
-  lugar       Lugar
   locationId  Int?
 
   companion Companion @relation(fields: [companionId], references: [id])
@@ -470,18 +469,6 @@ enum ServiceCategory {
   SAUDE
   OUTROS
 }
-
-enum Lugar {
-  A_DOMICILIO
-  CLUBE_SWING
-  COM_LOCAL
-  DESPEDIDAS_SOLTEIRO
-  FESTAS_EVENTOS
-  HOTEL
-  JANTAR_ROMANTICO
-  VIAGENS
-}
-
 
 enum MediaType {
   IMAGE
