@@ -167,8 +167,9 @@ exports.updateCompanionContact = async (req, res) => {
     }
 };
 
-// Adicionar Serviços
+// Adicionar Serviços e Preços
 exports.updateCompanionServicesAndPrices = async (req, res) => {
+    console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
     const { services } = req.body;
 
@@ -195,7 +196,6 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.' });
     }
 };
-
 
 // Adicionar Horários
 exports.updateCompanionSchedule = async (req, res) => {
@@ -259,7 +259,6 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
-        // Remove os locais antigos
         await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
 
         // Verifica e mapeia os locais escolhidos para encontrar seus respectivos `locationId`
@@ -317,7 +316,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
 
         // Atualizar serviços oferecidos
         if (services) {
-            await prisma.serviceCompanion.deleteMany({ where: { companionId: companion.id } });
+            await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
 
             const serviceData = services.map((service) => ({
                 companionId: companion.id,
@@ -326,7 +325,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
                 price: service.price || null, // Preço opcional
             }));
 
-            await prisma.serviceCompanion.createMany({ data: serviceData });
+            await prisma.serviceCompanionOffered.createMany({ data: serviceData });
         }
 
         return res.status(200).json({ message: 'Dados financeiros e serviços atualizados com sucesso.' });
