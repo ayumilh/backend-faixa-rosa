@@ -157,10 +157,10 @@ model ContactMethodCompanion {
 }
 
 model ServiceCompanion {
-  id          Int         @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   companionId Int
-  serviceId Int?
-  isOffered   Boolean     @default(true)
+  serviceId   Int?
+  isOffered   Boolean @default(true)
   price       Float?
 
   companion Companion @relation(fields: [companionId], references: [id])
@@ -207,6 +207,7 @@ model AgeCategoryCompanion {
   companion Companion @relation(fields: [companionId], references: [id])
 }
 
+// serviços oferecidos
 model ServicosGeraisCompanion {
   id          Int            @id @default(autoincrement())
   companionId Int
@@ -225,7 +226,10 @@ model LocationCompanion {
   id          Int       @id @default(autoincrement())
   companionId Int
   lugar       Lugar
+  locationId  Int?
+  
   companion   Companion @relation(fields: [companionId], references: [id])
+  Location    Location? @relation(fields: [locationId], references: [id])
 }
 
 // MODELOS DE DADOS DE GERAIS
@@ -235,6 +239,12 @@ model Service {
   description      String?
   defaultPrice     Float? // Preço padrão, caso aplicável
   ServiceCompanion ServiceCompanion[] // Relacionamento com os acompanhantes
+}
+
+model Location {
+  id         Int                 @id @default(autoincrement())
+  name       String              @unique
+  companions LocationCompanion[]
 }
 
 model Top10 {

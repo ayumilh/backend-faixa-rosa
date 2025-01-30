@@ -253,6 +253,37 @@ exports.updateCompanionLocation = async (req, res) => {
     }
 };
 
+// Atualizar Locais Atendidos
+exports.updateAttendedLocations = async (req, res) => {
+    const userId = req.user?.id;
+    const { locations } = req.body; 
+
+    try {
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
+
+        // Remove os locais antigos
+        await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
+
+        // Insere os novos locais
+        const locationData = locations.map((lugar) => ({
+            companionId: companion.id,
+            lugar,
+        }));
+
+        await prisma.locationCompanion.createMany({ data: locationData });
+
+        return res.status(200).json({ message: 'Locais atendidos atualizados com sucesso.' });
+    } catch (error) {
+        console.error('Erro ao atualizar locais atendidos:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+    }
+};
+
+
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {
     console.log("Recebendo dados no body:", req.body);
