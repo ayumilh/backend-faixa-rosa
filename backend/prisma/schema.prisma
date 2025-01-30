@@ -134,7 +134,7 @@ model Companion {
   top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
   user                    User                         @relation(fields: [userId], references: [id])
   PhysicalCharacteristics PhysicalCharacteristics[]
-  atendimentos            ServiceCompanion[]
+  timedServiceCompanion   TimedServiceCompanion[]
   contactMethods          ContactMethodCompanion[]
   lugares                 LocationCompanion[]
   paymentMethods          PaymentMethodCompanion[]
@@ -145,6 +145,7 @@ model Companion {
   media                   Media[]
   reviews                 Review[]
   denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
+  ServiceCompanionOffered ServiceCompanionOffered[]
 }
 
 model ContactMethodCompanion {
@@ -156,15 +157,15 @@ model ContactMethodCompanion {
   companion Companion @relation(fields: [companionId], references: [id])
 }
 
-model ServiceCompanion {
-  id          Int     @id @default(autoincrement())
-  companionId Int
-  serviceId   Int?
-  isOffered   Boolean @default(true)
-  price       Float?
+model TimedServiceCompanion {
+  id             Int     @id @default(autoincrement())
+  companionId    Int
+  timedServiceId Int?
+  isOffered      Boolean @default(true)
+  price          Float?
 
-  companion Companion @relation(fields: [companionId], references: [id])
-  Service   Service?  @relation(fields: [serviceId], references: [id])
+  companion    Companion     @relation(fields: [companionId], references: [id])
+  TimedService TimedService? @relation(fields: [timedServiceId], references: [id])
 }
 
 model PaymentMethodCompanion {
@@ -208,6 +209,17 @@ model AgeCategoryCompanion {
 }
 
 // serviços oferecidos
+model ServiceCompanionOffered {
+  id          Int     @id @default(autoincrement())
+  companionId Int
+  serviceId   Int
+  isOffered   Boolean @default(false)
+  price       Float?
+
+  companion Companion      @relation(fields: [companionId], references: [id])
+  service   ServiceOffered @relation(fields: [serviceId], references: [id])
+}
+
 model ServicosGeraisCompanion {
   id          Int            @id @default(autoincrement())
   companionId Int
@@ -223,22 +235,32 @@ model ServicosEspeciaisCompanion {
 }
 
 model LocationCompanion {
-  id          Int       @id @default(autoincrement())
+  id          Int   @id @default(autoincrement())
   companionId Int
   lugar       Lugar
   locationId  Int?
-  
-  companion   Companion @relation(fields: [companionId], references: [id])
-  Location    Location? @relation(fields: [locationId], references: [id])
+
+  companion Companion @relation(fields: [companionId], references: [id])
+  Location  Location? @relation(fields: [locationId], references: [id])
 }
 
 // MODELOS DE DADOS DE GERAIS
-model Service {
+model TimedService {
   id               Int                @id @default(autoincrement())
   name             String             @unique
   description      String?
-  defaultPrice     Float? // Preço padrão, caso aplicável
-  ServiceCompanion ServiceCompanion[] // Relacionamento com os acompanhantes
+  defaultPrice     Float? 
+
+  timedServiceCompanion TimedServiceCompanion[] // Relacionamento com os acompanhantes
+}
+
+model ServiceOffered {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  description             String?
+  isOffered               Boolean
+
+  ServiceCompanionOffered ServiceCompanionOffered[] // Relacionamento com os acompanhantes
 }
 
 model Location {

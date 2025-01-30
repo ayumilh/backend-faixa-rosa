@@ -168,41 +168,34 @@ exports.updateCompanionContact = async (req, res) => {
 };
 
 // Adicionar Serviços
-exports.updateCompanionServices = async (req, res) => {
+exports.updateCompanionServicesAndPrices = async (req, res) => {
     const userId = req.user?.id;
-    const { generalServices, specialServices } = req.body; // Arrays com tipos de serviço
+    const { services } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-        // Remove serviços antigos
-        await prisma.servicosGeraisCompanion.deleteMany({ where: { companionId: companion.id } });
-        await prisma.servicosEspeciaisCompanion.deleteMany({ where: { companionId: companion.id } });
+        await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
 
-        // Insere novos serviços
-        await prisma.servicosGeraisCompanion.createMany({
-            data: generalServices.map(service => ({
-                companionId: companion.id,
-                servico: service
-            }))
-        });
+        // Insere os novos serviços com os preços e status
+        const serviceData = services.map((service) => ({
+            companionId: companion.id,
+            serviceId: service.id, // ID do serviço da tabela ServiceOffered
+            isOffered: service.isOffered,
+            price: service.price || null, // Define o preço ou null
+        }));
 
-        await prisma.servicosEspeciaisCompanion.createMany({
-            data: specialServices.map(service => ({
-                companionId: companion.id,
-                servico: service
-            }))
-        });
+        await prisma.serviceCompanionOffered.createMany({ data: serviceData });
 
-        return res.status(200).json({ message: 'Serviços cadastrados com sucesso.' });
-
+        return res.status(200).json({ message: 'Serviços e preços atualizados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao cadastrar serviços:', error);
+        console.error('Erro ao atualizar serviços e preços:', error);
         return res.status(500).json({ error: 'Erro ao processar os dados.' });
     }
 };
+
 
 // Adicionar Horários
 exports.updateCompanionSchedule = async (req, res) => {
@@ -296,8 +289,6 @@ exports.updateAttendedLocations = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.' });
     }
 };
-
-
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {

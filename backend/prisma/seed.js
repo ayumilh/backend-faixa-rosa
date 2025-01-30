@@ -279,7 +279,8 @@ async function seedPlansAndExtras() {
 
     console.log('Seed concluído: Planos extras e funcionalidades inseridos com sucesso!');
 }
-async function seedService() {
+
+async function seedTimedServices() {
     const services = [
         { name: '1 hora', description: 'Serviço de 1 hora.', defaultPrice: 50 },
         { name: '2 horas', description: 'Serviço de 2 horas.', defaultPrice: 100 },
@@ -291,7 +292,7 @@ async function seedService() {
     ];
 
     for (const service of services) {
-        await prisma.service.upsert({
+        await prisma.timedService.upsert({
             where: { name: service.name },
             update: {},
             create: service,
@@ -325,13 +326,187 @@ async function seedAttendedLocations() {
     console.log("Seeding complete.");
 }
 
+const servicesOfferedSeed = async () => {
+    const services = [
+        {
+            name: "Utiliza acessórios eróticos",
+            description: "Inclui o uso de brinquedos eróticos diversos.",
+            isOffered: false,
+        },
+        {
+            name: "Beijo grego",
+            description: "Prática que envolve a estimulação oral da região anal.",
+            isOffered: false,
+        },
+        {
+            name: "Podolatria",
+            description: "Atração sexual por pés, onde os pés são o foco principal da excitação.",
+            isOffered: false,
+        },
+        {
+            name: "Fisting",
+            description: "Introdução de uma mão inteira na vagina ou no ânus durante o ato sexual.",
+            isOffered: false,
+        },
+        {
+            name: "Dominação",
+            description: "Envolve o controle e a submissão de uma pessoa sobre a outra.",
+            isOffered: false,
+        },
+        {
+            name: "Uso de roupas de fantasia/uniformes",
+            description: "Prática onde um dos participantes veste roupas específicas ou uniformes.",
+            isOffered: false,
+        },
+        {
+            name: "Sadomasoquismo",
+            description: "Atividades que envolvem dor ou humilhação consensual.",
+            isOffered: false,
+        },
+        {
+            name: "Facefuck",
+            description: "Ato de penetração oral intensa e profunda.",
+            isOffered: false,
+        },
+        {
+            name: "Squirt",
+            description: "Ejaculação feminina durante o clímax.",
+            isOffered: false,
+        },
+        {
+            name: "Permite filmagem",
+            description: "Consente que a relação seja filmada com consentimento claro.",
+            isOffered: false,
+        },
+        {
+            name: "Beijo na boca",
+            description: "Realiza beijo na boca com seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Striptease",
+            description: "Tira a roupa de forma lenta e sensual, normalmente com dança.",
+            isOffered: false,
+        },
+        {
+            name: "Massagem tradicional",
+            description: "Realiza massagem relaxante em seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Massagem tântrica",
+            description: "Realiza massagem tântrica que expande a sensibilidade sexual.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo virtual",
+            description: "Sexo à distância por meio de texto, áudio e vídeo online. Sem contato físico.",
+            isOffered: false,
+        },
+        {
+            name: "Viagem",
+            description: "Aceita viajar com seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo oral com preservativo",
+            description: "Realiza sexo oral com preservativo em seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo oral sem preservativo",
+            description: "Atividade em que o sexo oral é realizado sem o uso de preservativo.",
+            isOffered: false,
+        },
+        {
+            name: "Fazer roleplay",
+            description: "Envolve atuar ou fingir ser outra pessoa em um cenário fictício.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo anal com preservativo",
+            description: "Aceita receber penetração anal com preservativo de seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo vaginal com preservativo",
+            description: "Faz penetração vaginal com preservativo em seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Masturbação",
+            description: "Realiza masturbação em seus clientes.",
+            isOffered: false,
+        },
+        {
+            name: "Acompanhante",
+            description: "Companhia para encontros, festas e eventos.",
+            isOffered: false,
+        },
+        {
+            name: "Dupla penetração",
+            description: "Prática que envolve a penetração simultânea em duas áreas do corpo.",
+            isOffered: false,
+        },
+        {
+            name: "Tripla  penetração",
+            description: "Prática que envolve a penetração simultânea em três áreas do corpo.",
+            isOffered: false,
+        },
+        {
+            name: "Penetração com acessórios sexuais",
+            description: "Uso de brinquedos ou acessórios durante a penetração.",
+            isOffered: false,
+        },
+        {
+            name: "Sexo com voyeurismo/ser voyeur",
+            description: "Ato de observar ou ser observado durante relações sexuais.",
+            isOffered: false,
+        },
+        {
+            name: "Bondage",
+            description: "Prática de amarração consensual com cordas para restrição.",
+            isOffered: false,
+        },        
+        {
+            name: "Quirofilia",
+            description: "Excitação sexual causada pelas mãos.",
+            isOffered: false,
+        },
+        {
+            name: "Chuva dourada",
+            description: "Prática de urinar no parceiro durante o ato sexual.",
+            isOffered: false,
+        },
+        {
+            name: "Chuva marrom",
+            description: "Prática de defecar no parceiro.",
+            isOffered: false,
+        },
+        {
+            name: "Trampling",
+            description: "Ato de pisotear outra pessoa com os pés como forma de excitação sexual.",
+            isOffered: false,
+        },
+    ];
+
+    for (const service of services) {
+        await prisma.serviceOffered.create({
+            data: service,
+        });
+    }
+
+    console.log("Seeding services offered complete.");
+}
+
 async function runAllSeeds() {
     try {
         await seedPlanTypes();
         await seedPlan();
         await seedPlansAndExtras();
-        await seedService();
+        await seedTimedServices();
         await seedAttendedLocations();
+        await servicesOfferedSeed();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);
     } finally {
