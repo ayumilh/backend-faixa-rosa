@@ -241,7 +241,7 @@ model LocationCompanion {
   locationId  Int?
 
   companion Companion @relation(fields: [companionId], references: [id])
-  Location  Location? @relation(fields: [locationId], references: [id])
+  location  Location? @relation(fields: [locationId], references: [id])
 }
 
 // MODELOS DE DADOS DE GERAIS
