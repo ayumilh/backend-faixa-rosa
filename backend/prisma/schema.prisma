@@ -151,8 +151,11 @@ model Companion {
 model ContactMethodCompanion {
   id            Int           @id @default(autoincrement())
   companionId   Int
-  contactMethod ContactMethod
-  details       String
+  whatsappNumber String?       @db.VarChar(15)
+  whatsappMessage String?      @db.VarChar(255)
+  telegramUsername String?     @db.VarChar(32)
+  telegramMessage String?      @db.VarChar(255)
+  phoneNumber    String?       @db.VarChar(15) 
 
   companion Companion @relation(fields: [companionId], references: [id])
 }

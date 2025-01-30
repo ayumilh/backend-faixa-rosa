@@ -141,29 +141,44 @@ exports.uploadCompanionMedia = async (req, res) => {
 // Adicionar Contato
 exports.updateCompanionContact = async (req, res) => {
     const userId = req.user?.id;
-    const { contactMethods } = req.body; // Array [{ type: "WHATSAPP", details: "5511999999999" }]
+    const {
+        whatsappNumber,
+        whatsappMessage,
+        telegramUsername,
+        telegramMessage,
+        phoneNumber,
+    } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
 
-        // Remove contatos antigos e insere novos
-        await prisma.contactMethodCompanion.deleteMany({ where: { companionId: companion.id } });
+        // Remove contatos antigos antes de salvar os novos
+        await prisma.contactMethodCompanion.deleteMany({
+            where: { companionId: companion.id },
+        });
 
-        const contacts = contactMethods.map(contact => ({
-            companionId: companion.id,
-            contactMethod: contact.type,
-            details: contact.details
-        }));
+        // Insere os novos dados de contato
+        await prisma.contactMethodCompanion.create({
+            data: {
+                companionId: companion.id,
+                whatsappNumber,
+                whatsappMessage,
+                telegramUsername,
+                telegramMessage,
+                phoneNumber
+            },
+        });
 
-        await prisma.contactMethodCompanion.createMany({ data: contacts });
-
-        return res.status(200).json({ message: 'Dados de contato atualizados com sucesso.' });
-
+        return res
+            .status(200)
+            .json({ message: 'Dados de contato atualizados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao cadastrar contato:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+        console.error('Erro ao atualizar contato:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
 
@@ -231,7 +246,6 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-
 
 // Adicionar Horários
 exports.updateCompanionSchedule = async (req, res) => {
