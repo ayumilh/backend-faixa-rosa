@@ -203,6 +203,7 @@ model PhysicalCharacteristics {
   pubis        Pubis
   bodyType     Corpo
   breastType   Seios
+  description  String?
 
   companion Companion @relation(fields: [companionId], references: [id])
 }
@@ -257,7 +258,7 @@ model TimedService {
   description      String?
   defaultPrice     Float? 
 
-  timedServiceCompanion TimedServiceCompanion[] // Relacionamento com os acompanhantes
+  timedServiceCompanion TimedServiceCompanion[]
 }
 
 model ServiceOffered {
@@ -266,7 +267,7 @@ model ServiceOffered {
   description             String?
   isOffered               Boolean
 
-  ServiceCompanionOffered ServiceCompanionOffered[] // Relacionamento com os acompanhantes
+  ServiceCompanionOffered ServiceCompanionOffered[]
 }
 
 model Location {
@@ -287,8 +288,8 @@ model WeeklySchedule {
 }
 model UnavailableDates {
   id          Int      @id @default(autoincrement())
-  companionId Int      // Relaciona as datas à acompanhante
-  date        DateTime // Data indisponível
+  companionId Int   
+  date        DateTime 
 
   companion   Companion @relation(fields: [companionId], references: [id])
 }

@@ -55,7 +55,7 @@ exports.addPhysicalCharacteristics = async (req, res) => {
     const {
         gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
         hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
-        hasPiercings, smoker, pubis, bodyType, breastType
+        hasPiercings, smoker, pubis, bodyType, breastType, description
     } = req.body;
 
     if (!gender) {
@@ -86,6 +86,7 @@ exports.addPhysicalCharacteristics = async (req, res) => {
             pubis: pubis || undefined,
             bodyType: bodyType || undefined,
             breastType: breastType || undefined,
+            description: description || undefined,
             companionId: companion.id
         };
 
