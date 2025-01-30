@@ -13,6 +13,8 @@ const {
     listCompanions,
     deleteCompanion
 } = require('../controllers/companionController');
+const { updateCompanionVideo, uploadVideoMiddleware } = require("../controllers/uploadVideo");
+
 
 const router = express.Router();
 
@@ -28,5 +30,8 @@ router.put("/attended-locations", updateAttendedLocations);                     
 router.put('/update-finance', updateCompanionFinanceAndServices);
 router.get('/list', listCompanions);
 router.delete('/delete/:id', deleteCompanion);
+
+
+router.post("/upload-comparison", uploadVideoMiddleware, updateCompanionVideo);
 
 module.exports = router;

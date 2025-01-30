@@ -153,13 +153,13 @@ model Companion {
 }
 
 model ContactMethodCompanion {
-  id            Int           @id @default(autoincrement())
-  companionId   Int
-  whatsappNumber String?       @db.VarChar(15)
-  whatsappMessage String?      @db.VarChar(255)
-  telegramUsername String?     @db.VarChar(32)
-  telegramMessage String?      @db.VarChar(255)
-  phoneNumber    String?       @db.VarChar(15) 
+  id               Int     @id @default(autoincrement())
+  companionId      Int
+  whatsappNumber   String? @db.VarChar(15)
+  whatsappMessage  String? @db.VarChar(255)
+  telegramUsername String? @db.VarChar(32)
+  telegramMessage  String? @db.VarChar(255)
+  phoneNumber      String? @db.VarChar(15)
 
   companion Companion @relation(fields: [companionId], references: [id])
 }
@@ -184,26 +184,27 @@ model PaymentMethodCompanion {
 }
 
 model PhysicalCharacteristics {
-  id           Int      @id @default(autoincrement())
-  companionId  Int      @unique
-  gender       String
-  genitalia    String
-  weight       Float
-  height       Int
-  estatura     Estatura
-  ethnicity    Etnia
-  eyeColor     String
-  hairStyle    Cabelo
-  hairLength   String
-  shoeSize     Int
-  hasSilicone  Boolean
-  hasTattoos   Boolean
-  hasPiercings Boolean
-  smoker       Boolean
-  pubis        Pubis
-  bodyType     Corpo
-  breastType   Seios
-  description  String?
+  id              Int      @id @default(autoincrement())
+  companionId     Int      @unique
+  gender          String
+  genitalia       String
+  weight          Float
+  height          Int
+  estatura        Estatura
+  ethnicity       Etnia
+  eyeColor        String
+  hairStyle       Cabelo
+  hairLength      String
+  shoeSize        Int
+  hasSilicone     Boolean
+  hasTattoos      Boolean
+  hasPiercings    Boolean
+  smoker          Boolean
+  pubis           Pubis
+  bodyType        Corpo
+  breastType      Seios
+  description     String?
+  comparisonMedia String?
 
   companion Companion @relation(fields: [companionId], references: [id])
 }
@@ -243,7 +244,7 @@ model ServicosEspeciaisCompanion {
 }
 
 model LocationCompanion {
-  id          Int   @id @default(autoincrement())
+  id          Int  @id @default(autoincrement())
   companionId Int
   locationId  Int?
 
@@ -253,19 +254,19 @@ model LocationCompanion {
 
 // MODELOS DE DADOS DE GERAIS
 model TimedService {
-  id               Int                @id @default(autoincrement())
-  name             String             @unique
-  description      String?
-  defaultPrice     Float? 
+  id           Int     @id @default(autoincrement())
+  name         String  @unique
+  description  String?
+  defaultPrice Float?
 
   timedServiceCompanion TimedServiceCompanion[]
 }
 
 model ServiceOffered {
-  id                      Int                       @id @default(autoincrement())
-  name                    String                    @unique
-  description             String?
-  isOffered               Boolean
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  isOffered   Boolean
 
   ServiceCompanionOffered ServiceCompanionOffered[]
 }
@@ -277,21 +278,22 @@ model Location {
 }
 
 model WeeklySchedule {
-  id          Int      @id @default(autoincrement())
-  companionId Int      // Relaciona o horário a uma acompanhante
-  dayOfWeek   String    // Nome do dia da semana (ex.: Segunda-feira, Terça-feira)
-  startTime   String?   // Horário de início (formato HH:mm)
-  endTime     String?   // Horário de fim (formato HH:mm)
-  isActive    Boolean   @default(false) // Indica se o dia está ativo
+  id          Int     @id @default(autoincrement())
+  companionId Int // Relaciona o horário a uma acompanhante
+  dayOfWeek   String // Nome do dia da semana (ex.: Segunda-feira, Terça-feira)
+  startTime   String? // Horário de início (formato HH:mm)
+  endTime     String? // Horário de fim (formato HH:mm)
+  isActive    Boolean @default(false) // Indica se o dia está ativo
 
-  companion   Companion @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
+
 model UnavailableDates {
   id          Int      @id @default(autoincrement())
-  companionId Int   
-  date        DateTime 
+  companionId Int
+  date        DateTime
 
-  companion   Companion @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model Top10 {
