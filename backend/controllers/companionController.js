@@ -173,29 +173,53 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
     const userId = req.user?.id;
     const { services } = req.body;
 
+    // Verifica se 'services' foi enviado corretamente
+    if (!Array.isArray(services) || services.length === 0) {
+        return res.status(400).json({ error: "Lista de serviços inválida ou vazia." });
+    }
+
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) {
+            return res.status(404).json({ error: "Acompanhante não encontrada." });
+        }
 
+        // Apaga serviços anteriores antes de inserir novos
         await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
 
-        // Insere os novos serviços com os preços e status
-        const serviceData = services.map((service) => ({
-            companionId: companion.id,
-            serviceId: service.id, // ID do serviço da tabela ServiceOffered
-            isOffered: service.isOffered,
-            price: service.price || null, // Define o preço ou null
-        }));
+        // Busca os serviços válidos no banco para garantir que existem
+        const validServices = await prisma.serviceOffered.findMany({
+            where: { id: { in: services.map(s => s.id) } }
+        });
+
+        const validServiceIds = validServices.map(s => s.id);
+        const invalidServices = services.filter(s => !validServiceIds.includes(s.id));
+
+        if (invalidServices.length > 0) {
+            return res.status(400).json({ error: "Serviços inválidos encontrados.", invalidServices });
+        }
+
+        // Insere os novos serviços e preços
+        const serviceData = validServices.map(service => {
+            const userService = services.find(s => s.id === service.id);
+            return {
+                companionId: companion.id,
+                serviceId: service.id,
+                isOffered: userService.isOffered ?? false, // Define false como padrão
+                price: userService.price ?? null, // Define null como padrão
+            };
+        });
 
         await prisma.serviceCompanionOffered.createMany({ data: serviceData });
 
-        return res.status(200).json({ message: 'Serviços e preços atualizados com sucesso.' });
+        return res.status(200).json({ message: "Serviços e preços atualizados com sucesso." });
     } catch (error) {
-        console.error('Erro ao atualizar serviços e preços:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+        console.error("Erro ao atualizar serviços e preços:", error);
+        return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
+
 
 // Adicionar Horários
 exports.updateCompanionSchedule = async (req, res) => {
@@ -248,9 +272,8 @@ exports.updateCompanionLocation = async (req, res) => {
 
 // Atualizar Locais Atendidos
 exports.updateAttendedLocations = async (req, res) => {
-    console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
-    const { locations } = req.body; // Recebe um array de objetos { name: "A domicílio" }
+    const { locations } = req.body; 
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
@@ -267,8 +290,6 @@ exports.updateAttendedLocations = async (req, res) => {
             }
         });
 
-        console.log("Locais encontrados no banco:", locationRecords);
-
         // Se algum local enviado não existir no banco, retorna erro
         const foundLocationIds = locationRecords.map(loc => loc.id);
         const foundLocationNames = locationRecords.map(loc => loc.name);
@@ -278,7 +299,6 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(400).json({ error: `Os seguintes locais não existem no banco: ${missingLocations.join(', ')}` });
         }
 
-        // Criar os registros corretamente, garantindo que 'locationId' seja preenchido corretamente
         const locationData = foundLocationIds.map(locationId => ({
             companionId: companion.id,
             locationId
@@ -293,8 +313,6 @@ exports.updateAttendedLocations = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-
-
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {
