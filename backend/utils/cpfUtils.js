@@ -27,7 +27,6 @@ const validarCpf = async (cpf, data_nascimento) => {
         const nascimento = new Date(nascimentoConvertido);
         const hoje = new Date();
 
-        // Cálculo correto da idade
         let idade = hoje.getFullYear() - nascimento.getFullYear();
         const aniversarioNaoOcorrido =
             hoje.getMonth() < nascimento.getMonth() ||
