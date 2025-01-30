@@ -247,7 +247,6 @@ exports.updateCompanionLocation = async (req, res) => {
 };
 
 // Atualizar Locais Atendidos
-// Atualizar Locais Atendidos
 exports.updateAttendedLocations = async (req, res) => {
     console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
@@ -260,6 +259,7 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
+        // Remove locais antigos antes de inserir os novos
         await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
 
         // Buscar os IDs dos locais com base nos nomes enviados
@@ -271,7 +271,7 @@ exports.updateAttendedLocations = async (req, res) => {
 
         console.log("Locais encontrados no banco:", locationRecords);
 
-        // Verifica se todos os locais enviados existem na base de dados
+        // Se algum local enviado não existir no banco, retorna erro
         const foundLocationNames = locationRecords.map(loc => loc.name);
         const missingLocations = locations.map(loc => loc.name).filter(name => !foundLocationNames.includes(name));
 
@@ -279,23 +279,14 @@ exports.updateAttendedLocations = async (req, res) => {
             return res.status(400).json({ error: `Os seguintes locais não existem no banco: ${missingLocations.join(', ')}` });
         }
 
-        // Criar apenas os locais que ainda não existem
-        const existingLocations = await prisma.locationCompanion.findMany({
-            where: { companionId: companion.id }
-        });
+        // Criar os registros corretamente, garantindo que 'lugar' seja do tipo correto
+        const locationData = locationRecords.map(location => ({
+            companionId: companion.id,
+            locationId: location.id,
+            lugar: location.name.toUpperCase().replace(/\s+/g, '_') // Converte para o formato esperado do enum
+        }));
 
-        const existingLocationIds = existingLocations.map(loc => loc.locationId);
-        const newLocations = locationRecords.filter(loc => !existingLocationIds.includes(loc.id));
-
-        if (newLocations.length > 0) {
-            const locationData = newLocations.map(location => ({
-                companionId: companion.id,
-                locationId: location.id,
-                lugar: location.name // Adiciona o campo 'lugar'
-            }));
-
-            await prisma.locationCompanion.createMany({ data: locationData });
-        }
+        await prisma.locationCompanion.createMany({ data: locationData });
 
         return res.status(200).json({ message: 'Locais atendidos atualizados com sucesso.' });
 
@@ -304,6 +295,7 @@ exports.updateAttendedLocations = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
+
 
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
