@@ -255,6 +255,7 @@ exports.updateCompanionLocation = async (req, res) => {
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {
+    console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
     const { paymentMethods, services } = req.body;
 
@@ -280,7 +281,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
         // Atualizar serviços oferecidos
         if (services) {
             await prisma.serviceCompanion.deleteMany({ where: { companionId: companion.id } });
-            
+
             const serviceData = services.map((service) => ({
                 companionId: companion.id,
                 serviceId: service.id, // Relaciona com a tabela Service
