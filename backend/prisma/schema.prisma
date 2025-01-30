@@ -404,6 +404,7 @@ enum ContactMethod {
   TELEGRAM
 }
 
+// ENUMS DE CARACTERISTICAS FISICAS
 enum Etnia {
   BRANCAS
   LATINAS
@@ -438,6 +439,7 @@ enum Pubis {
   DEPILADO
 }
 
+// ENUMS DE SERVICOS
 enum ServicosGerais {
   BEIJOS_BOCA
   EJACULACAO_CORPO
@@ -462,6 +464,13 @@ enum ServicosEspeciais {
   STRAP_ON
 }
 
+enum ServiceCategory {
+  COMPRAS
+  ENTRETENIMENTO
+  SAUDE
+  OUTROS
+}
+
 enum Lugar {
   A_DOMICILIO
   CLUBE_SWING
@@ -473,12 +482,6 @@ enum Lugar {
   VIAGENS
 }
 
-enum ServiceCategory {
-  COMPRAS
-  ENTRETENIMENTO
-  SAUDE
-  OUTROS
-}
 
 enum MediaType {
   IMAGE

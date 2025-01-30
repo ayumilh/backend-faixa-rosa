@@ -309,6 +309,10 @@ async function seedAttendedLocations() {
         { name: "Hotéis" },
         { name: "Local Próprio" },
         { name: "Motéis" },
+        { name: "Viagens" },
+        { name: "Club de swing" },
+        { name: "Jantar romântico" },
+        { name: "Despedida de solteiro" },
     ];
 
     console.log("Seeding locations...");
@@ -326,7 +330,7 @@ async function seedAttendedLocations() {
     console.log("Seeding complete.");
 }
 
-const servicesOfferedSeed = async () => {
+const seedServicesOffered = async () => {
     const services = [
         {
             name: "Utiliza acessórios eróticos",
@@ -491,8 +495,13 @@ const servicesOfferedSeed = async () => {
     ];
 
     for (const service of services) {
-        await prisma.serviceOffered.create({
-            data: service,
+        await prisma.serviceOffered.upsert({
+            where: { name: service.name },
+            update: {
+                description: service.description,
+                isOffered: service.isOffered
+            },
+            create: service
         });
     }
 
@@ -506,7 +515,7 @@ async function runAllSeeds() {
         await seedPlansAndExtras();
         await seedTimedServices();
         await seedAttendedLocations();
-        await servicesOfferedSeed();
+        await seedServicesOffered();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);
     } finally {
