@@ -40,11 +40,13 @@ exports.updateCompanionVideo = async (req, res) => {
         // Obtém a URL do vídeo armazenado no Wasabi
         const videoUrl = req.file.location;
 
+        console.log("URL do vídeo:", videoUrl);
+
         // Atualiza no banco de dados
-        const updatedCompanion = await prisma.companion.update({
+        const updatedCompanion = await prisma.physicalCharacteristics.update({
             where: { userId },
             data: {
-                video: videoUrl, // Adicione um campo `video` na model se necessário
+                comparisonMedia: videoUrl, // Adicione um campo `video` na model se necessário
             },
         });
 
@@ -60,4 +62,4 @@ exports.updateCompanionVideo = async (req, res) => {
 };
 
 // Middleware de upload
-exports.uploadVideoMiddleware = upload.single("video");
+exports.uploadVideoMiddleware = upload.single("media");
