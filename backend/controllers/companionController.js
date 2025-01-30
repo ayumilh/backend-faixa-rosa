@@ -173,7 +173,7 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
     const userId = req.user?.id;
     const { services } = req.body;
 
-    // Verifica se 'services' foi enviado corretamente
+    // Verifica se 'services' foi enviado corretamente e não está vazio
     if (!Array.isArray(services) || services.length === 0) {
         return res.status(400).json({ error: "Lista de serviços inválida ou vazia." });
     }
@@ -185,33 +185,45 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // Apaga serviços anteriores antes de inserir novos
-        await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
+        // Obtém apenas os IDs dos serviços recebidos
+        const requestedServiceIds = services.map(s => s.id).filter(id => id !== null && id !== undefined);
 
-        // Busca os serviços válidos no banco para garantir que existem
+        if (requestedServiceIds.length === 0) {
+            return res.status(400).json({ error: "Nenhum ID de serviço válido foi enviado." });
+        }
+
+        // Busca os serviços existentes no banco
         const validServices = await prisma.serviceOffered.findMany({
-            where: { id: { in: services.map(s => s.id) } }
+            where: { id: { in: requestedServiceIds } }
         });
 
         const validServiceIds = validServices.map(s => s.id);
-        const invalidServices = services.filter(s => !validServiceIds.includes(s.id));
+        const invalidServices = requestedServiceIds.filter(id => !validServiceIds.includes(id));
 
+        // Se houver serviços inválidos, retorna erro
         if (invalidServices.length > 0) {
-            return res.status(400).json({ error: "Serviços inválidos encontrados.", invalidServices });
+            return res.status(400).json({ 
+                error: "Os seguintes serviços não existem no banco de dados.", 
+                invalidServiceIds: invalidServices
+            });
         }
 
+        // Remove os serviços antigos antes de inserir os novos
+        await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
+
         // Insere os novos serviços e preços
-        const serviceData = validServices.map(service => {
-            const userService = services.find(s => s.id === service.id);
-            return {
+        const serviceData = services
+            .filter(s => validServiceIds.includes(s.id)) // Apenas serviços válidos
+            .map(service => ({
                 companionId: companion.id,
                 serviceId: service.id,
-                isOffered: userService.isOffered ?? false, // Define false como padrão
-                price: userService.price ?? null, // Define null como padrão
-            };
-        });
+                isOffered: service.isOffered ?? false, // Se não vier, assume false
+                price: service.price ?? null, // Se não vier, assume null
+            }));
 
-        await prisma.serviceCompanionOffered.createMany({ data: serviceData });
+        if (serviceData.length > 0) {
+            await prisma.serviceCompanionOffered.createMany({ data: serviceData });
+        }
 
         return res.status(200).json({ message: "Serviços e preços atualizados com sucesso." });
     } catch (error) {
