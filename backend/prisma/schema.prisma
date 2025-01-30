@@ -8,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id                Int                @id @default(autoincrement())
-  firstName         String?            @default("") @db.VarChar(50)
-  lastName          String?            @default("") @db.VarChar(100)
-  email             String             @unique @db.VarChar(320)
-  password          String?            @default("") @db.VarChar(64)
-  birthDate         DateTime?          @db.Date
-  cpf               String?            @unique @db.VarChar(11)
-  phone             String?            @default("") @db.VarChar(11)
-  userType          UserType           @default(CONTRATANTE)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id                Int        @id @default(autoincrement())
+  firstName         String?    @default("") @db.VarChar(50)
+  lastName          String?    @default("") @db.VarChar(100)
+  email             String     @unique @db.VarChar(320)
+  password          String?    @default("") @db.VarChar(64)
+  birthDate         DateTime?  @db.Date
+  cpf               String?    @unique @db.VarChar(11)
+  phone             String?    @default("") @db.VarChar(11)
+  userType          UserType   @default(CONTRATANTE)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
   companyName       String?
   companyAddress    String?
   companyCity       String?
   companyState      String?
   companyBio        String?
-  basePoints        Int                @default(0)
+  basePoints        Int        @default(0)
   planId            Int?
-  points            Int                @default(0)
-  profileVisibility Boolean            @default(true)
+  points            Int        @default(0)
+  profileVisibility Boolean    @default(true)
   rank              Int?
-  temporaryPoints   Int                @default(0)
-  totalPoints       Int                @default(0)
+  temporaryPoints   Int        @default(0)
+  totalPoints       Int        @default(0)
   companion         Companion?
   Top10             Top10?
 
@@ -116,36 +116,35 @@ model PlanSubscription {
 
 // MODELOS DE DADOS DE ACOMPANHANTES
 model Companion {
-  id                 Int                          @id @default(autoincrement())
-  userId             Int                          @unique
-  name               String
-  age                Int                          @default(0)
-  description        String
-  city               String
-  state              String
-  status             String
-  lastOnline         DateTime
-  points             Int                          @default(0)
-  top10Id            Int?
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
-
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  name        String
+  age         Int      @default(0)
+  description String
+  city        String
+  state       String
+  status      String
+  lastOnline  DateTime
+  points      Int      @default(0)
+  top10Id     Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // relacionamentos
-  top10              Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
-  user               User                         @relation(fields: [userId], references: [id])
+  top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
+  user                    User                         @relation(fields: [userId], references: [id])
   PhysicalCharacteristics PhysicalCharacteristics[]
-  atendimentos       ServiceCompanion[]
-  contactMethods     ContactMethodCompanion[]
-  lugares            LugarCompanion[]
-  paymentMethods     PaymentMethodCompanion[]
-  servicosEspeciais  ServicosEspeciaisCompanion[]
-  servicosGerais     ServicosGeraisCompanion[]
-  ageCategories      AgeCategoryCompanion[]
-  feedPosts          FeedPost[]
-  media              Media[]
-  reviews            Review[]
-  denunciasRecebidas Denuncia[]                   @relation("CompanionDenunciasRecebidas")
+  atendimentos            ServiceCompanion[]
+  contactMethods          ContactMethodCompanion[]
+  lugares                 LocationCompanion[]
+  paymentMethods          PaymentMethodCompanion[]
+  servicosEspeciais       ServicosEspeciaisCompanion[]
+  servicosGerais          ServicosGeraisCompanion[]
+  ageCategories           AgeCategoryCompanion[]
+  feedPosts               FeedPost[]
+  media                   Media[]
+  reviews                 Review[]
+  denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
 }
 
 model ContactMethodCompanion {
@@ -154,15 +153,18 @@ model ContactMethodCompanion {
   contactMethod ContactMethod
   details       String
 
-  companion     Companion     @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model ServiceCompanion {
   id          Int         @id @default(autoincrement())
   companionId Int
-  atendimento Atendimento
+  serviceId Int?
+  isOffered   Boolean     @default(true)
+  price       Float?
 
-  companion   Companion   @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
+  Service   Service?  @relation(fields: [serviceId], references: [id])
 }
 
 model PaymentMethodCompanion {
@@ -170,12 +172,12 @@ model PaymentMethodCompanion {
   companionId   Int
   paymentMethod PaymentMethod
 
-  companion     Companion     @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model PhysicalCharacteristics {
-  id           Int       @id @default(autoincrement())
-  companionId  Int       @unique
+  id           Int      @id @default(autoincrement())
+  companionId  Int      @unique
   gender       String
   genitalia    String
   weight       Float
@@ -194,15 +196,15 @@ model PhysicalCharacteristics {
   bodyType     Corpo
   breastType   Seios
 
-  companion    Companion  @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model AgeCategoryCompanion {
-  id          Int          @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   companionId Int
   ageCategory AgeCategory
 
-  companion   Companion    @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model ServicosGeraisCompanion {
@@ -219,14 +221,22 @@ model ServicosEspeciaisCompanion {
   companion   Companion         @relation(fields: [companionId], references: [id])
 }
 
-model LugarCompanion {
+model LocationCompanion {
   id          Int       @id @default(autoincrement())
   companionId Int
   lugar       Lugar
   companion   Companion @relation(fields: [companionId], references: [id])
 }
 
-// 
+// MODELOS DE DADOS DE GERAIS
+model Service {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  defaultPrice     Float? // Preço padrão, caso aplicável
+  ServiceCompanion ServiceCompanion[] // Relacionamento com os acompanhantes
+}
+
 model Top10 {
   id        Int         @id @default(autoincrement())
   createdAt DateTime    @default(now())
@@ -328,8 +338,6 @@ model Payment {
   plan          Plan     @relation(fields: [planId], references: [id])
   user          User     @relation(fields: [userId], references: [id])
 }
-
-
 
 // ENUMS
 enum UserType {

@@ -279,14 +279,34 @@ async function seedPlansAndExtras() {
 
     console.log('Seed concluído: Planos extras e funcionalidades inseridos com sucesso!');
 }
+async function seedService() {
+  const services = [
+    { name: '1 hora', description: 'Serviço de 1 hora.', defaultPrice: 50 },
+    { name: '2 horas', description: 'Serviço de 2 horas.', defaultPrice: 100 },
+    { name: '4 horas', description: 'Serviço de 4 horas.', defaultPrice: 200 },
+    { name: 'Diária', description: 'Serviço diário.', defaultPrice: 500 },
+    { name: '30 minutos', description: 'Serviço de 30 minutos.', defaultPrice: 30 },
+    { name: '15 minutos', description: 'Serviço de 15 minutos.', defaultPrice: 20 },
+    { name: 'Diária de viagem', description: 'Serviço diário durante viagens.', defaultPrice: 800 },
+  ];
 
+  for (const service of services) {
+    await prisma.service.upsert({
+      where: { name: service.name },
+      update: {},
+      create: service,
+    });
+  }
 
+  console.log('Seed de serviços criada com sucesso!');
+}
 
 async function runAllSeeds() {
     try {
         await seedPlanTypes();
         await seedPlan();
         await seedPlansAndExtras();
+        await seedService();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);
     } finally {
