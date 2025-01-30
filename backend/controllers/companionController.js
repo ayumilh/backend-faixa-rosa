@@ -48,7 +48,6 @@ exports.updateCompanion = async (req, res) => {
     }
 };
 
-
 // Adicionar Características Físicas
 exports.addPhysicalCharacteristics = async (req, res) => {
     const userId = req.user?.id;
@@ -63,19 +62,32 @@ exports.addPhysicalCharacteristics = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
+        if (!gender) return res.status(400).json({ error: 'O campo "gender" é obrigatório.' });
+
+        const validData = {
+            gender,
+            genitalia: genitalia || null,
+            weight: weight ?? null,
+            height: height ?? null,
+            estatura: estatura || null,
+            ethnicity: ethnicity || null,
+            eyeColor: eyeColor || null,
+            hairStyle: hairStyle || null,
+            hairLength: hairLength || null,
+            shoeSize: shoeSize ?? null,
+            hasSilicone: hasSilicone ?? null,
+            hasTattoos: hasTattoos ?? null,
+            hasPiercings: hasPiercings ?? null,
+            smoker: smoker ?? null,
+            pubis: pubis || null,
+            bodyType: bodyType || null,
+            breastType: breastType || null,
+        };
+
         await prisma.physicalCharacteristics.upsert({
             where: { companionId: companion.id },
-            update: {
-                gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
-                hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
-                hasPiercings, smoker, pubis, bodyType, breastType
-            },
-            create: {
-                companionId: companion.id,
-                gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
-                hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
-                hasPiercings, smoker, pubis, bodyType, breastType
-            },
+            update: validData,
+            create: { companionId: companion.id, ...validData },
         });
 
         return res.status(200).json({ message: 'Características físicas cadastradas com sucesso.' });
