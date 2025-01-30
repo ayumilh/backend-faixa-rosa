@@ -15,7 +15,7 @@ app.use(
   })
 );
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true }));
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');

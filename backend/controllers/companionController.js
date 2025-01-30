@@ -50,6 +50,7 @@ exports.updateCompanion = async (req, res) => {
 
 // Adicionar Características Físicas
 exports.addPhysicalCharacteristics = async (req, res) => {
+    console.log("Recebendo dados no body:", req.body);
     const userId = req.user?.id;
     const {
         gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
@@ -57,7 +58,9 @@ exports.addPhysicalCharacteristics = async (req, res) => {
         hasPiercings, smoker, pubis, bodyType, breastType
     } = req.body;
 
-    console.log(req.body);
+    if (!gender) {
+        return res.status(400).json({ error: "O campo 'gender' é obrigatório." });
+    }
 
 
     try {
@@ -65,32 +68,41 @@ exports.addPhysicalCharacteristics = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-
         const validData = {
-            gender: gender || null,
-            genitalia: genitalia || null,
-            weight: weight ?? null,
-            height: height ?? null,
-            estatura: estatura || null,
-            ethnicity: ethnicity || null,
-            eyeColor: eyeColor || null,
-            hairStyle: hairStyle || null,
-            hairLength: hairLength || null,
-            shoeSize: shoeSize ?? null,
-            hasSilicone: hasSilicone ?? null,
-            hasTattoos: hasTattoos ?? null,
-            hasPiercings: hasPiercings ?? null,
-            smoker: smoker ?? null,
-            pubis: pubis || null,
-            bodyType: bodyType || null,
-            breastType: breastType || null,
+            gender,
+            genitalia: genitalia || undefined,
+            weight: weight || undefined,
+            height: height || undefined,
+            estatura: estatura || undefined,
+            ethnicity: ethnicity || undefined,
+            eyeColor: eyeColor || undefined,
+            hairStyle: hairStyle || undefined,
+            hairLength: hairLength || undefined,
+            shoeSize: shoeSize || undefined,
+            hasSilicone: hasSilicone ?? undefined,
+            hasTattoos: hasTattoos ?? undefined,
+            hasPiercings: hasPiercings ?? undefined,
+            smoker: smoker ?? undefined,
+            pubis: pubis || undefined,
+            bodyType: bodyType || undefined,
+            breastType: breastType || undefined,
+            companionId: companion.id
         };
 
-        await prisma.physicalCharacteristics.upsert({
-            where: { companionId: companion.id },
-            update: validData,
-            create: { companionId: companion.id, ...validData },
+        const existingCharacteristics = await prisma.physicalCharacteristics.findUnique({
+            where: { companionId: companion.id }
         });
+
+        if (existingCharacteristics) {
+            await prisma.physicalCharacteristics.update({
+                where: { companionId: companion.id },
+                data: validData
+            });
+        } else {
+            await prisma.physicalCharacteristics.create({
+                data: validData
+            });
+        }
 
         return res.status(200).json({ message: 'Características físicas cadastradas com sucesso.' });
 
