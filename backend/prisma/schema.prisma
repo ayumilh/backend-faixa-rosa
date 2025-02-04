@@ -35,14 +35,23 @@ model User {
   Top10             Top10?
 
   // Relacionamentos
-  conveniosCriados  Convenio[]
-  denunciasFeitas   Denuncia[]         @relation("UserDenunciasFeitas")
-  payments          Payment[]
-  planSubscriptions PlanSubscription[]
-  reviews           Review[]
-  plan              Plan?              @relation(fields: [planId], references: [id])
-  extraPlans        ExtraPlan[]        @relation("UserExtraPlans")
-  planTypes         PlanType[]         @relation("UserPlanTypes")
+  conveniosCriados Convenio[]
+  denunciasFeitas  Denuncia[] @relation("UserDenunciasFeitas")
+  payments         Payment[]
+  reviews          Review[]
+}
+
+model Document {
+  id             Int      @id @default(autoincrement())
+  companionId    Int // Relacionamento com a acompanhante
+  type           String // Tipo do documento (e.g., "RG", "CNH")
+  fileFront      String // Caminho ou URL do arquivo (frente)
+  fileBack       String? // Caminho ou URL do arquivo (verso), caso aplicável
+  documentStatus String   @default("PENDING") // Status: PENDENTE, APROVADO, REJEITADO
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  companion Companion @relation(fields: [companionId], references: [id]) // Relacionamento com Companion
 }
 
 // PLANOS
@@ -59,9 +68,10 @@ model PlanType {
   cityChangeFee     Float
   isDarkMode        Boolean @default(false)
   duration          Int?
-  users             User[]  @relation("UserPlanTypes")
 
-  plans Plan[] // Relacionamento bidirecional
+  // relacionamentos
+  plans      Plan[]
+  companions Companion[]
 }
 
 model ExtraPlan {
@@ -79,8 +89,9 @@ model ExtraPlan {
   hasDarkMode      Boolean @default(false)
   hasStories       Boolean @default(false)
 
-  // Relação com User (muitos para muitos)
-  users User[] @relation("UserExtraPlans")
+  // relacionamentos
+  plans      Plan[]      @relation("PlanExtraPlans")
+  companions Companion[] @relation("CompanionExtraPlans")
 }
 
 model Plan {
@@ -88,51 +99,62 @@ model Plan {
   name        String   @unique
   price       Float
   description String?
+  isBasic     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  extraPlanId Int?
-  isBasic     Boolean  @default(false)
 
-  planTypeId Int? // Chave estrangeira para PlanType
-  planType   PlanType? @relation(fields: [planTypeId], references: [id]) // Relacionamento com PlanType ----- mudei o extraPlanId, ver se quebra algo no seed de planos, verificar a criação do plano NItro basico para o extra
+  planTypeId Int?
+  planType   PlanType? @relation(fields: [planTypeId], references: [id])
+
+  extraPlans ExtraPlan[] @relation("PlanExtraPlans")
 
   convenios         Convenio[]
   payments          Payment[]
   planSubscriptions PlanSubscription[]
-  User              User[]
+  Companion         Companion[]
 }
 
 model PlanSubscription {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  planId    Int
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          Int       @id @default(autoincrement())
+  companionId Int
+  planId      Int
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   plan      Plan      @relation(fields: [planId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 // MODELOS DE DADOS DE ACOMPANHANTES
 model Companion {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique
-  name        String
-  age         Int      @default(0)
-  description String
-  city        String
-  state       String
-  status      String
-  lastOnline  DateTime
-  points      Int      @default(0)
-  top10Id     Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  name          String
+  age           Int      @default(0)
+  description   String
+  city          String
+  state         String
+  profileStatus String   @default("PENDING")
+  lastOnline    DateTime
+  points        Int      @default(0)
+  top10Id       Int?
+  planId        Int?
+  planTypeId    Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // relacionamentos
+  user User @relation(fields: [userId], references: [id])
+
+  plan       Plan?       @relation(fields: [planId], references: [id])
+  planType   PlanType?   @relation(fields: [planTypeId], references: [id])
+  extraPlans ExtraPlan[] @relation("CompanionExtraPlans")
+
+  PlanSubscription PlanSubscription[]
+
   top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
-  user                    User                         @relation(fields: [userId], references: [id])
   PhysicalCharacteristics PhysicalCharacteristics[]
   timedServiceCompanion   TimedServiceCompanion[]
   contactMethods          ContactMethodCompanion[]
@@ -146,10 +168,9 @@ model Companion {
   reviews                 Review[]
   denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
   ServiceCompanionOffered ServiceCompanionOffered[]
-
-  WeeklySchedule WeeklySchedule[]
-
-  UnavailableDates UnavailableDates[]
+  WeeklySchedule          WeeklySchedule[]
+  UnavailableDates        UnavailableDates[]
+  documents               Document[]
 }
 
 model ContactMethodCompanion {
