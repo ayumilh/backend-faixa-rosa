@@ -10,7 +10,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: ["https://interface-faixa-rosa.vercel.app", "http://localhost:3000"],
+    origin: ["https://www.faixarosa.com", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -32,7 +32,9 @@ const verifyToken = require('./routes/utils/utils.js');
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
+const adminRoutes = require('./routes/admin/adminRoutes.js');
 
+app.use('/api/admin', adminRoutes);
 app.use('/api/', verifyToken);
 app.use('/api/users/', userRoutes);
 app.use('/api/plans', plansRoutes);
