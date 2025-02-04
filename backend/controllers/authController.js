@@ -73,7 +73,7 @@ exports.register = async (req, res) => {
                         description: '',
                         city: '',
                         state: '',
-                        status: 'INCOMPLETO', // Status inicial
+                        profileStatus: 'PENDING',
                         lastOnline: new Date(),
                         points: 0,
                         createdAt: new Date(),
