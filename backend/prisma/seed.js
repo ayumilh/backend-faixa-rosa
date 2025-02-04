@@ -1,86 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function seedPlanTypes() {
-    const planTypes = [
-        {
-            name: 'VIP',
-            size: 'Pequeno',
-            isOnline: true,
-            accessDashboard: true,
-            accessMetrics: true,
-            accessConvenio: false,
-            points: 300,
-            cityChangeAllowed: true,
-            cityChangeFee: 50.0,
-            isDarkMode: false,
-        },
-        {
-            name: 'Pink',
-            size: 'Padrão',
-            isOnline: true,
-            accessDashboard: true,
-            accessMetrics: true,
-            accessConvenio: true,
-            points: 500,
-            cityChangeAllowed: true,
-            cityChangeFee: 50.0,
-            isDarkMode: false,
-        },
-        {
-            name: 'Safira',
-            size: 'Médio',
-            isOnline: true,
-            accessDashboard: true,
-            accessMetrics: true,
-            accessConvenio: true,
-            points: 1000,
-            cityChangeAllowed: true,
-            cityChangeFee: 30.0,
-            isDarkMode: false,
-        },
-        {
-            name: 'Rubi',
-            size: 'Grande',
-            isOnline: true,
-            accessDashboard: true,
-            accessMetrics: true,
-            accessConvenio: true,
-            points: 2000,
-            cityChangeAllowed: true,
-            cityChangeFee: 20.0,
-            isDarkMode: false,
-        },
-        {
-            name: 'Nitro',
-            size: 'Temporário',
-            isOnline: true,
-            accessDashboard: false,
-            accessMetrics: false,
-            accessConvenio: false,
-            points: 4000, // Pontos de destaque temporário
-            cityChangeAllowed: false,
-            cityChangeFee: 0.0,
-            isDarkMode: true, // Modo escuro ativo
-        },
-    ];
-
-    // Inserir no banco de dados
-    for (const planType of planTypes) {
-        const existingPlanType = await prisma.planType.findUnique({
-            where: { name: planType.name },
-        });
-
-        if (!existingPlanType) {
-            await prisma.planType.create({
-                data: planType,
-            });
-        }
-    }
-
-    console.log('Seed concluído: Tipos de planos inseridos com sucesso!');
-}
-
 async function seedPlan() {
     const plans = [
         {
@@ -107,14 +27,110 @@ async function seedPlan() {
             description: 'Tenha até 10 fotos e 4 vídeos exclusivos. Anúncio online todos os dias da semana. Prioridade no suporte Faixa Rosa. Sem convênio. Sem stories. +300 pontos de listagem.',
             isBasic: true,
         },
+    ];
+
+    // Inserir no banco de dados
+    for (const plan of plans) {
+        await prisma.plan.upsert({
+            where: { name: plan.name },
+            update: {},
+            create: {
+                name: plan.name,
+                price: plan.price,
+                description: plan.description,
+                isBasic: plan.isBasic,
+            },
+        });
+    }
+
+    console.log('Seed concluído: Planos básicos inseridos com sucesso!');
+}
+
+async function seedPlanTypes() {
+    const planTypes = [
+        {
+            name: 'Plano Vip',
+            size: 'Pequeno',
+            isOnline: true,
+            accessDashboard: true,
+            accessMetrics: true,
+            accessConvenio: false,
+            points: 300,
+            cityChangeAllowed: true,
+            cityChangeFee: 50.0,
+            isDarkMode: false,
+        },
+        {
+            name: 'Plano Pink',
+            size: 'Padrão',
+            isOnline: true,
+            accessDashboard: true,
+            accessMetrics: true,
+            accessConvenio: true,
+            points: 500,
+            cityChangeAllowed: true,
+            cityChangeFee: 50.0,
+            isDarkMode: false,
+        },
+        {
+            name: 'Plano Safira',
+            size: 'Médio',
+            isOnline: true,
+            accessDashboard: true,
+            accessMetrics: true,
+            accessConvenio: true,
+            points: 1000,
+            cityChangeAllowed: true,
+            cityChangeFee: 30.0,
+            isDarkMode: false,
+        },
+        {
+            name: 'Plano Rubi',
+            size: 'Grande',
+            isOnline: true,
+            accessDashboard: true,
+            accessMetrics: true,
+            accessConvenio: true,
+            points: 2000,
+            cityChangeAllowed: true,
+            cityChangeFee: 20.0,
+            isDarkMode: false,
+        },
+    ];
+
+    // Inserir no banco de dados
+    const plans = await prisma.plan.findMany(); 
+
+    for (const planType of planTypes) {
+        const plan = plans.find((p) => p.name.includes(planType.name));
+
+        if (plan) {
+            await prisma.planType.upsert({
+                where: { name: planType.name },
+                update: {},
+                create: {
+                    ...planType,
+                    plans: { connect: { id: plan.id } }, 
+                },
+            });
+        } else {
+            console.error(`⚠️ Erro: Plano correspondente a ${planType.name} não encontrado.`);
+        }
+    }
+    
+
+    console.log('Seed concluído: Tipos de planos inseridos com sucesso!');
+}
+
+async function seedPlansAndExtras() {
+    const extraPlans = [
         {
             name: 'Plano Nitro',
             price: 6.90,
-            description: 'Anúncio em posição de destaque (Por uma hora). Todos benefícios de outros planos (Por uma hora). Opção de stories (Por uma hora). Sem convênio. +4000 pontos de listagem (Por uma hora).',
-            isBasic: false,
+            description: 'Anúncio em posição de destaque (Por uma hora). Todos os benefícios de outros planos (Por uma hora). Opção de stories (Por uma hora). Sem convênio. +4000 pontos de listagem (Por uma hora).',
             extraDetails: {
                 isTemporary: true,
-                duration: 60, // Duração em minutos
+                duration: 60,
                 pointsBonus: 4000,
                 tempPoints: 4000,
                 isEnabled: true,
@@ -125,49 +141,6 @@ async function seedPlan() {
                 hasStories: true,
             },
         },
-    ];
-
-    // Inserir no banco de dados
-    for (const plan of plans) {
-        const existingPlan = await prisma.plan.findUnique({
-            where: { name: plan.name }, // Verifica se o plano já existe pelo nome
-        });
-
-        if (!existingPlan) {
-            await prisma.plan.create({
-                data: {
-                    name: plan.name,
-                    price: plan.price,
-                    description: plan.description,
-                    isBasic: plan.isBasic,
-                },
-            });
-
-            // Se for um plano extra (isBasic: false), adicioná-lo também na tabela ExtraPlan
-            if (!plan.isBasic && plan.extraDetails) {
-                const existingExtraPlan = await prisma.extraPlan.findUnique({
-                    where: { name: plan.name },
-                });
-
-                if (!existingExtraPlan) {
-                    await prisma.extraPlan.create({
-                        data: {
-                            name: plan.name,
-                            description: plan.description,
-                            ...plan.extraDetails, // Inclui as funcionalidades extras
-                        },
-                    });
-                    console.log(`Plano extra criado: ${plan.name}`);
-                }
-            }
-        }
-    }
-
-    console.log('Seed concluído: Planos básicos inseridos com sucesso!');
-}
-
-async function seedPlansAndExtras() {
-    const extraPlans = [
         {
             name: 'Contato',
             price: 83.60,
@@ -255,27 +228,59 @@ async function seedPlansAndExtras() {
         },
     ];
 
+    // for (const extraPlan of extraPlans) {
+    //     const existingExtraPlan = await prisma.extraPlan.findUnique({
+    //         where: { name: extraPlan.name },
+    //     });
+
+    //     if (!existingExtraPlan) {
+    //         await prisma.extraPlan.create({
+    //             data: {
+    //                 name: extraPlan.name,
+    //                 description: extraPlan.description,
+    //                 ...extraPlan.extraDetails,
+    //             },
+    //         });
+    //         console.log(`Plano extra criado: ${extraPlan.name}`);
+    //     } else {
+    //         console.log(`Plano extra já existe: ${extraPlan.name}`);
+    //     }
+    // }
+
     for (const extraPlan of extraPlans) {
-        // Verificar se o registro já existe pelo campo `name`
-        const existingExtraPlan = await prisma.extraPlan.findUnique({
+        // Criar ou atualizar o Plan
+        const plan = await prisma.plan.upsert({
             where: { name: extraPlan.name },
+            update: {},
+            create: {
+                name: extraPlan.name,
+                price: extraPlan.price,
+                description: extraPlan.description,
+                isBasic: false, // Planos extras não são básicos
+            },
         });
 
-        if (!existingExtraPlan) {
-            // Criar o registro na tabela `ExtraPlan`
-            await prisma.extraPlan.create({
-                data: {
-                    name: extraPlan.name,
-                    description: extraPlan.description,
-                    ...extraPlan.extraDetails, // Insere os detalhes adicionais
-                },
-            });
-            console.log(`Plano extra criado: ${extraPlan.name}`);
-        } else {
-            console.log(`Plano extra já existe: ${extraPlan.name}`);
-        }
+        // Criar ou atualizar o ExtraPlan vinculado ao Plan
+        await prisma.extraPlan.upsert({
+            where: { name: extraPlan.name },
+            update: {},
+            create: {
+                name: extraPlan.name,
+                description: extraPlan.description,
+                pointsBonus: extraPlan.extraDetails.pointsBonus,
+                tempPoints: extraPlan.extraDetails.tempPoints,
+                isTemporary: extraPlan.extraDetails.isTemporary,
+                duration: extraPlan.extraDetails.duration,
+                isEnabled: extraPlan.extraDetails.isEnabled,
+                hasContact: extraPlan.extraDetails.hasContact,
+                canHideAge: extraPlan.extraDetails.canHideAge,
+                hasPublicReviews: extraPlan.extraDetails.hasPublicReviews,
+                hasDarkMode: extraPlan.extraDetails.hasDarkMode,
+                hasStories: extraPlan.extraDetails.hasStories,
+                plans: { connect: { id: plan.id } }, // Associar ExtraPlan ao Plan
+            },
+        });
     }
-
 
     console.log('Seed concluído: Planos extras e funcionalidades inseridos com sucesso!');
 }
@@ -510,12 +515,12 @@ const seedServicesOffered = async () => {
 
 async function runAllSeeds() {
     try {
-        await seedPlanTypes();
-        await seedPlan();
+        // await seedPlan();
+        // await seedPlanTypes();
         await seedPlansAndExtras();
-        await seedTimedServices();
-        await seedAttendedLocations();
-        await seedServicesOffered();
+        // await seedTimedServices();
+        // await seedAttendedLocations();
+        // await seedServicesOffered();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);
     } finally {
