@@ -32,9 +32,9 @@ const verifyToken = require('./routes/utils/utils.js');
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
-const adminRoutes = require('./routes/admin/adminRoutes.js');
+// const adminRoutes = require('./routes/admin/adminRoutes.js');
 
-app.use('/api/admin', adminRoutes);
+// app.use('/api/admin', adminRoutes);
 app.use('/api/', verifyToken);
 app.use('/api/users/', userRoutes);
 app.use('/api/plans', plansRoutes);
