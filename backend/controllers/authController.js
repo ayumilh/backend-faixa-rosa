@@ -156,6 +156,8 @@ exports.login = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000 // Tempo de expiração do cookie em milissegundos (1 dia)
         });
 
+        console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
+
         res.status(200).json({
             message: 'Login realizado com sucesso',
             token,
