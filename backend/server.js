@@ -21,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 const authRoutes = require('./routes/authRoutes');
 
 app.use('/api/auth', authRoutes);
+app.use('/api/', verifyToken);
 app.get('/', (req, res) => {
   res.send('API funcionando!');
 });
@@ -35,7 +36,6 @@ const companionRoutes = require('./routes/companionRoutes.js');
 // const adminRoutes = require('./routes/admin/adminRoutes.js');
 
 // app.use('/api/admin', adminRoutes);
-app.use('/api/', verifyToken);
 app.use('/api/users/', userRoutes);
 app.use('/api/plans', plansRoutes);
 app.use('/api/companions', companionRoutes);
