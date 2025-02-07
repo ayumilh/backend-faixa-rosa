@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
+app.use('/api/user', authRoutes);
 
 const verifyToken = require('./routes/utils/utils.js');
 const userRoutes = require('./routes/userRoutes.js');
