@@ -19,6 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');
+const verifyToken = require('./routes/utils/utils.js');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/', verifyToken);
@@ -29,7 +30,6 @@ app.get('/', (req, res) => {
 app.use(authenticate);
 
 // Rotas privadas
-const verifyToken = require('./routes/utils/utils.js');
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
