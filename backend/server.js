@@ -19,18 +19,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');
+app.get('/', (req, res) => {
+  res.send('API funcionando!');
+});
+
 app.use('/api/user', authRoutes);
 
-const verifyToken = require('./routes/utils/utils.js');
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
 // const adminRoutes = require('./routes/admin/adminRoutes.js');
 
-app.get('/', (req, res) => {
-  res.send('API funcionando!');
-});
-app.use('/api/', verifyToken);
 
 // Rotas privadas
 // app.use('/api/admin', authenticate, adminRoutes);
