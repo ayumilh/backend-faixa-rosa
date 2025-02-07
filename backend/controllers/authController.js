@@ -149,6 +149,13 @@ exports.login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        res.cookie('token', token, { 
+            httpOnly: true,
+            secure: true, // Apenas enviar o cookie através de conexões HTTPS
+            sameSite: 'None', // Prevenir ataques CSRF
+            maxAge: 24 * 60 * 60 * 1000 // Tempo de expiração do cookie em milissegundos (1 dia)
+        });
+
         res.status(200).json({
             message: 'Login realizado com sucesso',
             token,
