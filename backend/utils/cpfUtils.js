@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const validarCpf = async (cpf, data_nascimento) => {
     const API_URL = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/`;
-    const API_KEY = process.env.NEXT_PUBLIC_HUB_API_KEY;
+    const API_KEY = process.env.PUBLIC_HUB_API_KEY;
 
     if (!cpf || cpf.length !== 11 || !data_nascimento) {
         return { error: "CPF e data de nascimento são obrigatórios." };
