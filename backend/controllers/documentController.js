@@ -1,16 +1,28 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { uploadDocuments } = require("../config/wasabi");
 
 exports.uploadDocument = async (req, res) => {
-    const { companionId, type, fileFront, fileBack } = req.body;
+    const { companionId, type } = req.body;
 
-    try {
+    if (!req.files || !req.files.fileFront || !req.files.fileBack) {
+        return res.status(400).json({ error: "Ambas as imagens (frente e verso) são obrigatórias." });
+    }
+
+    const fileFrontUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileFront[0].key}`;
+    const fileBackUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileBack[0].key}`;
+  
+    console.log("Verso:", fileBackUrl);
+    console.log("Frente:", fileFrontUrl);
+    
+    try {      
+
         const document = await prisma.document.create({
             data: {
                 companionId,
                 type,
-                fileFront,
-                fileBack,
+                fileFront: fileFrontUrl,
+                fileBack: fileBackUrl,
             },
         });
 

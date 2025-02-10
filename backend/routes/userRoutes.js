@@ -1,8 +1,9 @@
 const express = require('express');
-const userController = require('../controllers/userController.js');
-const getUser = require('../utils/getUser.js');
-
 const router = express.Router();
+const { uploadDocuments } = require("../config/wasabi");
+const userController = require('../controllers/userController.js');
+const documentController = require('../controllers/documentController');
+const getUser = require('../utils/getUser.js');
 
 // router.get('/', userController.getAllUsers);
 // router.get('/:id', userController.getUserById);
@@ -12,5 +13,8 @@ const router = express.Router();
 //Informações Usuario Get
 router.get('/info', getUser.getUserIdBd);
 
+
+// documentRoutes.js
+router.post("/documents/upload", uploadDocuments, documentController.uploadDocument);
 
 module.exports = router;

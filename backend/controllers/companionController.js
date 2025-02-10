@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { uploadSingleVideo } = require("../config/wasabi");
 const prisma = new PrismaClient();
 
 // Listar todos os acompanhantes
@@ -115,24 +116,30 @@ exports.addPhysicalCharacteristics = async (req, res) => {
 
 // Adicionar Mídia de Comparação (Vídeo obrigatório)
 exports.uploadCompanionMedia = async (req, res) => {
-    const userId = req.user?.id;
-    const { videoUrl } = req.body; // URL do vídeo
-
     try {
+        const userId = req.user?.id;
+
+        if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado.' });
+
+        const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
+
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-        await prisma.media.create({
+        const newMedia = await prisma.media.create({
             data: {
                 companionId: companion.id,
                 url: videoUrl,
-                mediaType: 'VIDEO',
+                mediaType: "VIDEO",
             },
         });
 
-        return res.status(200).json({ message: 'Vídeo de comparação adicionado com sucesso.' });
-
+        return res.status(200).json({
+            message: "Vídeo enviado e armazenado com sucesso.",
+            videoUrl,
+            media: newMedia,
+        });
     } catch (error) {
         console.error('Erro ao adicionar vídeo de comparação:', error);
         return res.status(500).json({ error: 'Erro ao processar o vídeo.' });
@@ -215,8 +222,8 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
 
         // Se houver serviços inválidos, retorna erro
         if (invalidServices.length > 0) {
-            return res.status(400).json({ 
-                error: "Os seguintes serviços não existem no banco de dados.", 
+            return res.status(400).json({
+                error: "Os seguintes serviços não existem no banco de dados.",
                 invalidServiceIds: invalidServices
             });
         }
@@ -281,7 +288,7 @@ exports.updateWeeklySchedule = async (req, res) => {
 // dias indisponíveis
 exports.updateUnavailableDates = async (req, res) => {
     const userId = req.user?.id;
-    const { unavailableDates } = req.body; 
+    const { unavailableDates } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
@@ -335,7 +342,7 @@ exports.updateCompanionLocation = async (req, res) => {
 // Atualizar Locais Atendidos
 exports.updateAttendedLocations = async (req, res) => {
     const userId = req.user?.id;
-    const { locations } = req.body; 
+    const { locations } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });

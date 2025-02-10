@@ -14,7 +14,7 @@ const upload = multer({
         acl: "public-read",
         contentType: multerS3.AUTO_CONTENT_TYPE,
         key: function (req, file, cb) {
-            const fileName = `companions/videos/${Date.now()}-${file.originalname}`;
+            const fileName = `companions/videos/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
             cb(null, fileName);
         },
     }),
