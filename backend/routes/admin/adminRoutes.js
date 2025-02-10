@@ -17,8 +17,8 @@ router.patch('/acompanhante/:id/suspend', AdminController.suspendAcompanhantes);
 // Atualizar plano
 router.put('/acompanhante/:id/update-plan', AdminController.updatePlan);
 
-// Verificar documentos
-router.patch('/acompanhante/:id/verify-documents', AdminController.verifyDocuments);
+// Aprovar documento
+router.patch('/acompanhante/:id/approved-documents', AdminController.approvedDocuments);
 
 // Monitorar postagens
 router.get('/acompanhante/:id/posts', AdminController.monitorPosts);
