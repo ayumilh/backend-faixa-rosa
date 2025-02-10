@@ -1,31 +1,12 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 const { authenticate } = require('./middleware/authMiddleware.js');
 
 const app = express();
 
-const allowedOrigins = ["https://www.faixarosa.com", "http://localhost:3000"];
-
 // Middlewares
 app.use(helmet());
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-  })
-);
-
-app.options("*", cors()); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
