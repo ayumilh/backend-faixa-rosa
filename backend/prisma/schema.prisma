@@ -129,21 +129,22 @@ model PlanSubscription {
 
 // MODELOS DE DADOS DE ACOMPANHANTES
 model Companion {
-  id            Int      @id @default(autoincrement())
-  userId        Int      @unique
-  name          String
-  age           Int      @default(0)
-  description   String
-  city          String
-  state         String
-  profileStatus String   @default("PENDING")
-  lastOnline    DateTime
-  points        Int      @default(0)
-  top10Id       Int?
-  planId        Int?
-  planTypeId    Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  name           String
+  age            Int      @default(0)
+  description    String
+  city           String
+  state          String
+  profileStatus  String   @default("PENDING")
+  documentStatus String   @default("PENDING") // Status geral dos documentos
+  lastOnline     DateTime
+  points         Int      @default(0)
+  top10Id        Int?
+  planId         Int?
+  planTypeId     Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // relacionamentos
   user User @relation(fields: [userId], references: [id])

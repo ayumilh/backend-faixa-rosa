@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require("cors");
-const { authenticate } = require('./middleware/authMiddleware.js');
+const { authenticate, verifyAdmin  } = require('./middleware/authMiddleware.js');
 
 const app = express();
 
@@ -49,12 +49,12 @@ app.use('/api/user', authRoutes);
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
-// const adminRoutes = require('./routes/admin/adminRoutes.js');
+const adminRoutes = require('./routes/admin/adminRoutes.js');
 
 
 // Rotas privadas
-// app.use('/api/admin', authenticate, adminRoutes);
-app.use('/api/users/', authenticate, userRoutes);
+app.use('/api/admin', authenticate, verifyAdmin, adminRoutes);
+app.use('/api/users', authenticate, userRoutes);
 app.use('/api/plans', authenticate, plansRoutes);
 app.use('/api/companions', authenticate, companionRoutes);
 

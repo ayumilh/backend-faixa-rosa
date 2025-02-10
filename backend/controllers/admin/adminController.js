@@ -123,19 +123,43 @@ exports.updatePlan = async (req, res) => {
 };
 
 // Verificar documentos
-exports.verifyDocuments = async (req, res) => {
-    const { id } = req.params;
+exports.approvedDocuments = async (req, res) => {
     try {
-        await db.document.updateMany({
-            where: { userId: parseInt(id) },
-            data: { documentStatus: 'VERIFIED' },
+        const { id } = req.params;
+
+        // Verifica se o usuário que está fazendo a requisição é admin
+        if (!req.user || req.user.role !== "ADMIN") {
+            return res.status(403).json({ error: "Acesso negado. Apenas administradores podem aprovar documentos." });
+        }
+
+        // Verifica se o acompanhante existe
+        const companion = await prisma.companion.findUnique({
+            where: { id: parseInt(id) }
         });
-        return res.status(200).json({ message: 'Documentos verificados com sucesso.' });
+
+        if (!companion) {
+            return res.status(404).json({ error: "Acompanhante não encontrado." });
+        }
+
+        // Atualiza todos os documentos do acompanhante para "approved"
+        await prisma.document.updateMany({
+            where: { companionId: parseInt(id) },
+            data: { documentStatus: "APPROVED" },
+        });
+
+        // Atualiza o status do acompanhante
+        await prisma.companion.update({
+            where: { id: parseInt(id) },
+            data: { documentStatus: "APPROVED" }
+        });
+
+        return res.status(200).json({ message: "Documentos verificados e aprovados com sucesso." });
+
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erro ao verificar documentos.' });
+        console.error("Erro ao verificar documentos:", error);
+        return res.status(500).json({ message: "Erro ao processar a verificação de documentos." });
     }
-}
+};
 
 // Suspender/Desativar acompanhantes
 exports.suspendAcompanhantes = async (req, res) => {
