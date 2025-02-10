@@ -14,13 +14,14 @@ const {
     deleteCompanion
 } = require('../controllers/companionController');
 const { updateCompanionVideo, uploadVideoMiddleware } = require("../controllers/uploadVideo");
+const { uploadSingleVideo } = require("../config/wasabi");
 
 
 const router = express.Router();
 
 router.put('/update', updateCompanion);
 router.post('/physical-characteristics', addPhysicalCharacteristics);
-router.post('/upload-media', uploadCompanionMedia);
+router.post('/upload-media', uploadSingleVideo, uploadCompanionMedia);
 router.put('/update-contact', updateCompanionContact);
 router.put('/update-services', updateCompanionServicesAndPrices);
 router.put('/update-schedule', updateWeeklySchedule);
