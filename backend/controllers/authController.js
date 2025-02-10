@@ -150,15 +150,16 @@ exports.login = async (req, res) => {
         );
 
         res.cookie("token", token, {
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+            sameSite: "strict",
             maxAge: 24 * 60 * 60 * 1000,
         });
 
         console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
 
         res.status(200).json({
-            message: 'Login realizado com sucesso',
+            auth: true,
             token,
             user: {
                 id: user.id,
