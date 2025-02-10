@@ -149,11 +149,11 @@ exports.login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
-        res.cookie('token', token, { 
+        res.cookie("token", token, {
             httpOnly: true,
-            secure: true, // Apenas enviar o cookie através de conexões HTTPS
-            sameSite: 'None', // Prevenir ataques CSRF
-            maxAge: 24 * 60 * 60 * 1000 // Tempo de expiração do cookie em milissegundos (1 dia)
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+            maxAge: 24 * 60 * 60 * 1000,
         });
 
         console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
