@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
 
         const { firstName, lastName, email, password, birthDate, cpf, phone, userType } = value;
 
-        const formattedBirthDate = birthDate ? new Date(birthDate.split('/').reverse().join('-')) : null;
+        const formattedBirthDate = birthDate ? new Date(birthDate) : null;
 
         // Verifica se o email ou CPF já está em uso
         const existingUser = await prisma.user.findFirst({
