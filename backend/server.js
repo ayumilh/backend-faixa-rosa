@@ -10,21 +10,6 @@ const allowedOrigins = ["https://www.faixarosa.com", "http://localhost:3000"];
 
 // Middlewares
 app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-  })
-);
-
-app.use(
   helmet({
     contentSecurityPolicy: false, // Desabilita o Content-Security-Policy
   })
