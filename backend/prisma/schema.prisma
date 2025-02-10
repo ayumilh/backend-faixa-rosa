@@ -32,86 +32,75 @@ model User {
   temporaryPoints   Int        @default(0)
   totalPoints       Int        @default(0)
   companion         Companion?
+  conveniosCriados  Convenio[]
+  denunciasFeitas   Denuncia[] @relation("UserDenunciasFeitas")
+  payments          Payment[]
+  reviews           Review[]
   Top10             Top10?
-
-  // Relacionamentos
-  conveniosCriados Convenio[]
-  denunciasFeitas  Denuncia[] @relation("UserDenunciasFeitas")
-  payments         Payment[]
-  reviews          Review[]
 }
 
 model Document {
-  id             Int      @id @default(autoincrement())
-  companionId    Int // Relacionamento com a acompanhante
-  type           String // Tipo do documento (e.g., "RG", "CNH")
-  fileFront      String // Caminho ou URL do arquivo (frente)
-  fileBack       String? // Caminho ou URL do arquivo (verso), caso aplicável
-  documentStatus String   @default("PENDING") // Status: PENDENTE, APROVADO, REJEITADO
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  companion Companion @relation(fields: [companionId], references: [id]) // Relacionamento com Companion
+  id             Int       @id @default(autoincrement())
+  companionId    Int
+  type           String
+  fileFront      String
+  fileBack       String?
+  documentStatus String    @default("PENDING")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  companion      Companion @relation(fields: [companionId], references: [id])
 }
 
-// PLANOS
 model PlanType {
-  id                Int     @id @default(autoincrement())
-  name              String  @unique
+  id                Int         @id @default(autoincrement())
+  name              String      @unique
   size              String
-  isOnline          Boolean @default(true)
-  accessDashboard   Boolean @default(false)
-  accessMetrics     Boolean @default(false)
-  accessConvenio    Boolean @default(false)
-  points            Int     @default(0)
-  cityChangeAllowed Boolean @default(true)
+  isOnline          Boolean     @default(true)
+  accessDashboard   Boolean     @default(false)
+  accessMetrics     Boolean     @default(false)
+  accessConvenio    Boolean     @default(false)
+  points            Int         @default(0)
+  cityChangeAllowed Boolean     @default(true)
   cityChangeFee     Float
-  isDarkMode        Boolean @default(false)
+  isDarkMode        Boolean     @default(false)
   duration          Int?
-
-  // relacionamentos
-  plans      Plan[]
-  companions Companion[]
+  companions        Companion[]
+  plans             Plan[]
 }
 
 model ExtraPlan {
-  id               Int     @id @default(autoincrement())
-  name             String  @unique
+  id               Int         @id @default(autoincrement())
+  name             String      @unique
   description      String
-  isTemporary      Boolean @default(false)
+  isTemporary      Boolean     @default(false)
   duration         Int?
-  pointsBonus      Int     @default(0)
-  tempPoints       Int     @default(0)
-  isEnabled        Boolean @default(true)
-  hasContact       Boolean @default(false)
-  canHideAge       Boolean @default(false)
-  hasPublicReviews Boolean @default(false)
-  hasDarkMode      Boolean @default(false)
-  hasStories       Boolean @default(false)
-
-  // relacionamentos
-  plans      Plan[]      @relation("PlanExtraPlans")
-  companions Companion[] @relation("CompanionExtraPlans")
+  pointsBonus      Int         @default(0)
+  tempPoints       Int         @default(0)
+  isEnabled        Boolean     @default(true)
+  hasContact       Boolean     @default(false)
+  canHideAge       Boolean     @default(false)
+  hasPublicReviews Boolean     @default(false)
+  hasDarkMode      Boolean     @default(false)
+  hasStories       Boolean     @default(false)
+  companions       Companion[] @relation("CompanionExtraPlans")
+  plans            Plan[]      @relation("PlanExtraPlans")
 }
 
 model Plan {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  price       Float
-  description String?
-  isBasic     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  planTypeId Int?
-  planType   PlanType? @relation(fields: [planTypeId], references: [id])
-
-  extraPlans ExtraPlan[] @relation("PlanExtraPlans")
-
+  id                Int                @id @default(autoincrement())
+  name              String             @unique
+  price             Float
+  description       String?
+  isBasic           Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  planTypeId        Int?
+  Companion         Companion[]
   convenios         Convenio[]
   payments          Payment[]
+  planType          PlanType?          @relation(fields: [planTypeId], references: [id])
   planSubscriptions PlanSubscription[]
-  Companion         Companion[]
+  extraPlans        ExtraPlan[]        @relation("PlanExtraPlans")
 }
 
 model PlanSubscription {
@@ -122,92 +111,82 @@ model PlanSubscription {
   endDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  plan      Plan      @relation(fields: [planId], references: [id])
-  companion Companion @relation(fields: [companionId], references: [id])
+  companion   Companion @relation(fields: [companionId], references: [id])
+  plan        Plan      @relation(fields: [planId], references: [id])
 }
 
-// MODELOS DE DADOS DE ACOMPANHANTES
 model Companion {
-  id             Int      @id @default(autoincrement())
-  userId         Int      @unique
-  name           String
-  age            Int      @default(0)
-  description    String
-  city           String
-  state          String
-  profileStatus  String   @default("PENDING")
-  documentStatus String   @default("PENDING") // Status geral dos documentos
-  lastOnline     DateTime
-  points         Int      @default(0)
-  top10Id        Int?
-  planId         Int?
-  planTypeId     Int?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // relacionamentos
-  user User @relation(fields: [userId], references: [id])
-
-  plan       Plan?       @relation(fields: [planId], references: [id])
-  planType   PlanType?   @relation(fields: [planTypeId], references: [id])
-  extraPlans ExtraPlan[] @relation("CompanionExtraPlans")
-
-  PlanSubscription PlanSubscription[]
-
+  id                      Int                          @id @default(autoincrement())
+  userId                  Int                          @unique
+  name                    String
+  age                     Int                          @default(0)
+  description             String
+  city                    String
+  state                   String
+  profileStatus           String                       @default("PENDING")
+  lastOnline              DateTime
+  points                  Int                          @default(0)
+  top10Id                 Int?
+  planId                  Int?
+  planTypeId              Int?
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  documentStatus          String                       @default("PENDING")
+  ageCategories           AgeCategoryCompanion[]
+  plan                    Plan?                        @relation(fields: [planId], references: [id])
+  planType                PlanType?                    @relation(fields: [planTypeId], references: [id])
   top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
-  PhysicalCharacteristics PhysicalCharacteristics[]
-  timedServiceCompanion   TimedServiceCompanion[]
+  user                    User                         @relation(fields: [userId], references: [id])
   contactMethods          ContactMethodCompanion[]
+  denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
+  documents               Document[]
+  feedPosts               FeedPost[]
   lugares                 LocationCompanion[]
+  media                   Media[]
   paymentMethods          PaymentMethodCompanion[]
+  PhysicalCharacteristics PhysicalCharacteristics?
+  PlanSubscription        PlanSubscription[]
+  reviews                 Review[]
+  ServiceCompanionOffered ServiceCompanionOffered[]
   servicosEspeciais       ServicosEspeciaisCompanion[]
   servicosGerais          ServicosGeraisCompanion[]
-  ageCategories           AgeCategoryCompanion[]
-  feedPosts               FeedPost[]
-  media                   Media[]
-  reviews                 Review[]
-  denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
-  ServiceCompanionOffered ServiceCompanionOffered[]
-  WeeklySchedule          WeeklySchedule[]
+  timedServiceCompanion   TimedServiceCompanion[]
   UnavailableDates        UnavailableDates[]
-  documents               Document[]
+  WeeklySchedule          WeeklySchedule[]
+  extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
 }
 
 model ContactMethodCompanion {
-  id               Int     @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   companionId      Int
-  whatsappNumber   String? @db.VarChar(15)
-  whatsappMessage  String? @db.VarChar(255)
-  telegramUsername String? @db.VarChar(32)
-  telegramMessage  String? @db.VarChar(255)
-  phoneNumber      String? @db.VarChar(15)
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  whatsappNumber   String?   @db.VarChar(15)
+  whatsappMessage  String?   @db.VarChar(255)
+  telegramUsername String?   @db.VarChar(32)
+  telegramMessage  String?   @db.VarChar(255)
+  phoneNumber      String?   @db.VarChar(15)
+  companion        Companion @relation(fields: [companionId], references: [id])
 }
 
 model TimedServiceCompanion {
-  id             Int     @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   companionId    Int
   timedServiceId Int?
-  isOffered      Boolean @default(true)
+  isOffered      Boolean       @default(true)
   price          Float?
-
-  companion    Companion     @relation(fields: [companionId], references: [id])
-  TimedService TimedService? @relation(fields: [timedServiceId], references: [id])
+  companion      Companion     @relation(fields: [companionId], references: [id])
+  TimedService   TimedService? @relation(fields: [timedServiceId], references: [id])
 }
 
 model PaymentMethodCompanion {
   id            Int           @id @default(autoincrement())
   companionId   Int
   paymentMethod PaymentMethod
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  companion     Companion     @relation(fields: [companionId], references: [id])
 }
 
 model PhysicalCharacteristics {
-  id              Int      @id @default(autoincrement())
-  companionId     Int      @unique
+  id              Int       @id @default(autoincrement())
+  companionId     Int       @unique
   gender          String
   genitalia       String
   weight          Float
@@ -227,28 +206,24 @@ model PhysicalCharacteristics {
   breastType      Seios
   description     String?
   comparisonMedia String?
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  companion       Companion @relation(fields: [companionId], references: [id])
 }
 
 model AgeCategoryCompanion {
   id          Int         @id @default(autoincrement())
   companionId Int
   ageCategory AgeCategory
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  companion   Companion   @relation(fields: [companionId], references: [id])
 }
 
-// serviços oferecidos
 model ServiceCompanionOffered {
-  id          Int     @id @default(autoincrement())
+  id          Int            @id @default(autoincrement())
   companionId Int
   serviceId   Int
-  isOffered   Boolean @default(false)
+  isOffered   Boolean        @default(false)
   price       Float?
-
-  companion Companion      @relation(fields: [companionId], references: [id])
-  service   ServiceOffered @relation(fields: [serviceId], references: [id])
+  companion   Companion      @relation(fields: [companionId], references: [id])
+  service     ServiceOffered @relation(fields: [serviceId], references: [id])
 }
 
 model ServicosGeraisCompanion {
@@ -266,30 +241,26 @@ model ServicosEspeciaisCompanion {
 }
 
 model LocationCompanion {
-  id          Int  @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   companionId Int
   locationId  Int?
-
-  companion Companion @relation(fields: [companionId], references: [id])
-  location  Location? @relation(fields: [locationId], references: [id])
+  companion   Companion @relation(fields: [companionId], references: [id])
+  location    Location? @relation(fields: [locationId], references: [id])
 }
 
-// MODELOS DE DADOS DE GERAIS
 model TimedService {
-  id           Int     @id @default(autoincrement())
-  name         String  @unique
-  description  String?
-  defaultPrice Float?
-
+  id                    Int                     @id @default(autoincrement())
+  name                  String                  @unique
+  description           String?
+  defaultPrice          Float?
   timedServiceCompanion TimedServiceCompanion[]
 }
 
 model ServiceOffered {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
-  description String?
-  isOffered   Boolean
-
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  description             String?
+  isOffered               Boolean
   ServiceCompanionOffered ServiceCompanionOffered[]
 }
 
@@ -300,22 +271,20 @@ model Location {
 }
 
 model WeeklySchedule {
-  id          Int     @id @default(autoincrement())
-  companionId Int // Relaciona o horário a uma acompanhante
-  dayOfWeek   String // Nome do dia da semana (ex.: Segunda-feira, Terça-feira)
-  startTime   String? // Horário de início (formato HH:mm)
-  endTime     String? // Horário de fim (formato HH:mm)
-  isActive    Boolean @default(false) // Indica se o dia está ativo
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  id          Int       @id @default(autoincrement())
+  companionId Int
+  dayOfWeek   String
+  startTime   String?
+  endTime     String?
+  isActive    Boolean   @default(false)
+  companion   Companion @relation(fields: [companionId], references: [id])
 }
 
 model UnavailableDates {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   companionId Int
   date        DateTime
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  companion   Companion @relation(fields: [companionId], references: [id])
 }
 
 model Top10 {
@@ -420,12 +389,12 @@ model Payment {
   user          User     @relation(fields: [userId], references: [id])
 }
 
-// ENUMS
 enum UserType {
   CONTRATANTE
   ACOMPANHANTE
   ANUNCIANTE
   EMPRESA
+  ADMIN
 }
 
 enum PaymentMethod {
@@ -453,7 +422,6 @@ enum ContactMethod {
   TELEGRAM
 }
 
-// ENUMS DE CARACTERISTICAS FISICAS
 enum Etnia {
   BRANCAS
   LATINAS
@@ -488,7 +456,6 @@ enum Pubis {
   DEPILADO
 }
 
-// ENUMS DE SERVICOS
 enum ServicosGerais {
   BEIJOS_BOCA
   EJACULACAO_CORPO
