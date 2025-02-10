@@ -1,14 +1,41 @@
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
+const cors = require("cors");
 const { authenticate } = require('./middleware/authMiddleware.js');
 
 const app = express();
 
+const allowedOrigins = ["https://www.faixarosa.com", "http://localhost:3000"];
+
 // Middlewares
-app.use(helmet());
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  })
+);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Desabilita o Content-Security-Policy
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.options("*", (req, res) => {
+  res.sendStatus(204);
+});
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');
