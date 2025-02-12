@@ -1,38 +1,57 @@
 const express = require('express');
 const {
     updateCompanion,
-    addPhysicalCharacteristics,
-    uploadCompanionMedia,
+    updateCompanionDescriptionProfile,
+    getCompanionDescriptionProfile,
     updateCompanionContact,
+    getCompanionContact,
     updateCompanionServicesAndPrices,
+    getCompanionServicesAndPrices,
     updateWeeklySchedule,
-    updateCompanionLocation,
-    updateAttendedLocations,
-    updateCompanionFinanceAndServices,
+    getWeeklySchedule,
+    updateLocationManagement,
+    getLocationManagement,
     updateUnavailableDates,
+    getUnavailableDates,
+    updateCompanionFinanceAndServices,
+    getCompanionFinanceAndServices,
     listCompanions,
     deleteCompanion
 } = require('../controllers/companionController');
-const { updateCompanionVideo, uploadVideoMiddleware } = require("../controllers/uploadVideo");
 const { uploadSingleVideo } = require("../config/wasabi");
-
 
 const router = express.Router();
 
-router.put('/update', updateCompanion);
-router.post('/physical-characteristics', addPhysicalCharacteristics);
-router.post('/upload-media', uploadSingleVideo, uploadCompanionMedia);
-router.put('/update-contact', updateCompanionContact);
-router.put('/update-services', updateCompanionServicesAndPrices);
-router.put('/update-schedule', updateWeeklySchedule);
-router.put('/unavailable-date', updateUnavailableDates);
-router.put('/update-location', updateCompanionLocation);                               // atualizar localização da acompanhante
-router.put("/attended-locations", updateAttendedLocations);                            // atualizar locais atendidos pela acompanhante
-router.put('/update-finance', updateCompanionFinanceAndServices);
 router.get('/list', listCompanions);
 router.delete('/delete/:id', deleteCompanion);
 
+router.put('/update', updateCompanion);
 
-router.post("/upload-comparison", uploadVideoMiddleware, updateCompanionVideo);
+router.post('/description/update', uploadSingleVideo, updateCompanionDescriptionProfile);
+router.get('/description/list', uploadSingleVideo, getCompanionDescriptionProfile);
+
+
+router.put('/contact/update', updateCompanionContact);
+router.get('/contact/list', getCompanionContact);
+
+
+router.put('/services/update', updateCompanionServicesAndPrices);
+router.get('/services/list', getCompanionServicesAndPrices);
+
+
+router.put('/schedule/update', updateWeeklySchedule);
+router.get('/schedule/list', getWeeklySchedule );
+
+
+router.put('/unavailable-date/update', updateUnavailableDates);
+router.get('/unavailable-date/list', getUnavailableDates);
+
+
+router.put("/locations/update", updateLocationManagement);            
+router.get("/locations/list", getLocationManagement);   
+
+
+router.put('/finance/update', updateCompanionFinanceAndServices);
+router.get('/finance/list', getCompanionFinanceAndServices);
 
 module.exports = router;
