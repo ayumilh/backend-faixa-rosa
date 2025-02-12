@@ -1,13 +1,13 @@
 const { PrismaClient } = require('@prisma/client');
-const { uploadSingleVideo } = require("../config/wasabi");
 const prisma = new PrismaClient();
+const { uploadSingleVideo } = require("../config/wasabi");
 
 // Listar todos os acompanhantes
 exports.listCompanions = async (req, res) => {
     try {
         const companions = await prisma.companion.findMany({
             include: {
-                paymentMethods: true, // Incluir métodos de pagamento
+                paymentMethods: true,
             },
         });
 

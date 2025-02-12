@@ -55,7 +55,7 @@ const adminRoutes = require('./routes/admin/adminRoutes.js');
 // Rotas privadas
 app.use('/api/admin', authenticate, verifyAdmin, adminRoutes);
 app.use('/api/users', authenticate, userRoutes);
-app.use('/api/plans', authenticate, plansRoutes);
+app.use('/api/plans', plansRoutes);
 app.use('/api/companions', authenticate, companionRoutes);
 
 const PORT = process.env.PORT || 4000;

@@ -1,11 +1,10 @@
-const prisma = require('@prisma/client');
-const { PrismaClient } = prisma;
-const db = new PrismaClient();
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 // Listar acompanhantes
 exports.listAcompanhantes = async (req, res) => {
     try {
-        const acompanhantes = await db.companion.findMany({
+        const acompanhantes = await prisma.companion.findMany({
             include: {
                 user: {
                     select: {
@@ -65,91 +64,33 @@ exports.listAcompanhantes = async (req, res) => {
     }
 };
 
-
-// Aprovar acompanhantes
-exports.approveAcompanhantes = async (req, res) => {
-    const { id } = req.params;
-    try {
-        await db.companion.update({
-            where: { userId: parseInt(id) },
-            data: { profileStatus: 'ACTIVE' },
-        });
-        return res.status(200).json({ message: 'acompanhantes aprovado com sucesso.' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erro ao aprovar acompanhantes.' });
-    }
-}
-
-// Rejeitar acompanhantes
-exports.rejectAcompanhantes = async (req, res) => {
-    const { id } = req.params;
-    try {
-        await db.companion.update({
-            where: { userId: parseInt(id) },
-            data: { profileStatus: 'REJECTED' },
-        });
-        return res.status(200).json({ message: 'acompanhantes rejeitado com sucesso.' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erro ao rejeitar acompanhantes.' });
-    }
-}
-
-// Editar plano/solicitações
-exports.updatePlan = async (req, res) => {
-    const { id } = req.params;
-    const { planId } = req.body; // Novo plano a ser atribuído
-
-    try {
-        const companion = await db.companion.findUnique({
-            where: { userId: parseInt(id) },
-        });
-
-        if (!companion) {
-            return res.status(404).json({ message: 'Acompanhante não encontrado.' });
-        }
-
-        await db.companion.update({
-            where: { userId: parseInt(id) },
-            data: { planId: parseInt(planId) },
-        });
-
-        return res.status(200).json({ message: 'Plano atualizado com sucesso.' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erro ao atualizar plano.', error });
-    }
-};
-
-// Verificar documentos
+// Aprovar documento de acompanhantes
 exports.approvedDocuments = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Verifica se o usuário que está fazendo a requisição é admin
-        if (!req.user || req.user.role !== "ADMIN") {
+        const companionId = parseInt(id);
+        if (isNaN(companionId)) {
+            return res.status(400).json({ error: "ID inválido. Deve ser um número." });
+        }
+
+        if (!req.user || req.user.userType !== "ADMIN") {
             return res.status(403).json({ error: "Acesso negado. Apenas administradores podem aprovar documentos." });
         }
 
-        // Verifica se o acompanhante existe
-        const companion = await prisma.companion.findUnique({
-            where: { id: parseInt(id) }
-        });
+        const companion = await prisma.companion.findUnique({ where: { id: companionId } });
 
         if (!companion) {
             return res.status(404).json({ error: "Acompanhante não encontrado." });
         }
 
-        // Atualiza todos os documentos do acompanhante para "approved"
         await prisma.document.updateMany({
-            where: { companionId: parseInt(id) },
+            where: { companionId: companionId },
             data: { documentStatus: "APPROVED" },
         });
 
-        // Atualiza o status do acompanhante
         await prisma.companion.update({
-            where: { id: parseInt(id) },
+            where: { id: companionId },
             data: { documentStatus: "APPROVED" }
         });
 
@@ -161,11 +102,41 @@ exports.approvedDocuments = async (req, res) => {
     }
 };
 
-// Suspender/Desativar acompanhantes
+// Aprovar perfil de acompanhantes 
+exports.approveAcompanhantes = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.companion.update({
+            where: { userId: parseInt(id) },
+            data: { profileStatus: 'ACTIVE' },
+        });
+        return res.status(200).json({ message: 'acompanhantes aprovado com sucesso.' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Erro ao aprovar acompanhantes.' });
+    }
+}
+
+// Rejeitar perfil de acompanhantes
+exports.rejectAcompanhantes = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.companion.update({
+            where: { userId: parseInt(id) },
+            data: { profileStatus: 'REJECTED' },
+        });
+        return res.status(200).json({ message: 'acompanhantes rejeitado com sucesso.' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Erro ao rejeitar acompanhantes.' });
+    }
+}
+
+// Suspender/Desativar perfil de acompanhantes
 exports.suspendAcompanhantes = async (req, res) => {
     const { id } = req.params;
     try {
-        await db.companion.update({
+        await prisma.companion.update({
             where: { userId: parseInt(id) },
             data: { profileStatus: 'SUSPENDED' },
         });
@@ -176,11 +147,37 @@ exports.suspendAcompanhantes = async (req, res) => {
     }
 }
 
+// Editar plano/solicitações
+exports.updatePlan = async (req, res) => {
+    const { id } = req.params;
+    const { planId } = req.body; // Novo plano a ser atribuído
+
+    try {
+        const companion = await prisma.companion.findUnique({
+            where: { userId: parseInt(id) },
+        });
+
+        if (!companion) {
+            return res.status(404).json({ message: 'Acompanhante não encontrado.' });
+        }
+
+        await prisma.companion.update({
+            where: { userId: parseInt(id) },
+            data: { planId: parseInt(planId) },
+        });
+
+        return res.status(200).json({ message: 'Plano atualizado com sucesso.' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Erro ao atualizar plano.', error });
+    }
+};
+
 // Monitorar postagens (simples exemplo)
 exports.monitorPosts = async (req, res) => {
     const { id } = req.params;
     try {
-        const posts = await db.post.findMany({
+        const posts = await prisma.post.findMany({
             where: { userId: parseInt(id) },
         });
         return res.status(200).json(posts);

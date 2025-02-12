@@ -22,14 +22,14 @@ const upload = multer({
         acl: "public-read", // Permite acesso público ao arquivo
         contentType: multerS3.AUTO_CONTENT_TYPE, // Define automaticamente o tipo do arquivo
         key: function (req, file, cb) {
-            const folder = file.mimetype.startsWith("video/") ? "companions/videos" : "companions/images";
+            const folder = "companions/images/documents";
             const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
             cb(null, fileName);
         },
     }),
     limits: { fileSize: 100 * 1024 * 1024 }, // Limite de 100MB para vídeos
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+        if (file.mimetype.startsWith("image/")) {
             cb(null, true);
         } else {
             cb(new Error("Apenas arquivos de imagem e vídeo são permitidos!"), false);
@@ -37,8 +37,35 @@ const upload = multer({
     },
 });
 
+const uploadVideo = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read",
+        contentType: (req, file, cb) => {
+            if (file.mimetype.startsWith("video/")) {
+                cb(null, "video/mp4"); // Força o tipo correto para vídeos
+            } else {
+                cb(null, multerS3.AUTO_CONTENT_TYPE);
+            }
+        },
+        key: function (req, file, cb) {
+            const fileName = `companions/videos/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName);
+        },
+    }),
+    limits: { fileSize: 500 * 1024 * 1024 }, // Aumenta o limite para 500MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith("video/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas vídeos são permitidos!"), false);
+        }
+    },
+});
+
 // Middleware para upload de um único arquivo (para vídeos)
-exports.uploadSingleVideo = upload.single("video");
+exports.uploadSingleVideo = uploadVideo.single("video");
 
 // Middleware para upload de imagens (ex: documentos)
 exports.uploadDocuments = upload.fields([

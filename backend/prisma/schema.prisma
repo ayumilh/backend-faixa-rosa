@@ -69,21 +69,23 @@ model PlanType {
 }
 
 model ExtraPlan {
-  id               Int         @id @default(autoincrement())
-  name             String      @unique
+  id               Int     @id @default(autoincrement())
+  name             String  @unique
   description      String
-  isTemporary      Boolean     @default(false)
+  isTemporary      Boolean @default(false)
   duration         Int?
-  pointsBonus      Int         @default(0)
-  tempPoints       Int         @default(0)
-  isEnabled        Boolean     @default(true)
-  hasContact       Boolean     @default(false)
-  canHideAge       Boolean     @default(false)
-  hasPublicReviews Boolean     @default(false)
-  hasDarkMode      Boolean     @default(false)
-  hasStories       Boolean     @default(false)
-  companions       Companion[] @relation("CompanionExtraPlans")
-  plans            Plan[]      @relation("PlanExtraPlans")
+  pointsBonus      Int     @default(0)
+  tempPoints       Int     @default(0)
+  isEnabled        Boolean @default(true)
+  hasContact       Boolean @default(false)
+  canHideAge       Boolean @default(false)
+  hasPublicReviews Boolean @default(false)
+  hasDarkMode      Boolean @default(false)
+  hasStories       Boolean @default(false)
+
+  companions       Companion[]        @relation("CompanionExtraPlans")
+  plans            Plan[]             @relation("PlanExtraPlans")
+  PlanSubscription PlanSubscription[]
 }
 
 model Plan {
@@ -106,13 +108,17 @@ model Plan {
 model PlanSubscription {
   id          Int       @id @default(autoincrement())
   companionId Int
-  planId      Int
+  planId      Int?
+  extraPlanId Int?
+  isExtra     Boolean   @default(false)
   startDate   DateTime  @default(now())
   endDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  companion   Companion @relation(fields: [companionId], references: [id])
-  plan        Plan      @relation(fields: [planId], references: [id])
+
+  companion Companion  @relation(fields: [companionId], references: [id], map: "CompanionSubscriptions")
+  plan      Plan?      @relation(fields: [planId], references: [id])
+  extraPlan ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
 }
 
 model Companion {
@@ -145,7 +151,7 @@ model Companion {
   media                   Media[]
   paymentMethods          PaymentMethodCompanion[]
   PhysicalCharacteristics PhysicalCharacteristics?
-  PlanSubscription        PlanSubscription[]
+  subscriptions           PlanSubscription[]           @relation(map: "CompanionSubscriptions")
   reviews                 Review[]
   ServiceCompanionOffered ServiceCompanionOffered[]
   servicosEspeciais       ServicosEspeciaisCompanion[]
