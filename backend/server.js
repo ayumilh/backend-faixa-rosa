@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require("cors");
-const { authenticate, verifyAdmin  } = require('./middleware/authMiddleware.js');
+const { authenticate, verifyAdmin } = require('./middleware/authMiddleware.js');
 
 const app = express();
 
@@ -49,15 +49,35 @@ app.use('/api/user', authRoutes);
 const userRoutes = require('./routes/userRoutes.js');
 const plansRoutes = require('./routes/plansRoutes.js');
 const companionRoutes = require('./routes/companionRoutes.js');
+const paymentRoutes = require('./routes/paymentRoutes.js');
+
+// ADMIN ROUTES
 const adminRoutes = require('./routes/admin/adminCompanionRoutes.js');
 const adminDoc = require('./routes/admin/adminDocumentRoutes.js');
-
+const adminPlanRoutes = require('./routes/admin/adminPlanRoutes.js');
+const adminPagamentoRoutes = require('./routes/admin/adminPagamentoRoutes');
+const adminMetricaRoutes = require('./routes/admin/adminMetricaRoutes');
+const adminMidiaRoutes = require('./routes/admin/adminMidiaRoutes');
+const adminFeedPostRoutes = require('./routes/admin/adminFeedPostRoutes');
+const adminDenunciaRoutes = require('./routes/admin/adminDenunciaRoutes');
+const adminUsuarioRoutes = require('./routes/admin/adminUserRoutes');
 
 // Rotas privadas
-app.use('/api/admin', authenticate, verifyAdmin, adminRoutes, adminDoc);
+app.use('/api/admin', authenticate, verifyAdmin,
+  adminRoutes,
+  adminDoc,
+  adminUsuarioRoutes,
+  adminPlanRoutes,
+  adminDenunciaRoutes,
+  adminMidiaRoutes,
+  adminMetricaRoutes,
+  adminFeedPostRoutes,
+  adminPagamentoRoutes,
+);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/plans', plansRoutes);
 app.use('/api/companions', authenticate, companionRoutes);
+app.use('/api/payments', authenticate, paymentRoutes);
 
 const PORT = process.env.PORT || 4000;
 

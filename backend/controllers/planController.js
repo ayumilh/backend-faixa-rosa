@@ -53,10 +53,10 @@ exports.listUserPlans = async (req, res) => {
                         planType: true, // Inclui informações do plano principal
                     },
                 },
-                subscriptions: { // 🔥 Agora pegamos os planos extras a partir da PlanSubscription
+                subscriptions: {
                     where: { isExtra: true, endDate: null }, // Apenas planos extras ativos
                     include: {
-                        extraPlan: true, // 🔥 Inclui os detalhes do plano extra
+                        extraPlan: true, // Inclui os detalhes do plano extra
                     },
                 },
             },
@@ -187,7 +187,7 @@ exports.createUserPlan = async (req, res) => {
             },
         });
 
-        // 🔥 Atualiza os campos planId e planTypeId da acompanhante
+        // Atualiza os campos planId e planTypeId da acompanhante
         await prisma.companion.update({
             where: { id: companion.id },
             data: {

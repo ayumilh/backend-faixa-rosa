@@ -129,7 +129,7 @@ exports.deleteAcompanhante = async (req, res) => {
             where: { id: companionId },
             include: {
                 documents: true, // Verifica documentos vinculados
-                subscriptions: true, // 🔥 Nome correto para assinaturas de planos
+                subscriptions: true, // Nome correto para assinaturas de planos
                 extraPlans: true, // Se houver planos extras vinculados
             },
         });
@@ -138,22 +138,22 @@ exports.deleteAcompanhante = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrado." });
         }
 
-        // 🔥 Remove primeiro os documentos vinculados
+        // Remove primeiro os documentos vinculados
         await prisma.document.deleteMany({
             where: { companionId },
         });
 
-        // 🔥 Remove as assinaturas de planos vinculadas
+        // Remove as assinaturas de planos vinculadas
         await prisma.planSubscription.deleteMany({
             where: { companionId },
         });
 
-        // 🔥 Remove os planos extras vinculados (caso existam)
+        // Remove os planos extras vinculados (caso existam)
         await prisma.extraPlan.deleteMany({
             where: { companions: { some: { id: companionId } } },
         });
 
-        // 🔥 Remove o acompanhante
+        // Remove o acompanhante
         await prisma.companion.delete({
             where: { id: companionId },
         });

@@ -59,25 +59,25 @@ exports.rejectDocument = async (req, res) => {
             return res.status(400).json({ error: "ID inválido. Deve ser um número." });
         }
 
-        // 🔥 Verifica se o usuário é ADMIN
+        // Verifica se o usuário é ADMIN
         if (!req.user || req.user.userType !== "ADMIN") {
             return res.status(403).json({ error: "Acesso negado. Apenas administradores podem rejeitar documentos." });
         }
 
-        // 🔥 Verifica se a acompanhante existe
+        // Verifica se a acompanhante existe
         const companion = await prisma.companion.findUnique({ where: { id: companionId } });
 
         if (!companion) {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // 🔥 Rejeita os documentos da acompanhante
+        // Rejeita os documentos da acompanhante
         await prisma.document.updateMany({
             where: { companionId: companionId },
             data: { documentStatus: "REJECTED" },
         });
 
-        // 🔥 Atualiza o status da acompanhante para "REJECTED"
+        // Atualiza o status da acompanhante para "REJECTED"
         await prisma.companion.update({
             where: { id: companionId },
             data: { documentStatus: "REJECTED" }
