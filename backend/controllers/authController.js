@@ -49,7 +49,7 @@ exports.register = async (req, res) => {
 
         const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
-        // Cria o usuário e o perfil de acompanhante em uma transação
+        // Criar usuário e perfil de contratante/acompanhante em transação
         const newUser = await prisma.$transaction(async (prisma) => {
             // Criar o usuário
             const createdUser = await prisma.user.create({
@@ -65,8 +65,8 @@ exports.register = async (req, res) => {
                 },
             });
 
-            // Se for acompanhante, criar o perfil na tabela Companion
             if (userType === 'ACOMPANHANTE') {
+                // Criar perfil na tabela Companion
                 await prisma.companion.create({
                     data: {
                         userId: createdUser.id,
@@ -80,6 +80,17 @@ exports.register = async (req, res) => {
                         points: 0,
                         createdAt: new Date(),
                         updatedAt: new Date(),
+                    },
+                });
+            } else if (userType === 'CONTRATANTE') {
+                // Criar perfil na tabela Contractor
+                await prisma.contractor.create({
+                    data: {
+                        userId: createdUser.id,
+                        name: `${firstName} ${lastName}`.trim(),
+                        age: formattedBirthDate ? calculateAge(formattedBirthDate) : 0,
+                        profileStatus: 'PENDING',
+                        documentStatus: 'PENDING',
                     },
                 });
             }

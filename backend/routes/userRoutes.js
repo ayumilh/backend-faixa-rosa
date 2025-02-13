@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { uploadDocuments } = require("../config/wasabi");
 const userController = require('../controllers/userController.js');
-const documentController = require('../controllers/documentController');
+const documentController = require('../controllers/companion/documentCompanionController.js');
 const getUser = require('../utils/getUser.js');
 
 // router.get('/', userController.getAllUsers);

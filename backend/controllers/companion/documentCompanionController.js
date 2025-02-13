@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadDocuments } = require("../config/wasabi");
+const { uploadDocuments } = require("../../config/wasabi");
 
 exports.uploadDocument = async (req, res) => {
     try {
@@ -14,6 +14,11 @@ exports.uploadDocument = async (req, res) => {
         }
 
         const companionId = companion.id;
+
+        const existingDocument = await prisma.document.findFirst({
+            where: { companionId, type },
+        });
+        if (existingDocument) return res.status(200).json({ error: `O documento ${type} já foi enviado.` });
 
         if (!req.files || !req.files.fileFront || !req.files.fileBack) {
             return res.status(400).json({ error: "Ambas as imagens (frente e verso) são obrigatórias." });
