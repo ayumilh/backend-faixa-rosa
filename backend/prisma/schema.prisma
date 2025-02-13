@@ -221,7 +221,7 @@ model PhysicalCharacteristics {
   genitalia          String
   weight             Float
   height             Int
-  estatura           Estatura
+  // estatura           Estatura
   ethnicity          Etnia
   eyeColor           String
   hairStyle          Cabelo
@@ -231,12 +231,13 @@ model PhysicalCharacteristics {
   hasTattoos         Boolean
   hasPiercings       Boolean
   smoker             Boolean
-  pubis              Pubis
-  bodyType           Corpo
-  breastType         Seios
+  // pubis              Pubis
+  // bodyType           Corpo
+  // breastType         Seios
   description        String?
   comparisonMedia    String?
-  hasComparisonMedia Boolean   @default(false)
+  hasComparisonMedia Boolean?   @default(false)
+  
   companion          Companion @relation(fields: [companionId], references: [id])
 }
 
