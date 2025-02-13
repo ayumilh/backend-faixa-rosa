@@ -361,52 +361,49 @@ model Review {
 }
 
 model Denuncia {
-  id                     Int         @id @default(autoincrement())
-  motivo                 String
-  descricao              String
-  denunciaStatus         String      @default("PENDING")
-  createdAt              DateTime    @default(now())
-
+  id             Int      @id @default(autoincrement())
+  motivo         String
+  descricao      String
+  denunciaStatus String   @default("PENDING")
+  createdAt      DateTime @default(now())
 
   // podem fazer denúncias
-  denuncianteCompanion   Companion?  @relation("DenunciasFeitasCompanion", fields: [denuncianteCompanionId], references: [id])
+  denuncianteCompanion   Companion? @relation("DenunciasFeitasCompanion", fields: [denuncianteCompanionId], references: [id])
   denuncianteCompanionId Int?
 
-  denuncianteContractor  Contractor? @relation("DenunciasFeitasContractor", fields: [denuncianteContractorId], references: [id])
+  denuncianteContractor   Contractor? @relation("DenunciasFeitasContractor", fields: [denuncianteContractorId], references: [id])
   denuncianteContractorId Int?
 
   // podem ser denunciados
-  denunciadoCompanion    Companion?  @relation("DenunciasRecebidasCompanion", fields: [denunciadoCompanionId], references: [id])
-  denunciadoCompanionId  Int?
+  denunciadoCompanion   Companion? @relation("DenunciasRecebidasCompanion", fields: [denunciadoCompanionId], references: [id])
+  denunciadoCompanionId Int?
 
   denunciadoContractor   Contractor? @relation("DenunciasRecebidasContractor", fields: [denunciadoContractorId], references: [id])
   denunciadoContractorId Int?
 }
 
 model Story {
-  id           Int       @id @default(autoincrement())
-  companionId  Int
-  url          String
-  mediaType    String  // "image" ou "video"
-  expiresAt    DateTime // Tempo de expiração (24h após a criação)
-  createdAt    DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  companionId Int
+  url         String
+  mediaType   String // "image" ou "video"
+  expiresAt   DateTime // Tempo de expiração (24h após a criação)
+  createdAt   DateTime @default(now())
 
-  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 }
 
 model FeedPost {
-  id            Int       @id @default(autoincrement())
-  title         String
-  description   String
-  content       String
-  featuredImage String
-  pricePerHour  Float
-  location      String
-  lastOnline    DateTime
-  companionId   Int
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  companion     Companion @relation(fields: [companionId], references: [id])
+  id           Int       @id @default(autoincrement())
+  title        String?
+  description  String?
+  mediaUrl     String
+  mediaType    String
+  lastOnline   DateTime?
+  companionId  Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  companion    Companion @relation(fields: [companionId], references: [id])
 }
 
 model Metric {

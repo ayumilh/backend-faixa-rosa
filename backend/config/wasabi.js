@@ -90,6 +90,28 @@ const uploadStory = multer({
     },
 });
 
+const uploadFeed = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read",
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        key: function (req, file, cb) {
+            const folder = file.mimetype.startsWith("image/") ? "companions/feed/images" : "companions/feed/videos";
+            const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName);
+        },
+    }),
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB máximo para vídeos
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas imagens e vídeos são permitidos!"), false);
+        }
+    },
+});
+
 // Middleware para upload de um único arquivo (para vídeos)
 exports.uploadSingleVideo = uploadVideo.single("video");
 
@@ -100,5 +122,8 @@ exports.uploadDocuments = upload.fields([
 ]);
 
 exports.uploadStorySingle = uploadStory.single("media");
+
+exports.uploadFeedSingle = uploadFeed.single("media");
+
 exports.wasabiS3 = wasabiS3;
 exports.bucketName = bucketName;

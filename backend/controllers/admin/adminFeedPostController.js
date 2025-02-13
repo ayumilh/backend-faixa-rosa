@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { wasabiS3, bucketName } = require("../../config/wasabi");
 
 // Listar todos os posts no feed
 exports.listFeedPosts = async (req, res) => {
@@ -44,11 +46,36 @@ exports.getFeedPostById = async (req, res) => {
 // Deletar um post do feed
 exports.deleteFeedPost = async (req, res) => {
     const { id } = req.params;
+
     try {
+        // Buscar post antes de excluir
+        const post = await prisma.feedPost.findUnique({
+            where: { id: parseInt(id) },
+            select: { mediaUrl: true }
+        });
+
+        if (!post) {
+            return res.status(404).json({ error: "Post não encontrado." });
+        }
+
+        // Extrair o nome do arquivo da URL no Wasabi
+        const fileName = post.mediaUrl.split(".com/")[1]; // Obtém o caminho do arquivo
+
+        // Criar o comando para deletar do Wasabi
+        const deleteParams = {
+            Bucket: bucketName,
+            Key: fileName,
+        };
+
+        // Excluir mídia no Wasabi
+        await wasabiS3.send(new DeleteObjectCommand(deleteParams));
+
+        // Excluir o post no banco de dados
         await prisma.feedPost.delete({ where: { id: parseInt(id) } });
-        return res.status(200).json({ message: 'Post removido com sucesso.' });
+
+        return res.status(200).json({ message: "Post removido com sucesso." });
+
     } catch (error) {
-        console.error('Erro ao deletar post no feed:', error);
-        return res.status(500).json({ error: 'Erro ao deletar post no feed.' });
+        return res.status(500).json({ error: "Erro ao deletar post no feed." });
     }
 };

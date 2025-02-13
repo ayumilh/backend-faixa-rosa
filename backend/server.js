@@ -55,7 +55,7 @@ const adminRoutes = require('./routes/admin/adminCompanionRoutes.js');
 const adminDoc = require('./routes/admin/adminDocumentRoutes.js');
 const adminPlanRoutes = require('./routes/admin/adminPlanRoutes.js');
 const adminPagamentoRoutes = require('./routes/admin/adminPagamentoRoutes');
-const adminMidiaRoutes = require('./routes/admin/adminMidiaRoutes');
+const adminStoryRoutes = require('./routes/admin/adminStoryRoutes');
 const adminFeedPostRoutes = require('./routes/admin/adminFeedPostRoutes');
 const adminDenunciaRoutes = require('./routes/admin/adminDenunciasRoutes');
 const adminUsuarioRoutes = require('./routes/admin/adminUserRoutes');
@@ -78,7 +78,7 @@ app.use('/api/admin', authenticate, verifyAdmin,
   adminUsuarioRoutes,
   adminPlanRoutes,
   adminDenunciaRoutes,
-  adminMidiaRoutes,
+  adminStoryRoutes,
   adminFeedPostRoutes,
   adminPagamentoRoutes
 );
