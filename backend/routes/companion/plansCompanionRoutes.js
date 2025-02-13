@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { listPlans, subscribeToPlan, disablePlan, disableExtraPlans, createUserPlan, listUserPlans, listAvailablePlanTypes, addUserExtras } = require('../controllers/planController');
-const { authenticate } = require('../middleware/authMiddleware');
+const { listPlans, subscribeToPlan, disablePlan, disableExtraPlans, createUserPlan, listUserPlans, listAvailablePlanTypes, addUserExtras } = require('../../controllers/companion/planCompanionController');
+const { authenticate } = require('../../middleware/authMiddleware');
 
-router.get('/listPlans', listPlans);         // Listar planos disponíveis
+router.get('/', listPlans);         // Listar planos disponíveis
 router.post('/subscribe', authenticate, subscribeToPlan); // Assinar plano
 router.post('/disable', authenticate, disablePlan);     // Finalizar plano
 router.post('/disableExtra', authenticate, disableExtraPlans);     // Finalizar plano extras

@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadSingleVideo, uploadDocuments } = require("../config/wasabi");
+const { uploadSingleVideo, uploadDocuments } = require("../../config/wasabi");
 
 // Listar todos os acompanhantes
 exports.listCompanions = async (req, res) => {

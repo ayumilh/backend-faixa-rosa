@@ -17,41 +17,41 @@ const {
     getCompanionFinanceAndServices,
     listCompanions,
     deleteCompanion
-} = require('../controllers/companionController');
-const { uploadSingleVideo } = require("../config/wasabi");
+} = require('../../controllers/companion/companionController.js');
+const { uploadSingleVideo } = require("../../config/wasabi.js");
 
 const router = express.Router();
 
-router.get('/list', listCompanions);
+router.get('/', listCompanions);
 router.delete('/delete/:id', deleteCompanion);
 
 router.put('/update', updateCompanion);
 
 router.post('/description/update', uploadSingleVideo, updateCompanionDescriptionProfile);
-router.get('/description/list', uploadSingleVideo, getCompanionDescriptionProfile);
+router.get('/description/', uploadSingleVideo, getCompanionDescriptionProfile);
 
 
 router.put('/contact/update', updateCompanionContact);
-router.get('/contact/list', getCompanionContact);
+router.get('/contact/', getCompanionContact);
 
 
 router.put('/services/update', updateCompanionServicesAndPrices);
-router.get('/services/list', getCompanionServicesAndPrices);
+router.get('/services/', getCompanionServicesAndPrices);
 
 
 router.put('/schedule/update', updateWeeklySchedule);
-router.get('/schedule/list', getWeeklySchedule );
+router.get('/schedule/', getWeeklySchedule );
 
 
 router.put('/unavailable-date/update', updateUnavailableDates);
-router.get('/unavailable-date/list', getUnavailableDates);
+router.get('/unavailable-date/', getUnavailableDates);
 
 
 router.put("/locations/update", updateLocationManagement);            
-router.get("/locations/list", getLocationManagement);   
+router.get("/locations/", getLocationManagement);   
 
 
 router.put('/finance/update', updateCompanionFinanceAndServices);
-router.get('/finance/list', getCompanionFinanceAndServices);
+router.get('/finance/', getCompanionFinanceAndServices);
 
 module.exports = router;

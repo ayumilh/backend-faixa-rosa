@@ -32,11 +32,13 @@ model User {
   temporaryPoints   Int        @default(0)
   totalPoints       Int        @default(0)
   companion         Companion?
-  conveniosCriados  Convenio[]
-  denunciasFeitas   Denuncia[] @relation("UserDenunciasFeitas")
-  payments          Payment[]
-  reviews           Review[]
   Top10             Top10?
+
+  conveniosCriados Convenio[]
+  payments         Payment[]
+  reviews          Review[]
+
+  Contractor Contractor[]
 }
 
 model Document {
@@ -121,6 +123,22 @@ model PlanSubscription {
   extraPlan ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
 }
 
+model Contractor {
+  id             Int      @id @default(autoincrement())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int      @unique
+  name           String
+  age            Int
+  profileStatus  String   @default("PENDING") // PENDING, ACTIVE, BANNED
+  documentStatus String   @default("UNVERIFIED") // UNVERIFIED, VERIFIED, REJECTED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relacionamentos para denúncias
+  denunciasFeitas    Denuncia[] @relation("DenunciasFeitasContractor")
+  denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasContractor")
+}
+
 model Companion {
   id                      Int                          @id @default(autoincrement())
   userId                  Int                          @unique
@@ -144,7 +162,6 @@ model Companion {
   top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
   user                    User                         @relation(fields: [userId], references: [id])
   contactMethods          ContactMethodCompanion[]
-  denunciasRecebidas      Denuncia[]                   @relation("CompanionDenunciasRecebidas")
   documents               Document[]
   feedPosts               FeedPost[]
   lugares                 LocationCompanion[]
@@ -160,6 +177,13 @@ model Companion {
   unavailableDays         UnavailableDates[]
   weeklySchedules         WeeklySchedule[]
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
+
+  // Relacionamentos para denúncias
+
+  denunciasFeitas    Denuncia[] @relation("DenunciasFeitasCompanion")
+  denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasCompanion")
+
+  Story Story[]
 }
 
 model ContactMethodCompanion {
@@ -337,15 +361,37 @@ model Review {
 }
 
 model Denuncia {
-  id            Int       @id @default(autoincrement())
-  denuncianteId Int
-  denunciadoId  Int
-  motivo        String
-  descricao     String?
-  anexo         String?
-  createdAt     DateTime  @default(now())
-  denunciado    Companion @relation("CompanionDenunciasRecebidas", fields: [denunciadoId], references: [id])
-  denunciante   User      @relation("UserDenunciasFeitas", fields: [denuncianteId], references: [id])
+  id                     Int         @id @default(autoincrement())
+  motivo                 String
+  descricao              String
+  denunciaStatus         String      @default("PENDING")
+  createdAt              DateTime    @default(now())
+
+
+  // podem fazer denúncias
+  denuncianteCompanion   Companion?  @relation("DenunciasFeitasCompanion", fields: [denuncianteCompanionId], references: [id])
+  denuncianteCompanionId Int?
+
+  denuncianteContractor  Contractor? @relation("DenunciasFeitasContractor", fields: [denuncianteContractorId], references: [id])
+  denuncianteContractorId Int?
+
+  // podem ser denunciados
+  denunciadoCompanion    Companion?  @relation("DenunciasRecebidasCompanion", fields: [denunciadoCompanionId], references: [id])
+  denunciadoCompanionId  Int?
+
+  denunciadoContractor   Contractor? @relation("DenunciasRecebidasContractor", fields: [denunciadoContractorId], references: [id])
+  denunciadoContractorId Int?
+}
+
+model Story {
+  id           Int       @id @default(autoincrement())
+  companionId  Int
+  url          String
+  mediaType    String  // "image" ou "video"
+  expiresAt    DateTime // Tempo de expiração (24h após a criação)
+  createdAt    DateTime @default(now())
+
+  companion    Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 }
 
 model FeedPost {

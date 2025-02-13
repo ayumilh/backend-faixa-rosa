@@ -1,4 +1,4 @@
-const { S3Client } = require("@aws-sdk/client-s3");
+const { S3Client  } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 require("dotenv").config();
@@ -15,6 +15,7 @@ const wasabiS3 = new S3Client({
 });
 
 const bucketName = process.env.WASABI_BUCKET;
+
 const upload = multer({
     storage: multerS3({
         s3: wasabiS3,
@@ -54,12 +55,37 @@ const uploadVideo = multer({
             cb(null, fileName);
         },
     }),
-    limits: { fileSize: 500 * 1024 * 1024 }, // Aumenta o limite para 500MB
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB máximo para vídeos
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith("video/")) {
             cb(null, true);
         } else {
             cb(new Error("Apenas vídeos são permitidos!"), false);
+        }
+    },
+});
+
+const uploadStory = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read", // Permite acesso público ao arquivo
+        contentType: multerS3.AUTO_CONTENT_TYPE, // Define automaticamente o tipo do arquivo
+        key: function (req, file, cb) {
+            // Define a pasta correta para imagens e vídeos dos Stories
+            const folder = file.mimetype.startsWith("image/")
+                ? "companions/stories/images"
+                : "companions/stories/videos";
+            const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName);
+        },
+    }),
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB máximo para vídeos
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas imagens e vídeos são permitidos!"), false);
         }
     },
 });
@@ -72,3 +98,7 @@ exports.uploadDocuments = upload.fields([
     { name: "fileFront", maxCount: 1 },
     { name: "fileBack", maxCount: 1 },
 ]);
+
+exports.uploadStorySingle = uploadStory.single("media");
+exports.wasabiS3 = wasabiS3;
+exports.bucketName = bucketName;

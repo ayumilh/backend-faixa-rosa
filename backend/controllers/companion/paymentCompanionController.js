@@ -1,7 +1,67 @@
 const mercadopago = require('mercadopago');
 const { PrismaClient } = require('@prisma/client');
-
 const prisma = new PrismaClient();
+
+// Criar um pagamento
+exports.createPayment = async (req, res) => {
+    try {
+        const { userId, planId, amount, status, transactionId } = req.body;
+
+        if (!userId || !planId || !amount) {
+            return res.status(400).json({ error: 'Usuário, plano e valor são obrigatórios.' });
+        }
+
+        const payment = await prisma.payment.create({
+            data: {
+                userId,
+                planId,
+                amount,
+                status: status || 'PENDING',
+                transactionId
+            },
+        });
+
+        return res.status(201).json({ message: 'Pagamento registrado com sucesso.', payment });
+    } catch (error) {
+        console.error('Erro ao criar pagamento:', error);
+        return res.status(500).json({ error: 'Erro ao criar pagamento.' });
+    }
+};
+
+// Listar pagamentos de um usuário
+exports.listPaymentsByUser = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const payments = await prisma.payment.findMany({
+            where: { userId: parseInt(userId) },
+        });
+
+        return res.status(200).json(payments);
+    } catch (error) {
+        console.error('Erro ao listar pagamentos:', error);
+        return res.status(500).json({ error: 'Erro ao listar pagamentos.' });
+    }
+};
+
+// Atualizar status do pagamento
+exports.updatePaymentStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+        const updatedPayment = await prisma.payment.update({
+            where: { id: parseInt(id) },
+            data: { status },
+        });
+
+        return res.status(200).json({ message: 'Status do pagamento atualizado.', updatedPayment });
+    } catch (error) {
+        console.error('Erro ao atualizar status do pagamento:', error);
+        return res.status(500).json({ error: 'Erro ao atualizar status do pagamento.' });
+    }
+};
+
 
 // Configura o Mercado Pago com a Access Token do ambiente
 // mercadopago.configure({

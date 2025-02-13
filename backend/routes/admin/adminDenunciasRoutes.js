@@ -3,10 +3,9 @@ const router = express.Router();
 const {
     listDenuncias,
     getDenunciaById,
-    approveDenuncia,
-    rejectDenuncia,
+    updateDenunciaStatus,
     deleteDenuncia
-} = require('../../controllers/admin/adminDenunciaController');
+} = require('../../controllers/admin/adminDenunciasController');
 
 // Listar todas as denúncias
 router.get('/denuncias', listDenuncias);
@@ -15,12 +14,9 @@ router.get('/denuncias', listDenuncias);
 router.get('/denuncias/:id', getDenunciaById);
 
 // Aprovar uma denúncia e suspender o acompanhante denunciado
-router.patch('/denuncias/:id/aprovar', approveDenuncia);
-
-// Rejeitar uma denúncia
-router.patch('/denuncias/:id/rejeitar', rejectDenuncia);
+router.patch('/denuncias/:id/status', updateDenunciaStatus);
 
 // Deletar uma denúncia
-router.delete('/denuncias/:id', deleteDenuncia);
+router.delete('/denuncias/:id/delete', deleteDenuncia);
 
 module.exports = router;
