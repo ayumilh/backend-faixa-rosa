@@ -43,9 +43,7 @@ exports.register = async (req, res) => {
             },
         });
 
-        if (existingUser) {
-            return res.status(400).json({ error: 'Email ou CPF já está em uso' });
-        }
+        if (existingUser) return res.status(400).json({ error: 'Email ou CPF já está em uso' });
 
         const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
@@ -66,7 +64,6 @@ exports.register = async (req, res) => {
             });
 
             if (userType === 'ACOMPANHANTE') {
-                // Criar perfil na tabela Companion
                 await prisma.companion.create({
                     data: {
                         userId: createdUser.id,
@@ -83,7 +80,6 @@ exports.register = async (req, res) => {
                     },
                 });
             } else if (userType === 'CONTRATANTE') {
-                // Criar perfil na tabela Contractor
                 await prisma.contractor.create({
                     data: {
                         userId: createdUser.id,
