@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const Joi = require('joi');
 const { uploadSingleVideo, uploadDocuments } = require("../../config/wasabi");
 
 // Listar todos os acompanhantes
@@ -76,11 +77,28 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
 
-        const {
-            description, gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
-            hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
-            hasPiercings, smoker, pubis, bodyType, breastType
-        } = req.body;
+        const schema = Joi.object({
+            description: Joi.string().allow(null, ""),
+            gender: Joi.string().required(),
+            genitalia: Joi.string().allow(null, ""),
+            weight: Joi.number().precision(2).positive().allow(null, 0), // Float positivo
+            height: Joi.number().integer().positive().allow(null, 0), // Int positivo
+            ethnicity: Joi.string().allow(null, ""),
+            eyeColor: Joi.string().allow(null, ""),
+            hairStyle: Joi.string().allow(null, ""),
+            hairLength: Joi.string().allow(null, ""),
+            shoeSize: Joi.number().integer().positive().allow(null, 0), // Int positivo
+            hasSilicone: Joi.boolean().truthy("true").falsy("false").default(false),
+            hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false),
+            hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
+            smoker: Joi.boolean().truthy("true").falsy("false").default(false),
+            comparisonMedia: Joi.string().uri().allow(null, ""),
+            hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
+        });
+
+        const { error, value } = schema.validate(req.body, { convert: true });
+
+        if (error) return res.status(400).json({ error: error.details[0].message });
 
         // Verifica se o usuário é uma acompanhante válida
         const companion = await prisma.companion.findUnique({ where: { userId } });
@@ -88,36 +106,21 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
         // add descrição da acompanhante
-        if (description) {
+        if (value.description) {
             await prisma.companion.update({
                 where: { id: companion.id },
-                data: { description: description || companion.description }
+                data: { description: value.description || companion.description }
             });
         }
-
-        // Processamento de Características Físicas
-        const validData = {
-            gender,
-            genitalia: genitalia || undefined,
-            weight: parseFloat(weight) || undefined,
-            height: parseInt(height, 10) || undefined,
-            ethnicity: ethnicity || undefined,
-            eyeColor: eyeColor || undefined,
-            hairStyle: hairStyle || undefined,
-            hairLength: hairLength || undefined,
-            shoeSize: parseInt(shoeSize, 10) || undefined,
-            hasSilicone: hasSilicone === "true",
-            hasTattoos: hasTattoos === "true",
-            hasPiercings: hasPiercings === "true",
-            smoker: smoker === "true",
-            comparisonMedia: comparisonMedia || undefined,
-            hasComparisonMedia: hasComparisonMedia === "true",
-            companionId: companion.id
-        };
 
         const existingCharacteristics = await prisma.physicalCharacteristics.findUnique({
             where: { companionId: companion.id }
         });
+
+        const validData = {
+            ...value,
+            companionId: companion.id,
+        };
 
         if (existingCharacteristics) {
             await prisma.physicalCharacteristics.update({
