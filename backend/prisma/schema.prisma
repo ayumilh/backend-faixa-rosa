@@ -221,7 +221,6 @@ model PhysicalCharacteristics {
   genitalia          String
   weight             Float
   height             Int
-  // estatura           Estatura
   ethnicity          Etnia
   eyeColor           String
   hairStyle          Cabelo
@@ -231,9 +230,6 @@ model PhysicalCharacteristics {
   hasTattoos         Boolean
   hasPiercings       Boolean
   smoker             Boolean
-  // pubis              Pubis
-  // bodyType           Corpo
-  // breastType         Seios
   description        String?
   comparisonMedia    String?
   hasComparisonMedia Boolean?   @default(false)
