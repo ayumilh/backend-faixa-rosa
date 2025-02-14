@@ -223,7 +223,7 @@ model PhysicalCharacteristics {
   height             Int
   ethnicity          Etnia
   eyeColor           String
-  hairStyle          Cabelo
+  hairStyle          String
   hairLength         String
   shoeSize           Int
   hasSilicone        Boolean
@@ -470,11 +470,12 @@ enum ContactMethod {
 }
 
 enum Etnia {
-  BRANCAS
-  LATINAS
-  MULATAS
-  NEGRAS
-  ORIENTAIS
+  BRANCA
+  LATINA
+  MULATA
+  NEGRA
+  ORIENTAl
+  OUTRA
 }
 
 enum Cabelo {
