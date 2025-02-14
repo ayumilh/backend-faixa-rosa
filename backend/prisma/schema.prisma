@@ -215,14 +215,14 @@ model PaymentMethodCompanion {
 }
 
 model PhysicalCharacteristics {
-  id                 Int       @id @default(autoincrement())
-  companionId        Int       @unique
+  id                 Int        @id @default(autoincrement())
+  companionId        Int        @unique
   gender             GenderType
   genitalia          Genitalia
   weight             Float
   height             Int
   ethnicity          Etnia
-  eyeColor           EyeColor 
+  eyeColor           EyeColor
   hairStyle          hairStyle
   hairLength         hairLength
   shoeSize           String
@@ -233,8 +233,8 @@ model PhysicalCharacteristics {
   description        String?
   comparisonMedia    String?
   hasComparisonMedia Boolean?   @default(false)
-  
-  companion          Companion @relation(fields: [companionId], references: [id])
+
+  companion Companion @relation(fields: [companionId], references: [id])
 }
 
 model AgeCategoryCompanion {
@@ -272,6 +272,7 @@ model LocationCompanion {
   id          Int       @id @default(autoincrement())
   companionId Int
   locationId  Int?
+  amenities   AmenityType[] @default([])
   companion   Companion @relation(fields: [companionId], references: [id])
   location    Location? @relation(fields: [locationId], references: [id])
 }
@@ -294,7 +295,7 @@ model ServiceOffered {
 
 model Location {
   id         Int                 @id @default(autoincrement())
-  name       String              @unique
+  name       LocationType        @unique
   companions LocationCompanion[]
 }
 
@@ -391,16 +392,16 @@ model Story {
 }
 
 model FeedPost {
-  id           Int       @id @default(autoincrement())
-  title        String?
-  description  String?
-  mediaUrl     String
-  mediaType    String
-  lastOnline   DateTime?
-  companionId  Int
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  companion    Companion @relation(fields: [companionId], references: [id])
+  id          Int       @id @default(autoincrement())
+  title       String?
+  description String?
+  mediaUrl    String
+  mediaType   String
+  lastOnline  DateTime?
+  companionId Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  companion   Companion @relation(fields: [companionId], references: [id])
 }
 
 model Metric {
@@ -443,6 +444,28 @@ enum UserType {
   EMPRESA
   ADMIN
 }
+
+enum AmenityType {
+  WIFI
+  CHUVEIRO
+  AR_CONDICIONADO
+  ESTACIONAMENTO
+  FRIGOBAR
+  PRESERVATIVOS
+}
+
+enum LocationType {
+  A_DOMICILIO
+  FESTAS_EVENTOS
+  HOTEIS
+  LOCAL_PROPRIO
+  MOTEIS
+  VIAGENS
+  CLUB_DE_SWING
+  JANTARES
+  DESPEDIDA_SOLTEIRO
+}
+
 
 enum PaymentMethod {
   CARTAO_CREDITO
@@ -498,6 +521,7 @@ enum hairStyle {
   CRESPO
   RASPADO
 }
+
 enum hairLength {
   CURTO
   MEDIO
@@ -532,7 +556,6 @@ enum Pubis {
   PELUDAS
   DEPILADO
 }
-
 
 // SERVICOS OFERECIDOS
 enum ServicosGerais {
