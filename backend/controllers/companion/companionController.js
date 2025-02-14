@@ -95,7 +95,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             eyeColor: Joi.string().allow(null, ""),
             hairStyle: Joi.string().allow(null, ""),
             hairLength: Joi.string().allow(null, ""),
-            shoeSize: Joi.number().integer().positive().allow(null, 0),
+            shoeSize: Joi.string().allow(null, ""),
             hasSilicone: Joi.boolean().truthy("true").falsy("false").default(false),
             hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false),
             hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
