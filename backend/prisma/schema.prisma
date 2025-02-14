@@ -217,15 +217,15 @@ model PaymentMethodCompanion {
 model PhysicalCharacteristics {
   id                 Int       @id @default(autoincrement())
   companionId        Int       @unique
-  gender             String
-  genitalia          String
+  gender             GenderType
+  genitalia          Genitalia
   weight             Float
   height             Int
   ethnicity          Etnia
-  eyeColor           String
-  hairStyle          String
-  hairLength         String
-  shoeSize           Int
+  eyeColor           EyeColor 
+  hairStyle          hairStyle
+  hairLength         hairLength
+  shoeSize           String
   hasSilicone        Boolean
   hasTattoos         Boolean
   hasPiercings       Boolean
@@ -469,6 +469,19 @@ enum ContactMethod {
   TELEGRAM
 }
 
+// CARACTERISTICAS FISICAS
+enum GenderType {
+  MULHER_CISGENERO
+  HOMEM_CISGENERO
+  MULHER_TRANS
+  HOMEM_TRANS
+}
+
+enum Genitalia {
+  NATURAL
+  CIRURGIA
+}
+
 enum Etnia {
   BRANCA
   LATINA
@@ -478,10 +491,26 @@ enum Etnia {
   OUTRA
 }
 
-enum Cabelo {
-  MORENAS
-  LOIRAS
-  RUIVAS
+enum hairStyle {
+  LISO
+  CACHEADO
+  ONDULADO
+  CRESPO
+  RASPADO
+}
+enum hairLength {
+  CURTO
+  MEDIO
+  LONGO
+}
+
+enum EyeColor {
+  CASTANHOS
+  AZUIS
+  VERDES
+  CINZAS
+  PRETOS
+  OUTROS
 }
 
 enum Estatura {
@@ -504,6 +533,8 @@ enum Pubis {
   DEPILADO
 }
 
+
+// SERVICOS OFERECIDOS
 enum ServicosGerais {
   BEIJOS_BOCA
   EJACULACAO_CORPO
