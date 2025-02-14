@@ -119,7 +119,12 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
 
         const validData = {
             ...value,
-            companionId: companion.id,
+            description: value.description || null,
+            comparisonMedia: value.comparisonMedia || null,
+            ethnicity: value.ethnicity || null,
+            eyeColor: value.eyeColor || null,
+            hairStyle: value.hairStyle || null,
+            hairLength: value.hairLength || null,
         };
 
         if (existingCharacteristics) {
