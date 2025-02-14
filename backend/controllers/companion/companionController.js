@@ -676,6 +676,11 @@ exports.getLocationManagement = async (req, res) => {
         // Verifica se a acompanhante existe
         const companion = await prisma.companion.findUnique({
             where: { userId },
+            select: {
+                id: true,
+                city: true,
+                state: true
+            }
         });
 
         if (!companion) {
@@ -697,6 +702,8 @@ exports.getLocationManagement = async (req, res) => {
         }));
 
         return res.status(200).json({
+            city: companion.city,
+            state: companion.state,
             attendedLocations: formattedLocations
         });
 
@@ -705,6 +712,7 @@ exports.getLocationManagement = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
+
 // Atualizar Cidade onde a acompanhante atende
 // exports.updateCompanionLocation = async (req, res) => {
 //     const userId = req.user?.id;
