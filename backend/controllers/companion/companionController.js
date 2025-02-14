@@ -94,8 +94,11 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             smoker: Joi.boolean().truthy("true").falsy("false").default(false),
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
         });
-
+        
+        
         const { error, value } = schema.validate(req.body, { convert: true });
+        
+        console.log("value", value);
 
         if (error) return res.status(400).json({ error: error.details[0].message });
 
@@ -104,7 +107,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-        // add descrição da acompanhante
+        // Atualiza a descrição da acompanhante se fornecida
         if (value.description) {
             await prisma.companion.update({
                 where: { id: companion.id },
@@ -117,13 +120,20 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         });
 
         const validData = {
-            ...value,
-            description: value.description || null,
-            comparisonMedia: value.comparisonMedia || null,
+            gender: value.gender,
+            genitalia: value.genitalia || null,
+            weight: value.weight || null,
+            height: value.height || null,
             ethnicity: value.ethnicity || null,
             eyeColor: value.eyeColor || null,
             hairStyle: value.hairStyle || null,
             hairLength: value.hairLength || null,
+            shoeSize: value.shoeSize || null,
+            hasSilicone: value.hasSilicone,
+            hasTattoos: value.hasTattoos,
+            hasPiercings: value.hasPiercings,
+            smoker: value.smoker,
+            hasComparisonMedia: value.hasComparisonMedia,
         };
 
         if (existingCharacteristics) {
@@ -133,21 +143,14 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             });
         } else {
             await prisma.physicalCharacteristics.create({
-                data: validData
+                data: {
+                    ...validData,
+                    companionId: companion.id
+                }
             });
         }
 
-        // Verifica se já existe um vídeo cadastrado
-        const existingVideo = await prisma.media.findFirst({
-            where: {
-                companionId: companion.id,
-                mediaType: "VIDEO"
-            }
-        });
-
-        if (existingVideo) return res.status(400).json({ error: "Você já enviou um vídeo. Aguarde a aprovação antes de enviar outro." });
-
-        // Se um vídeo for enviado, processa o upload e armazena a URL
+        // Se um vídeo for enviado, armazene apenas na tabela `media`, sem alterar `physicalCharacteristics`
         if (req.file) {
             const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
 
@@ -158,18 +161,23 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                     mediaType: "VIDEO",
                 },
             });
+
+            return res.status(200).json({
+                message: "Vídeo enviado com sucesso. Aguarde a aprovação do admin.",
+                videoUrl: videoUrl
+            });
         }
 
         return res.status(200).json({
-            message: 'Descrição do perfil atualizada com sucesso.',
-            videoUrl: req.file ? `Vídeo enviado: ${req.file.originalname}` : "Vídeo não enviado.",
+            message: "Descrição do perfil atualizada com sucesso.",
         });
 
     } catch (error) {
-        console.error('Erro ao processar características físicas e vídeo:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+        console.error("Erro ao processar características físicas e vídeo:", error);
+        return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
+
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
