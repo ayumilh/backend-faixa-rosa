@@ -309,15 +309,15 @@ async function seedTimedServices() {
 
 async function seedAttendedLocations() {
     const locations = [
-        { name: "A domicílio" },
-        { name: "Festas e Eventos" },
-        { name: "Hotéis" },
-        { name: "Local Próprio" },
-        { name: "Motéis" },
-        { name: "Viagens" },
-        { name: "Club de swing" },
-        { name: "Jantar romântico" },
-        { name: "Despedida de solteiro" },
+        { name: "A_DOMICILIO" },
+        { name: "FESTAS_EVENTOS" },
+        { name: "HOTEIS" },
+        { name: "LOCAL_PROPRIO" },
+        { name: "MOTEIS" },
+        { name: "VIAGENS" },
+        { name: "CLUB_DE_SWING" },
+        { name: "JANTARES" },
+        { name: "DESPEDIDA_SOLTEIRO" },
     ];
 
     console.log("Seeding locations...");
@@ -327,7 +327,7 @@ async function seedAttendedLocations() {
             where: { name: location.name },
             update: {},
             create: {
-                name: location.name,
+                name: location.name, // Passando o valor como ENUM corretamente
             },
         });
     }
@@ -519,7 +519,7 @@ async function runAllSeeds() {
         // await seedPlanTypes();
         // await seedPlansAndExtras();
         // await seedTimedServices();
-        // await seedAttendedLocations();
+        await seedAttendedLocations();
         // await seedServicesOffered();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);

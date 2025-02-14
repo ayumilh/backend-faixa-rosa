@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, LocationType } = require('@prisma/client');
 const prisma = new PrismaClient();
 const Joi = require('joi');
 const { uploadSingleVideo, uploadDocuments } = require("../../config/wasabi");
@@ -161,7 +161,6 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -616,10 +615,11 @@ exports.getUnavailableDates = async (req, res) => {
 
 
 // Atualizar Localização e Locais Atendidos
-exports.updateLocationManagement = async (req, res) => {    
+exports.updateLocationManagement = async (req, res) => {
     try {
         const userId = req.user?.id;
-        const { city, state, locations } = req.body;
+        const { city, state, locations, amenities } = req.body;
+
         // Verifica se a acompanhante existe
         const companion = await prisma.companion.findUnique({ where: { userId } });
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
@@ -633,21 +633,26 @@ exports.updateLocationManagement = async (req, res) => {
         }
 
         // Atualiza os locais atendidos (se houver)
+        let locationCompanionIds = [];
         if (locations && locations.length > 0) {
-            // Remove os locais anteriores da acompanhante
+            // Deleta locais anteriores
             await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
 
-            // Busca os locais pelo nome no banco de dados
+            // Converte os nomes enviados para ENUMs válidos
+            const validLocations = locations.map(loc => loc.name).filter(name => Object.values(LocationType).includes(name));
+
+            if (validLocations.length !== locations.length) {
+                return res.status(400).json({ error: 'Alguns locais enviados não são válidos no enum LocationType.' });
+            }
+
+            // Busca os locais no banco de dados usando ENUM
             const locationRecords = await prisma.location.findMany({
-                where: {
-                    name: { in: locations.map(loc => loc.name) }
-                }
+                where: { name: { in: validLocations } }
             });
 
-            // Verifica se todos os locais enviados existem no banco
+            // Verifica se todos os locais existem no banco
             const foundLocationIds = locationRecords.map(loc => loc.id);
-            const foundLocationNames = locationRecords.map(loc => loc.name);
-            const missingLocations = locations.map(loc => loc.name).filter(name => !foundLocationNames.includes(name));
+            const missingLocations = validLocations.filter(name => !locationRecords.find(loc => loc.name === name));
 
             if (missingLocations.length > 0) {
                 return res.status(400).json({ error: `Os seguintes locais não existem no banco: ${missingLocations.join(', ')}` });
@@ -659,13 +664,30 @@ exports.updateLocationManagement = async (req, res) => {
                 locationId
             }));
 
+            // Inserir novos registros e capturar os IDs criados
             await prisma.locationCompanion.createMany({ data: locationData });
+
+            // Buscar os registros criados para atualizar as comodidades
+            const updatedLocationCompanions = await prisma.locationCompanion.findMany({
+                where: { companionId: companion.id }
+            });
+            locationCompanionIds = updatedLocationCompanions.map(loc => loc.id);
         }
 
-        return res.status(200).json({ message: 'Localização e locais atendidos atualizados com sucesso.' });
+        // Atualiza as comodidades da acompanhante nos locais atendidos
+        if (amenities && amenities.length > 0 && locationCompanionIds.length > 0) {
+            await Promise.all(locationCompanionIds.map(async (locationCompanionId) => {
+                await prisma.locationCompanion.update({
+                    where: { id: locationCompanionId },
+                    data: { amenities }
+                });
+            }));
+        }
+
+        return res.status(200).json({ message: 'Localização, locais atendidos e comodidades atualizados com sucesso.' });
 
     } catch (error) {
-        console.error('Erro ao atualizar localização e locais atendidos:', error);
+        console.error('Erro ao atualizar localização, locais atendidos e comodidades:', error);
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
@@ -687,7 +709,7 @@ exports.getLocationManagement = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // Busca os locais atendidos da acompanhante, incluindo o nome do local
+        // Busca os locais atendidos da acompanhante, incluindo o nome do local e amenities
         const attendedLocations = await prisma.locationCompanion.findMany({
             where: { companionId: companion.id },
             include: {
@@ -695,16 +717,20 @@ exports.getLocationManagement = async (req, res) => {
             }
         });
 
-        // Formata a resposta para incluir o nome dos locais
+        // Formata a resposta para incluir os locais atendidos
         const formattedLocations = attendedLocations.map(loc => ({
             id: loc.locationId,
             name: loc.location?.name
         }));
 
+        // Extrai todas as comodidades associadas à acompanhante (sem repetir)
+        const allAmenities = [...new Set(attendedLocations.flatMap(loc => loc.amenities || []))];
+
         return res.status(200).json({
             city: companion.city,
             state: companion.state,
-            attendedLocations: formattedLocations
+            attendedLocations: formattedLocations,
+            amenities: allAmenities
         });
 
     } catch (error) {
@@ -712,6 +738,8 @@ exports.getLocationManagement = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
+
+
 
 // Atualizar Cidade onde a acompanhante atende
 // exports.updateCompanionLocation = async (req, res) => {
