@@ -77,6 +77,14 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
 
+        // Se a requisição for `application/json`, os dados estão em `req.body`
+        let data = req.body;
+
+        // Se for `multipart/form-data`, os dados vêm no `req.body`, mas podem precisar de parsing
+        if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
+            data = JSON.parse(JSON.stringify(req.body)); // Garante que os valores vêm como strings
+        }
+
         const schema = Joi.object({
             description: Joi.string().allow(null, ""),
             gender: Joi.string().required(),
@@ -95,17 +103,13 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
         });
 
-        const { error, value } = schema.validate(req.body, { convert: true });
+        const { error, value } = schema.validate(data, { convert: true });
 
         if (error) return res.status(400).json({ error: error.details[0].message });
 
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-
-        const existingCharacteristics = await prisma.physicalCharacteristics.findUnique({
-            where: { companionId: companion.id }
-        });
 
         const validData = {
             gender: value.gender,
@@ -124,21 +128,13 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             hasComparisonMedia: value.hasComparisonMedia,
         };
 
-        if (existingCharacteristics) {
-            await prisma.physicalCharacteristics.update({
-                where: { companionId: companion.id },
-                data: validData
-            });
-        } else {
-            await prisma.physicalCharacteristics.create({
-                data: {
-                    ...validData,
-                    companionId: companion.id
-                }
-            });
-        }
+        await prisma.physicalCharacteristics.upsert({
+            where: { companionId: companion.id },
+            update: validData,
+            create: { ...validData, companionId: companion.id },
+        });
 
-        // ✅ Se um vídeo foi enviado, processa a mídia
+        // ✅ Processa o vídeo se houver
         if (req.file) {
             const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
 
@@ -165,6 +161,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
+
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
