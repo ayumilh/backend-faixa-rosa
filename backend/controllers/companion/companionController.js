@@ -92,7 +92,6 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false),
             hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
             smoker: Joi.boolean().truthy("true").falsy("false").default(false),
-            comparisonMedia: Joi.string().uri().allow(null, ""),
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
         });
 
