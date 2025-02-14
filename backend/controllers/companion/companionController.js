@@ -81,39 +81,27 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             description: Joi.string().allow(null, ""),
             gender: Joi.string().required(),
             genitalia: Joi.string().allow(null, ""),
-            weight: Joi.number().precision(2).positive().allow(null, 0), // Float positivo
-            height: Joi.number().integer().positive().allow(null, 0), // Int positivo
+            weight: Joi.number().precision(2).positive().allow(null, 0),
+            height: Joi.number().integer().positive().allow(null, 0),
             ethnicity: Joi.string().allow(null, ""),
             eyeColor: Joi.string().allow(null, ""),
             hairStyle: Joi.string().allow(null, ""),
             hairLength: Joi.string().allow(null, ""),
-            shoeSize: Joi.number().integer().positive().allow(null, 0), // Int positivo
+            shoeSize: Joi.number().integer().positive().allow(null, 0),
             hasSilicone: Joi.boolean().truthy("true").falsy("false").default(false),
             hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false),
             hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
             smoker: Joi.boolean().truthy("true").falsy("false").default(false),
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
         });
-        
-        
+
         const { error, value } = schema.validate(req.body, { convert: true });
-        
-        console.log("value", value);
 
         if (error) return res.status(400).json({ error: error.details[0].message });
 
-        // Verifica se o usuário é uma acompanhante válida
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-
-        // Atualiza a descrição da acompanhante se fornecida
-        if (value.description) {
-            await prisma.companion.update({
-                where: { id: companion.id },
-                data: { description: value.description || companion.description }
-            });
-        }
 
         const existingCharacteristics = await prisma.physicalCharacteristics.findUnique({
             where: { companionId: companion.id }
@@ -150,7 +138,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             });
         }
 
-        // Se um vídeo for enviado, armazene apenas na tabela `media`, sem alterar `physicalCharacteristics`
+        // ✅ Se um vídeo foi enviado, processa a mídia
         if (req.file) {
             const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
 
@@ -177,7 +165,6 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
