@@ -740,7 +740,6 @@ exports.getLocationManagement = async (req, res) => {
 };
 
 
-
 // Atualizar Cidade onde a acompanhante atende
 // exports.updateCompanionLocation = async (req, res) => {
 //     const userId = req.user?.id;
@@ -852,18 +851,23 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         const companion = await prisma.companion.findUnique({
             where: { userId },
             include: {
-                paymentMethods: true, // Corrigido para o nome correto
-                servicesOffered: { // Nome correto da relação de serviços oferecidos
-                    include: {
-                        service: true // Inclui os detalhes do serviço
-                    }
-                }
+                paymentMethods: true,
+                servicesOffered: { include: { service: true } },
+                timedServiceCompanion: { include: { TimedService: true } } // Corrigido para corresponder ao schema
             }
         });
 
         if (!companion) {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
+
+        // Busca todos os horários disponíveis na tabela TimedService
+        const allTimedServices = await prisma.timedService.findMany();
+
+        // Mapeia os horários oferecidos pela acompanhante
+        const companionTimedServicesMap = new Map(
+            companion.timedServiceCompanion.map(ts => [ts.timedServiceId, ts])
+        );
 
         // Formata os métodos de pagamento
         const paymentMethods = companion.paymentMethods.map(pm => pm.paymentMethod);
@@ -876,14 +880,28 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             price: service.price || "Não informado"
         }));
 
+        // Formata os horários, garantindo que todos apareçam
+        const timedServices = allTimedServices.map(timedService => ({
+            id: timedService.id,
+            name: timedService.name,
+            description: timedService.description,
+            defaultPrice: timedService.defaultPrice || null,
+            isAvailable: companionTimedServicesMap.has(timedService.id),
+            price: companionTimedServicesMap.get(timedService.id)?.price || null
+        }));
+
         return res.status(200).json({
             message: "Dados financeiros e serviços recuperados com sucesso.",
             paymentMethods,
-            services
+            services,
+            timedServices
         });
 
     } catch (error) {
         console.error("Erro ao buscar dados financeiros e serviços:", error);
-        return res.status(500).json({ error: "Erro ao processar os dados." });
+        return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
+
+
+
