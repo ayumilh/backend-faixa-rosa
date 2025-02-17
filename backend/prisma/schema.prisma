@@ -470,8 +470,8 @@ enum LocationType {
 enum PaymentMethod {
   CARTAO_CREDITO
   PIX
-  LUXO
-  ECONOMICAS
+  DEBITO
+  DINHEIRO
 }
 
 enum AgeCategory {
