@@ -862,7 +862,6 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             where: { userId },
             include: {
                 paymentMethods: true,
-                servicesOffered: { include: { service: true } },
                 timedServiceCompanion: { include: { TimedService: true } } // Mantendo a estrutura correta
             }
         });
@@ -880,20 +879,12 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         );
 
         // Busca todos os métodos de pagamento disponíveis no banco de dados
-        const allPaymentMethods = ["PIX", "CRÉDITO", "DÉBITO", "DINHEIRO"];
+        const allPaymentMethods = ["PIX", "CARTAO_CREDITO", "LUXO", "ECONOMICAS"];
 
         // Formata os métodos de pagamento aceitos
         const paymentMethods = allPaymentMethods.map(method => ({
             nome: method,
             aceito: companion.paymentMethods.some(pm => pm.paymentMethod === method)
-        }));
-
-        // Formata os serviços oferecidos pela acompanhante
-        const services = companion.servicesOffered.map(service => ({
-            id: service.serviceId,
-            name: service.service?.name || "Desconhecido",
-            isOffered: service.isOffered ?? false,
-            price: service.price !== null ? service.price : "Não informado"
         }));
 
         // Formata os horários disponíveis, garantindo que todos apareçam
@@ -910,9 +901,7 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         });
 
         return res.status(200).json({
-            message: "Dados financeiros e serviços recuperados com sucesso.",
             paymentMethods,
-            services,
             timedServices
         });
 
