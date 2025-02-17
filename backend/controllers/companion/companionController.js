@@ -823,23 +823,36 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             await prisma.paymentMethodCompanion.createMany({ data: paymentData });
         }
 
-        // Atualizar apenas os horários oferecidos pela acompanhante
-        if (timedServices && timedServices.length > 0) {
-            const offeredTimedServiceIds = timedServices.map(ts => ts.id);
+        // **PEGAR TODOS OS SERVIÇOS ATUAIS NO BANCO**
+        const existingServices = await prisma.timedServiceCompanion.findMany({
+            where: { companionId: companion.id }
+        });
 
-            // Excluir apenas os horários que estão sendo atualizados
-            await prisma.timedServiceCompanion.deleteMany({
+        // **SERVIÇOS QUE FORAM MANTIDOS NO FRONTEND**
+        const offeredTimedServiceIds = timedServices.map(ts => ts.id);
+
+        // **SERVIÇOS REMOVIDOS DEVEM SER MARCADOS COMO isOffered: false**
+        const removedServices = existingServices
+            .filter(s => !offeredTimedServiceIds.includes(s.timedServiceId)) // Se não está no novo array, foi removido
+            .map(s => s.timedServiceId);
+
+        // Atualizar os serviços removidos para `isOffered: false`
+        if (removedServices.length > 0) {
+            await prisma.timedServiceCompanion.updateMany({
                 where: {
                     companionId: companion.id,
-                    timedServiceId: { in: offeredTimedServiceIds },
+                    timedServiceId: { in: removedServices },
                 },
+                data: { isOffered: false, price: null },
             });
+        }
 
-            // Inserir os novos horários oferecidos
+        // **ATUALIZA OS SERVIÇOS ATIVOS**
+        if (timedServices.length > 0) {
             const timedServiceData = timedServices.map(timedService => ({
                 companionId: companion.id,
                 timedServiceId: timedService.id,
-                isOffered: true, // Se foi enviado, significa que a acompanhante oferece esse horário
+                isOffered: true, // Se está na requisição, está sendo oferecido
                 price: timedService.price ?? null,
             }));
 
@@ -852,7 +865,6 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-
 exports.getCompanionFinanceAndServices = async (req, res) => {
     try {
         const userId = req.user?.id;
