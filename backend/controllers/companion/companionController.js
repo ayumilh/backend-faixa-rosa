@@ -804,7 +804,7 @@ exports.getLocationManagement = async (req, res) => {
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {
     const userId = req.user?.id;
-    const { paymentMethods, services } = req.body;
+    const { paymentMethods, timedServices } = req.body;
 
     try {
         const companion = await prisma.companion.findUnique({ where: { userId } });
@@ -823,26 +823,36 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             await prisma.paymentMethodCompanion.createMany({ data: paymentData });
         }
 
-        // Atualizar serviços oferecidos
-        if (services) {
-            await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
+        // Atualizar apenas os horários oferecidos pela acompanhante
+        if (timedServices && timedServices.length > 0) {
+            const offeredTimedServiceIds = timedServices.map(ts => ts.id);
 
-            const serviceData = services.map((service) => ({
+            // Excluir apenas os horários que estão sendo atualizados
+            await prisma.timedServiceCompanion.deleteMany({
+                where: {
+                    companionId: companion.id,
+                    timedServiceId: { in: offeredTimedServiceIds },
+                },
+            });
+
+            // Inserir os novos horários oferecidos
+            const timedServiceData = timedServices.map(timedService => ({
                 companionId: companion.id,
-                serviceId: service.id, // Relaciona com a tabela Service
-                isOffered: service.isOffered, // Indica se o serviço é oferecido ou não
-                price: service.price || null, // Preço opcional
+                timedServiceId: timedService.id,
+                isOffered: true, // Se foi enviado, significa que a acompanhante oferece esse horário
+                price: timedService.price ?? null,
             }));
 
-            await prisma.serviceCompanionOffered.createMany({ data: serviceData });
+            await prisma.timedServiceCompanion.createMany({ data: timedServiceData });
         }
 
-        return res.status(200).json({ message: 'Dados financeiros e serviços atualizados com sucesso.' });
+        return res.status(200).json({ message: 'Dados financeiros e horários atualizados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao atualizar dados financeiros e serviços:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.' });
+        console.error('Erro ao atualizar dados financeiros e horários:', error);
+        return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
+
 exports.getCompanionFinanceAndServices = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -853,7 +863,7 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             include: {
                 paymentMethods: true,
                 servicesOffered: { include: { service: true } },
-                timedServiceCompanion: { include: { TimedService: true } } // Corrigido para corresponder ao schema
+                timedServiceCompanion: { include: { TimedService: true } } // Mantendo a estrutura correta
             }
         });
 
@@ -864,31 +874,40 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         // Busca todos os horários disponíveis na tabela TimedService
         const allTimedServices = await prisma.timedService.findMany();
 
-        // Mapeia os horários oferecidos pela acompanhante
+        // Mapeia os horários que a acompanhante oferece
         const companionTimedServicesMap = new Map(
             companion.timedServiceCompanion.map(ts => [ts.timedServiceId, ts])
         );
 
-        // Formata os métodos de pagamento
-        const paymentMethods = companion.paymentMethods.map(pm => pm.paymentMethod);
+        // Busca todos os métodos de pagamento disponíveis no banco de dados
+        const allPaymentMethods = ["PIX", "CRÉDITO", "DÉBITO", "DINHEIRO"];
 
-        // Formata os serviços oferecidos
+        // Formata os métodos de pagamento aceitos
+        const paymentMethods = allPaymentMethods.map(method => ({
+            nome: method,
+            aceito: companion.paymentMethods.some(pm => pm.paymentMethod === method)
+        }));
+
+        // Formata os serviços oferecidos pela acompanhante
         const services = companion.servicesOffered.map(service => ({
             id: service.serviceId,
             name: service.service?.name || "Desconhecido",
-            isOffered: service.isOffered,
-            price: service.price || "Não informado"
+            isOffered: service.isOffered ?? false,
+            price: service.price !== null ? service.price : "Não informado"
         }));
 
-        // Formata os horários, garantindo que todos apareçam
-        const timedServices = allTimedServices.map(timedService => ({
-            id: timedService.id,
-            name: timedService.name,
-            description: timedService.description,
-            defaultPrice: timedService.defaultPrice || null,
-            isAvailable: companionTimedServicesMap.has(timedService.id),
-            price: companionTimedServicesMap.get(timedService.id)?.price || null
-        }));
+        // Formata os horários disponíveis, garantindo que todos apareçam
+        const timedServices = allTimedServices.map(timedService => {
+            const companionService = companionTimedServicesMap.get(timedService.id);
+            return {
+                id: timedService.id,
+                name: timedService.name,
+                description: timedService.description,
+                defaultPrice: timedService.defaultPrice ?? null,
+                isAvailable: !!companionService, // Define como disponível se a acompanhante oferecer esse horário
+                price: companionService?.price ?? null
+            };
+        });
 
         return res.status(200).json({
             message: "Dados financeiros e serviços recuperados com sucesso.",
@@ -902,6 +921,3 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-
-
-
