@@ -377,7 +377,6 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
     const userId = req.user?.id;
     const { services } = req.body;
 
-    // Verifica se 'services' foi enviado corretamente e não está vazio
     if (!Array.isArray(services) || services.length === 0) {
         return res.status(400).json({ error: "Lista de serviços inválida ou vazia." });
     }
@@ -389,7 +388,9 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // Obtém apenas os IDs dos serviços recebidos
+        console.log("📌 Serviços recebidos para atualização:", JSON.stringify(services, null, 2));
+
+        // Obtém os IDs dos serviços a serem atualizados
         const requestedServiceIds = services.map(s => s.id).filter(id => id !== null && id !== undefined);
 
         if (requestedServiceIds.length === 0) {
@@ -412,26 +413,44 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             });
         }
 
-        // Remove os serviços antigos antes de inserir os novos
-        await prisma.serviceCompanionOffered.deleteMany({ where: { companionId: companion.id } });
+        // Busca serviços já cadastrados para esse acompanhante
+        const existingServices = await prisma.serviceCompanionOffered.findMany({
+            where: { companionId: companion.id }
+        });
 
-        // Insere os novos serviços e preços
-        const serviceData = services
-            .filter(s => validServiceIds.includes(s.id)) // Apenas serviços válidos
-            .map(service => ({
-                companionId: companion.id,
-                serviceId: service.id,
-                isOffered: service.isOffered ?? false, // Se não vier, assume false
-                price: service.price ?? null, // Se não vier, assume null
-            }));
+        const existingServiceMap = new Map(existingServices.map(s => [s.serviceId, s]));
 
-        if (serviceData.length > 0) {
-            await prisma.serviceCompanionOffered.createMany({ data: serviceData });
+        // Processa cada serviço recebido no payload
+        for (const service of services) {
+            const isOffered = service.isOffered ?? false;
+            const price = service.price ?? null;
+
+            if (existingServiceMap.has(service.id)) {
+                // Se já existe, atualiza
+                await prisma.serviceCompanionOffered.update({
+                    where: { id: existingServiceMap.get(service.id).id },
+                    data: { isOffered, price }
+                });
+                console.log(`🔄 Serviço ID ${service.id} atualizado -> isOffered: ${isOffered}, price: ${price}`);
+            } else {
+                // Se não existe, cria um novo
+                await prisma.serviceCompanionOffered.create({
+                    data: {
+                        companionId: companion.id,
+                        serviceId: service.id,
+                        isOffered,
+                        price
+                    }
+                });
+                console.log(`🆕 Serviço ID ${service.id} adicionado -> isOffered: ${isOffered}, price: ${price}`);
+            }
         }
 
+        console.log("✅ Atualização concluída com sucesso!");
         return res.status(200).json({ message: "Serviços e preços atualizados com sucesso." });
+
     } catch (error) {
-        console.error("Erro ao atualizar serviços e preços:", error);
+        console.error("❌ Erro ao atualizar serviços e preços:", error);
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
@@ -462,13 +481,16 @@ exports.getCompanionServicesAndPrices = async (req, res) => {
         );
 
         // Formata a resposta, verificando quais serviços a acompanhante oferece
-        const formattedServices = allServices.map(service => ({
-            id: service.id,
-            name: service.name,
-            description: service.description,
-            isOffered: companionServicesMap.has(service.id), // Se a acompanhante oferece esse serviço
-            price: companionServicesMap.get(service.id)?.price || null // Pega o preço se existir
-        }));
+        const formattedServices = allServices.map(service => {
+            const companionService = companionServicesMap.get(service.id);
+            return {
+                id: service.id,
+                name: service.name,
+                description: service.description,
+                isOffered: companionService ? companionService.isOffered : false, // Pega o valor correto do banco
+                price: companionService ? companionService.price : null // Se não existir, assume null
+            };
+        });
 
         return res.status(200).json({
             message: "Lista de serviços recuperada com sucesso.",
@@ -880,8 +902,8 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             where: { userId },
             include: {
                 paymentMethods: true,
-                timedServiceCompanion: { 
-                    include: { TimedService: true } 
+                timedServiceCompanion: {
+                    include: { TimedService: true }
                 }
             }
         });
