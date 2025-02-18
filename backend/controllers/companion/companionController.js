@@ -907,7 +907,7 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             aceito: companion.paymentMethods.some(pm => pm.paymentMethod === method)
         }));
 
-        // Ajuste: Forçar `isAvailable: false` para serviços que não estão na tabela `timedServiceCompanion`
+        // Ajuste: Forçar `isOffered: false` para serviços que não estão na tabela `timedServiceCompanion`
         const timedServices = allTimedServices.map(timedService => {
             const companionService = companionTimedServicesMap.get(timedService.id);
 
@@ -916,7 +916,7 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
                 name: timedService.name,
                 description: timedService.description,
                 defaultPrice: timedService.defaultPrice ?? null,
-                isAvailable: companionService ? companionService.isOffered : false, // Agora só será true se realmente estiver no banco
+                isOffered: companionService ? companionService.isOffered : false, // Agora só será true se realmente estiver no banco
                 price: companionService?.price ?? null
             };
         });
