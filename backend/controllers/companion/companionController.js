@@ -817,42 +817,27 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
 
             const paymentData = paymentMethods.map((method) => ({
                 companionId: companion.id,
-                paymentMethod: method,
+                paymentMethod: method.nome, // 🔹 Agora apenas pega o nome correto
             }));
 
             await prisma.paymentMethodCompanion.createMany({ data: paymentData });
         }
 
-        // **PEGAR TODOS OS SERVIÇOS ATUAIS NO BANCO**
-        const existingServices = await prisma.timedServiceCompanion.findMany({
-            where: { companionId: companion.id }
-        });
-
-        // **SERVIÇOS QUE FORAM MANTIDOS NO FRONTEND**
-        const offeredTimedServiceIds = timedServices.map(ts => ts.id);
-
-        // **SERVIÇOS REMOVIDOS DEVEM SER MARCADOS COMO isOffered: false**
-        const removedServices = existingServices
-            .filter(s => !offeredTimedServiceIds.includes(s.timedServiceId)) // Se não está no novo array, foi removido
-            .map(s => s.timedServiceId);
-
-        // Atualizar os serviços removidos para `isOffered: false`
-        if (removedServices.length > 0) {
-            await prisma.timedServiceCompanion.updateMany({
-                where: {
-                    companionId: companion.id,
-                    timedServiceId: { in: removedServices },
-                },
-                data: { isOffered: false, price: null },
+        // **Marcar TODOS os serviços como NÃO DISPONÍVEIS antes de atualizar**
+        for (const service of timedServices) {
+            await prisma.timedServiceCompanion.upsert({
+                where: { companionId_timedServiceId: { companionId: companion.id, timedServiceId: service.id } },
+                update: { isOffered: service.isOffered, price: service.price ?? null },
+                create: { companionId: companion.id, timedServiceId: service.id, isOffered: service.isOffered, price: service.price ?? null },
             });
         }
 
-        // **ATUALIZA OS SERVIÇOS ATIVOS**
-        if (timedServices.length > 0) {
+        // Atualizar os serviços oferecidos
+        if (timedServices && timedServices.length > 0) {
             const timedServiceData = timedServices.map(timedService => ({
                 companionId: companion.id,
                 timedServiceId: timedService.id,
-                isOffered: true, // Se está na requisição, está sendo oferecido
+                isOffered: true, // 🔹 Apenas os serviços enviados ficam como true
                 price: timedService.price ?? null,
             }));
 
