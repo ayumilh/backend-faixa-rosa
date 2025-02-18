@@ -203,6 +203,7 @@ model TimedServiceCompanion {
   timedServiceId Int?
   isOffered      Boolean       @default(true)
   price          Float?
+  
   companion      Companion     @relation(fields: [companionId], references: [id])
   TimedService   TimedService? @relation(fields: [timedServiceId], references: [id])
 }

@@ -803,51 +803,72 @@ exports.getLocationManagement = async (req, res) => {
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
 exports.updateCompanionFinanceAndServices = async (req, res) => {
-    const userId = req.user?.id;
-    const { paymentMethods, timedServices } = req.body;
-
     try {
+        const userId = req.user?.id;
+        const { paymentMethods, timedServices } = req.body;
+
+        console.log("Recebendo dados do frontend:", JSON.stringify(req.body, null, 2));
+
+        // Busca o Companion no banco
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) return res.status(404).json({ error: "Acompanhante não encontrada." });
 
-        // Atualizar formas de pagamento
-        if (paymentMethods) {
-            await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
+        // Atualiza os métodos de pagamento
+        await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
 
-            const paymentData = paymentMethods.map((method) => ({
-                companionId: companion.id,
-                paymentMethod: method.nome, // 🔹 Agora apenas pega o nome correto
-            }));
+        const acceptedPaymentMethods = paymentMethods.filter(method => method.aceito);
 
-            await prisma.paymentMethodCompanion.createMany({ data: paymentData });
-        }
-
-        // **Marcar TODOS os serviços como NÃO DISPONÍVEIS antes de atualizar**
-        for (const service of timedServices) {
-            await prisma.timedServiceCompanion.upsert({
-                where: { companionId_timedServiceId: { companionId: companion.id, timedServiceId: service.id } },
-                update: { isOffered: service.isOffered, price: service.price ?? null },
-                create: { companionId: companion.id, timedServiceId: service.id, isOffered: service.isOffered, price: service.price ?? null },
+        if (acceptedPaymentMethods.length > 0) {
+            await prisma.paymentMethodCompanion.createMany({
+                data: acceptedPaymentMethods.map(method => ({
+                    companionId: companion.id,
+                    paymentMethod: method.nome
+                }))
             });
         }
 
-        // Atualizar os serviços oferecidos
-        if (timedServices && timedServices.length > 0) {
-            const timedServiceData = timedServices.map(timedService => ({
-                companionId: companion.id,
-                timedServiceId: timedService.id,
-                isOffered: true, // 🔹 Apenas os serviços enviados ficam como true
-                price: timedService.price ?? null,
-            }));
+        console.log(`Métodos de pagamento atualizados. Métodos aceitos: ${acceptedPaymentMethods.map(m => m.nome).join(', ')}`);
 
-            await prisma.timedServiceCompanion.createMany({ data: timedServiceData });
+        // Atualizar os serviços corretamente
+        for (const service of timedServices) {
+            const existingService = await prisma.timedServiceCompanion.findFirst({
+                where: {
+                    companionId: companion.id,
+                    timedServiceId: service.id
+                }
+            });
+
+            const isOffered = service.isAvailable;
+
+            console.log(`Atualizando serviço ID: ${service.id} -> isOffered: ${isOffered}, price: ${service.price}`);
+
+            if (existingService) {
+                await prisma.timedServiceCompanion.update({
+                    where: { id: existingService.id },
+                    data: {
+                        isOffered: isOffered,
+                        price: service.price ?? null
+                    }
+                });
+            } else {
+                await prisma.timedServiceCompanion.create({
+                    data: {
+                        companionId: companion.id,
+                        timedServiceId: service.id,
+                        isOffered: isOffered,
+                        price: service.price ?? null
+                    }
+                });
+            }
         }
 
-        return res.status(200).json({ message: 'Dados financeiros e horários atualizados com sucesso.' });
+        console.log("Atualização concluída com sucesso!");
+        return res.status(200).json({ message: "Dados financeiros e serviços atualizados com sucesso." });
+
     } catch (error) {
-        console.error('Erro ao atualizar dados financeiros e horários:', error);
-        return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
+        console.error("Erro ao atualizar dados financeiros e horários:", error);
+        return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
 exports.getCompanionFinanceAndServices = async (req, res) => {
@@ -859,7 +880,9 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             where: { userId },
             include: {
                 paymentMethods: true,
-                timedServiceCompanion: { include: { TimedService: true } } // Mantendo a estrutura correta
+                timedServiceCompanion: { 
+                    include: { TimedService: true } 
+                }
             }
         });
 
@@ -867,35 +890,38 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // Busca todos os horários disponíveis na tabela TimedService
+        // Busca TODOS os horários disponíveis na tabela TimedService
         const allTimedServices = await prisma.timedService.findMany();
 
-        // Mapeia os horários que a acompanhante oferece
+        // Mapeia os horários que a acompanhante já oferece
         const companionTimedServicesMap = new Map(
             companion.timedServiceCompanion.map(ts => [ts.timedServiceId, ts])
         );
 
-        // Busca todos os métodos de pagamento disponíveis no banco de dados
-        const allPaymentMethods = ["PIX", "CARTAO_CREDITO", "LUXO", "ECONOMICAS"];
+        // Lista fixa de métodos de pagamento aceitos no sistema
+        const allPaymentMethods = ["PIX", "CARTAO_CREDITO", "DEBITO", "DINHEIRO"];
 
-        // Formata os métodos de pagamento aceitos
+        // Garante que os métodos de pagamento estejam formatados corretamente
         const paymentMethods = allPaymentMethods.map(method => ({
             nome: method,
             aceito: companion.paymentMethods.some(pm => pm.paymentMethod === method)
         }));
 
-        // Formata os horários disponíveis, garantindo que todos apareçam
+        // Ajuste: Forçar `isAvailable: false` para serviços que não estão na tabela `timedServiceCompanion`
         const timedServices = allTimedServices.map(timedService => {
             const companionService = companionTimedServicesMap.get(timedService.id);
+
             return {
                 id: timedService.id,
                 name: timedService.name,
                 description: timedService.description,
                 defaultPrice: timedService.defaultPrice ?? null,
-                isAvailable: !!companionService, // Define como disponível se a acompanhante oferecer esse horário
+                isAvailable: companionService ? companionService.isOffered : false, // Agora só será true se realmente estiver no banco
                 price: companionService?.price ?? null
             };
         });
+
+        console.log("Dados carregados com sucesso:", { paymentMethods, timedServices });
 
         return res.status(200).json({
             paymentMethods,
