@@ -839,7 +839,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
                 }
             });
 
-            const isOffered = service.isAvailable;
+            const isOffered = service.isOffered;
 
             console.log(`Atualizando serviço ID: ${service.id} -> isOffered: ${isOffered}, price: ${service.price}`);
 
