@@ -1,10 +1,11 @@
-import mercadopago from 'mercadopago';
-import dotenv from 'dotenv';
+const { MercadoPagoConfig } = require("mercadopago");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
-mercadopago.configure({
-  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+// Criando a instância da configuração
+const mercadoPago = new MercadoPagoConfig({
+  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN,
 });
 
-export default mercadopago;
+module.exports = { mercadoPago };
