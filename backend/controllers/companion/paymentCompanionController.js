@@ -34,7 +34,7 @@ exports.createPayment = async (req, res) => {
                     },
                 ],
                 payer: {
-                    email: user.email,
+                    email: "TESTUSER65026117@testuser.com",
                 },
                 back_urls: {
                     success: "https://www.faixarosa.com/sucesso",
