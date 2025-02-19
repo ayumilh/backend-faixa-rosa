@@ -521,24 +521,22 @@ exports.updateWeeklySchedule = async (req, res) => {
         for (const day of schedule) {
             await prisma.weeklySchedule.upsert({
                 where: {
-                    companionId_dayOfWeek: {
-                        companionId: companion.id,
-                        dayOfWeek: day.dayOfWeek
-                    }
+                    companionId: companion.id,
+                    dayOfWeek: day.dayOfWeek
                 },
                 update: {
-                    startTime: day.startTime || null,
-                    endTime: day.endTime || null,
-                    isActive: day.isActive || false
+                  startTime: day.startTime,
+                  endTime: day.endTime,
+                  isActive: day.isActive
                 },
                 create: {
-                    companionId: companion.id,
-                    dayOfWeek: day.dayOfWeek,
-                    startTime: day.startTime || null,
-                    endTime: day.endTime || null,
-                    isActive: day.isActive || false
+                  companionId: companion.id,
+                  dayOfWeek: day.dayOfWeek,
+                  startTime: day.startTime,
+                  endTime: day.endTime,
+                  isActive: day.isActive
                 }
-            });
+              });
         }
 
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
