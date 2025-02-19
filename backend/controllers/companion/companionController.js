@@ -510,25 +510,36 @@ exports.updateWeeklySchedule = async (req, res) => {
     const { schedule } = req.body;
 
     try {
+        // Busca o acompanhante pelo userId
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
-        await prisma.weeklySchedule.deleteMany({
-            where: { companionId: companion.id },
-        });
-
-        const scheduleData = schedule.map((day) => ({
-            companionId: companion.id,
-            dayOfWeek: day.dayOfWeek,
-            startTime: day.startTime || null,
-            endTime: day.endTime || null,
-            isActive: day.isActive || false,
-        }));
-
-        await prisma.weeklySchedule.createMany({ data: scheduleData });
+        // Percorre a lista de horários e faz update ou insert
+        for (const day of schedule) {
+            await prisma.weeklySchedule.upsert({
+                where: {
+                    companionId_dayOfWeek: {
+                        companionId: companion.id,
+                        dayOfWeek: day.dayOfWeek
+                    }
+                },
+                update: {
+                    startTime: day.startTime || null,
+                    endTime: day.endTime || null,
+                    isActive: day.isActive || false
+                },
+                create: {
+                    companionId: companion.id,
+                    dayOfWeek: day.dayOfWeek,
+                    startTime: day.startTime || null,
+                    endTime: day.endTime || null,
+                    isActive: day.isActive || false
+                }
+            });
+        }
 
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
@@ -536,6 +547,7 @@ exports.updateWeeklySchedule = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
+
 exports.getWeeklySchedule = async (req, res) => {
     try {
         const userId = req.user?.id;
