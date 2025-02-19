@@ -521,10 +521,15 @@ exports.updateWeeklySchedule = async (req, res) => {
         for (const day of schedule) {
             await prisma.weeklySchedule.upsert({
                 where: {
-                    companionId_dayOfWeek: {
-                        companionId: companion.id,  // Pegue do request
-                        dayOfWeek: day.dayOfWeek
-                    }
+                    id: (
+                        await prisma.weeklySchedule.findFirst({
+                            where: {
+                                companionId: companion.id,
+                                dayOfWeek: day.dayOfWeek
+                            },
+                            select: { id: true }
+                        })
+                    )?.id || 0 // Usa 0 para forçar a criação caso não exista
                 },
                 update: {
                     startTime: day.startTime,
@@ -541,13 +546,13 @@ exports.updateWeeklySchedule = async (req, res) => {
             });
         }
 
+
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
         console.error('Erro ao atualizar horários semanais:', error);
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-
 exports.getWeeklySchedule = async (req, res) => {
     try {
         const userId = req.user?.id;
