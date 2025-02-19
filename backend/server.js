@@ -82,16 +82,21 @@ app.use('/api/admin', authenticate, verifyAdmin,
   adminFeedPostRoutes,
   adminPagamentoRoutes
 );
+
 app.use('/api/users', authenticate, 
   userRoutes
 );
+
 app.use('/api/plans', plansRoutes);
+
 app.use('/api/companions', authenticate, 
   companionRoutes,
   storyRoutes,
   feedPostRoutes
 );
+
 app.use('/api/payments', authenticate, paymentRoutes);
+
 app.use('/api/denuncias', authenticate, denunciaRoutes);
 
 const PORT = process.env.PORT || 4000;
