@@ -45,9 +45,9 @@ const uploadVideo = multer({
         acl: "public-read",
         contentType: (req, file, cb) => {
             if (file.mimetype.startsWith("video/")) {
-                cb(null, "video/mp4"); // Força o tipo correto para vídeos
+                cb(null, "video/mp4");
             } else {
-                cb(null, multerS3.AUTO_CONTENT_TYPE);
+                cb(new Error("Apenas vídeos são permitidos!"), false);
             }
         },
         key: function (req, file, cb) {
@@ -64,6 +64,7 @@ const uploadVideo = multer({
         }
     },
 });
+
 
 const uploadStory = multer({
     storage: multerS3({
@@ -112,8 +113,8 @@ const uploadFeed = multer({
     },
 });
 
-// Middleware para upload de um único arquivo (para vídeos)
-exports.uploadSingleVideo = uploadVideo.single("video");
+// Middleware para upload de vídeos de comparação
+exports.uploadSingleVideo = uploadVideo.single("comparisonMedia");
 
 // Middleware para upload de imagens (ex: documentos)
 exports.uploadDocuments = upload.fields([
@@ -121,8 +122,10 @@ exports.uploadDocuments = upload.fields([
     { name: "fileBack", maxCount: 1 },
 ]);
 
+// Middleware para upload de imagens e vídeos dos Stories 
 exports.uploadStorySingle = uploadStory.single("media");
 
+// Middleware para upload de imagens e vídeos do Feed
 exports.uploadFeedSingle = uploadFeed.single("media");
 
 exports.wasabiS3 = wasabiS3;

@@ -20,14 +20,6 @@ const {
 } = require('../../controllers/companion/companionController.js');
 const { uploadSingleVideo } = require("../../config/wasabi.js");
 
-const multer = require("multer");
-const storage = multer.memoryStorage();
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // limite para 100MB
-});
-
-
 const router = express.Router();
 
 router.get('/', listCompanions);
@@ -35,7 +27,7 @@ router.delete('/delete/:id', deleteCompanion);
 
 router.put('/update', updateCompanion);
 
-router.post('/description/update', upload.single("comparisonMedia"), uploadSingleVideo, updateCompanionDescriptionProfile);
+router.post("/description/update", uploadSingleVideo, updateCompanionDescriptionProfile);
 router.get('/description/', uploadSingleVideo, getCompanionDescriptionProfile);
 
 
