@@ -86,7 +86,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         // Esquema Joi para validar apenas os campos enviados (todos opcionais)
         const schema = Joi.object({
             description: Joi.string().allow(null, ""),
-            gender: Joi.string().optional(),
+            gender: Joi.string().allow(null, ""),
             genitalia: Joi.string().allow(null, ""),
             weight: Joi.number().precision(2).positive().allow(null, 0),
             height: Joi.number().integer().positive().allow(null, 0),
@@ -114,7 +114,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                     where: { mediaType: "VIDEO" },
                     select: { id: true, url: true }
                 },
-                PhysicalCharacteristics: true // 🔥 Inclui as características físicas já registradas
+                PhysicalCharacteristics: true
             }
         });
 
@@ -122,84 +122,96 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // SE FOR ENVIADO UM NOVO VÍDEO, DELETAMOS O ANTIGO
-        if (req.file && companion.media.length > 0) {
-            const existingVideo = companion.media[0];
-            const fileName = existingVideo.url.split(".com/")[1];
+        let videoUrl = null;
 
-            if (fileName) {
-                try {
-                    console.log(`Deletando vídeo antigo: ${fileName}`);
-
-                    await wasabiS3.send(new DeleteObjectCommand({
-                        Bucket: bucketName,
-                        Key: fileName,
-                    }));
-
-                    console.log(`Vídeo deletado com sucesso: ${fileName}`);
-                } catch (deleteError) {
-                    console.error("Erro ao deletar vídeo antigo:", deleteError);
-                    return res.status(500).json({ error: "Erro ao excluir vídeo antigo." });
-                }
-
-                // Remove a referência do banco de dados
-                await prisma.media.delete({
-                    where: { id: existingVideo.id },
-                });
-            }
-        }
-
-        // UPLOAD DO NOVO VÍDEO SE FOR ENVIADO
+        // Se um vídeo foi enviado, verificar se é o mesmo já salvo
         if (req.file) {
-            const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
+            videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
 
-            await prisma.media.create({
-                data: {
-                    companionId: companion.id,
-                    url: videoUrl,
-                    mediaType: "VIDEO",
-                },
-            });
+            // Se já houver um vídeo salvo, comparar URLs
+            if (companion.media.length > 0) {
+                const existingVideo = companion.media[0];
 
-            // 🔥 Atualiza o campo `hasComparisonMedia` na tabela `physicalCharacteristics`
+                if (existingVideo.url !== videoUrl) {
+                    // Se for um vídeo diferente, excluir o antigo
+                    const fileName = existingVideo.url.split(".com/")[1];
+
+                    try {
+                        await wasabiS3.send(new DeleteObjectCommand({
+                            Bucket: bucketName,
+                            Key: fileName,
+                        }));
+
+                        // Remove a referência do banco de dados
+                        await prisma.media.delete({
+                            where: { id: existingVideo.id },
+                        });
+
+                        console.log(`Vídeo antigo removido: ${fileName}`);
+                    } catch (deleteError) {
+                        console.error("Erro ao deletar vídeo antigo:", deleteError);
+                        return res.status(500).json({ error: "Erro ao excluir vídeo antigo." });
+                    }
+
+                    // Insere o novo vídeo
+                    await prisma.media.create({
+                        data: {
+                            companionId: companion.id,
+                            url: videoUrl,
+                            mediaType: "VIDEO",
+                        },
+                    });
+
+                    console.log(`Novo vídeo cadastrado para o acompanhante ID ${companion.id}`);
+                } else {
+                    console.log("O vídeo enviado é o mesmo que já está salvo, evitando reprocessamento.");
+                }
+            } else {
+                // Se não houver um vídeo salvo, cadastrar o novo
+                await prisma.media.create({
+                    data: {
+                        companionId: companion.id,
+                        url: videoUrl,
+                        mediaType: "VIDEO",
+                    },
+                });
+
+                console.log(`Primeiro vídeo cadastrado para o acompanhante ID ${companion.id}`);
+            }
+
+            // Atualiza o campo `hasComparisonMedia`
             await prisma.physicalCharacteristics.upsert({
                 where: { companionId: companion.id },
                 update: { hasComparisonMedia: true },
                 create: { companionId: companion.id, hasComparisonMedia: true },
             });
-
-            return res.status(200).json({
-                message: "Vídeo atualizado com sucesso. Aguarde a aprovação do admin.",
-                videoUrl,
-            });
         }
 
-        // 🔥 ATUALIZA DADOS FÍSICOS DA ACOMPANHANTE (SEM FORÇAR CAMPOS)
+        // Atualiza os dados físicos apenas se forem enviados
         const physicalData = {
-            gender: value.gender || companion.physicalCharacteristics?.gender,
-            genitalia: value.genitalia || companion.physicalCharacteristics?.genitalia,
-            weight: value.weight || companion.physicalCharacteristics?.weight,
-            height: value.height || companion.physicalCharacteristics?.height,
-            ethnicity: value.ethnicity || companion.physicalCharacteristics?.ethnicity,
-            eyeColor: value.eyeColor || companion.physicalCharacteristics?.eyeColor,
-            hairStyle: value.hairStyle || companion.physicalCharacteristics?.hairStyle,
-            hairLength: value.hairLength || companion.physicalCharacteristics?.hairLength,
-            shoeSize: value.shoeSize || companion.physicalCharacteristics?.shoeSize,
-            hasSilicone: value.hasSilicone,
-            hasTattoos: value.hasTattoos,
-            hasPiercings: value.hasPiercings,
-            smoker: value.smoker,
-            hasComparisonMedia: value.hasComparisonMedia,
+            gender: value.gender ?? companion.PhysicalCharacteristics?.gender ?? null,
+            genitalia: value.genitalia ?? companion.PhysicalCharacteristics?.genitalia ?? null,
+            weight: value.weight ?? companion.PhysicalCharacteristics?.weight ?? 0,
+            height: value.height ?? companion.PhysicalCharacteristics?.height ?? 0,
+            ethnicity: value.ethnicity ?? companion.PhysicalCharacteristics?.ethnicity ?? null,
+            eyeColor: value.eyeColor ?? companion.PhysicalCharacteristics?.eyeColor ?? null,
+            hairStyle: value.hairStyle ?? companion.PhysicalCharacteristics?.hairStyle ?? null,
+            hairLength: value.hairLength ?? companion.PhysicalCharacteristics?.hairLength ?? null,
+            shoeSize: value.shoeSize ?? companion.PhysicalCharacteristics?.shoeSize ?? "",
+            hasSilicone: value.hasSilicone ?? false,
+            hasTattoos: value.hasTattoos ?? false,
+            hasPiercings: value.hasPiercings ?? false,
+            smoker: value.smoker ?? false,
+            hasComparisonMedia: videoUrl ? true : value.hasComparisonMedia ?? false,
         };
 
-        // Atualiza ou cria os dados físicos
         await prisma.physicalCharacteristics.upsert({
             where: { companionId: companion.id },
             update: physicalData,
             create: { ...physicalData, companionId: companion.id },
         });
 
-        // 🔥 ATUALIZA SOMENTE OS DADOS DA COMPANION SE FOR ENVIADO
+        // Atualiza apenas os dados da acompanhante se for enviado
         const updateData = {};
         if (data.description) updateData.description = data.description;
 
@@ -212,14 +224,13 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             return res.status(200).json({ message: "Perfil atualizado com sucesso." });
         }
 
-        return res.status(400).json({ error: "Nenhuma atualização foi enviada." });
+        return res.status(200).json({ message: "Nenhuma alteração necessária." });
 
     } catch (error) {
         console.error("Erro ao atualizar perfil:", error);
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;

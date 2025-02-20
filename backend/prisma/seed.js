@@ -519,7 +519,7 @@ async function runAllSeeds() {
         // await seedPlanTypes();
         // await seedPlansAndExtras();
         // await seedTimedServices();
-        await seedAttendedLocations();
+        // await seedAttendedLocations();
         // await seedServicesOffered();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);

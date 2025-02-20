@@ -198,14 +198,14 @@ model ContactMethodCompanion {
 }
 
 model TimedServiceCompanion {
-  id             Int           @id @default(autoincrement())
+  id             Int     @id @default(autoincrement())
   companionId    Int
   timedServiceId Int?
-  isOffered      Boolean       @default(true)
+  isOffered      Boolean @default(true)
   price          Float?
-  
-  companion      Companion     @relation(fields: [companionId], references: [id])
-  TimedService   TimedService? @relation(fields: [timedServiceId], references: [id])
+
+  companion    Companion     @relation(fields: [companionId], references: [id])
+  TimedService TimedService? @relation(fields: [timedServiceId], references: [id])
 }
 
 model PaymentMethodCompanion {
@@ -216,23 +216,23 @@ model PaymentMethodCompanion {
 }
 
 model PhysicalCharacteristics {
-  id                 Int        @id @default(autoincrement())
-  companionId        Int        @unique
-  gender             GenderType
-  genitalia          Genitalia
-  weight             Float
-  height             Int
-  ethnicity          Etnia
-  eyeColor           EyeColor
-  hairStyle          hairStyle
-  hairLength         hairLength
-  shoeSize           String
-  hasSilicone        Boolean
-  hasTattoos         Boolean
-  hasPiercings       Boolean
-  smoker             Boolean
+  id                 Int         @id @default(autoincrement())
+  companionId        Int         @unique
+  gender             GenderType?
+  genitalia          Genitalia?
+  weight             Float?
+  height             Int?
+  ethnicity          Etnia?
+  eyeColor           EyeColor?
+  hairStyle          hairStyle?
+  hairLength         hairLength?
+  shoeSize           String?
+  hasSilicone        Boolean?
+  hasTattoos         Boolean?
+  hasPiercings       Boolean?
+  smoker             Boolean?
   comparisonMedia    String?
-  hasComparisonMedia Boolean?   @default(false)
+  hasComparisonMedia Boolean?    @default(false)
 
   companion Companion @relation(fields: [companionId], references: [id])
 }
@@ -269,12 +269,12 @@ model ServicosEspeciaisCompanion {
 }
 
 model LocationCompanion {
-  id          Int       @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   companionId Int
   locationId  Int?
   amenities   AmenityType[] @default([])
-  companion   Companion @relation(fields: [companionId], references: [id])
-  location    Location? @relation(fields: [locationId], references: [id])
+  companion   Companion     @relation(fields: [companionId], references: [id])
+  location    Location?     @relation(fields: [locationId], references: [id])
 }
 
 model TimedService {
@@ -467,7 +467,6 @@ enum LocationType {
   JANTARES
   DESPEDIDA_SOLTEIRO
 }
-
 
 enum PaymentMethod {
   CARTAO_CREDITO
