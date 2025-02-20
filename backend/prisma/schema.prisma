@@ -231,7 +231,6 @@ model PhysicalCharacteristics {
   hasTattoos         Boolean
   hasPiercings       Boolean
   smoker             Boolean
-  description        String?
   comparisonMedia    String?
   hasComparisonMedia Boolean?   @default(false)
 

@@ -77,16 +77,15 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
 
-        // Se a requisição for `application/json`, os dados estão em `req.body`
         let data = req.body;
 
-        // Se for `multipart/form-data`, os dados vêm no `req.body`, mas podem precisar de parsing
+        // Se for `multipart/form-data`, os dados podem estar em formato string e precisar de parsing
         if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
-            data = JSON.parse(JSON.stringify(req.body)); // Garante que os valores vêm como strings
+            data = JSON.parse(JSON.stringify(req.body));
         }
 
         const schema = Joi.object({
-            description: Joi.string().allow(null, ""),
+            description: Joi.string().allow(null, ""), // ✅ Description pertence ao `companion`
             gender: Joi.string().required(),
             genitalia: Joi.string().allow(null, ""),
             weight: Joi.number().precision(2).positive().allow(null, 0),
@@ -109,8 +108,15 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
 
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
-        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        if (!companion) return res.status(404).json({ error: "Acompanhante não encontrada." });
 
+        // ✅ Atualiza a descrição no `companion`
+        await prisma.companion.update({
+            where: { id: companion.id },
+            data: { description: value.description || "" },
+        });
+
+        // ✅ Atualiza ou cria os dados físicos na tabela `physicalCharacteristics`
         const validData = {
             gender: value.gender,
             genitalia: value.genitalia || null,
@@ -134,7 +140,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             create: { ...validData, companionId: companion.id },
         });
 
-        // ✅ Processa o vídeo se houver
+        // ✅ Se houver vídeo, processa e salva
         if (req.file) {
             const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
 
@@ -153,11 +159,11 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         }
 
         return res.status(200).json({
-            message: "Descrição do perfil atualizada com sucesso.",
+            message: "Perfil atualizado com sucesso.",
         });
 
     } catch (error) {
-        console.error("Erro ao processar características físicas e vídeo:", error);
+        console.error("Erro ao atualizar perfil da acompanhante:", error);
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
@@ -165,11 +171,11 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
 
-        // Verifica se a acompanhante existe e inclui as relações corretas
+        // Busca a acompanhante e suas características físicas e mídias
         const companion = await prisma.companion.findUnique({
             where: { userId },
             include: {
-                PhysicalCharacteristics: true, // Certifique-se de que este é o nome correto no seu schema
+                PhysicalCharacteristics: true, // ✅ Garante que está incluindo as características físicas
                 media: {
                     where: { mediaType: "VIDEO" },
                     select: { id: true, url: true, createdAt: true }
@@ -181,13 +187,13 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        // Formata a resposta corretamente
+        // Formata a resposta
         const response = {
             id: companion.id,
             name: companion.name,
             age: companion.age,
-            description: companion.description,
-            characteristics: companion.PhysicalCharacteristics || null,
+            description: companion.description, // ✅ Description vem da tabela `companion`
+            characteristics: companion.PhysicalCharacteristics || null, // ✅ Garante que os dados vêm corretamente
             video: companion.media.length > 0 ? companion.media[0] : null
         };
 
@@ -197,101 +203,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-// Adicionar Características Físicas
-// exports.addPhysicalCharacteristics = async (req, res) => {
-//     const userId = req.user?.id;
 
-//     const {
-//         gender, genitalia, weight, height, estatura, ethnicity, eyeColor,
-//         hairStyle, hairLength, shoeSize, hasSilicone, hasTattoos,
-//         hasPiercings, smoker, pubis, bodyType, breastType, description
-//     } = req.body;
-
-//     if (!gender) {
-//         return res.status(400).json({ error: "O campo 'gender' é obrigatório." });
-//     }
-
-
-//     try {
-//         const companion = await prisma.companion.findUnique({ where: { userId } });
-
-//         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-
-//         const validData = {
-//             gender,
-//             genitalia: genitalia || undefined,
-//             weight: weight || undefined,
-//             height: height || undefined,
-//             estatura: estatura || undefined,
-//             ethnicity: ethnicity || undefined,
-//             eyeColor: eyeColor || undefined,
-//             hairStyle: hairStyle || undefined,
-//             hairLength: hairLength || undefined,
-//             shoeSize: shoeSize || undefined,
-//             hasSilicone: hasSilicone ?? undefined,
-//             hasTattoos: hasTattoos ?? undefined,
-//             hasPiercings: hasPiercings ?? undefined,
-//             smoker: smoker ?? undefined,
-//             pubis: pubis || undefined,
-//             bodyType: bodyType || undefined,
-//             breastType: breastType || undefined,
-//             description: description || undefined,
-//             companionId: companion.id
-//         };
-
-//         const existingCharacteristics = await prisma.physicalCharacteristics.findUnique({
-//             where: { companionId: companion.id }
-//         });
-
-//         if (existingCharacteristics) {
-//             await prisma.physicalCharacteristics.update({
-//                 where: { companionId: companion.id },
-//                 data: validData
-//             });
-//         } else {
-//             await prisma.physicalCharacteristics.create({
-//                 data: validData
-//             });
-//         }
-
-//         return res.status(200).json({ message: 'Características físicas cadastradas com sucesso.' });
-
-//     } catch (error) {
-//         console.error('Erro ao cadastrar características físicas:', error);
-//         return res.status(500).json({ error: 'Erro ao processar os dados.' });
-//     }
-// };
-// Adicionar Mídia de Comparação (Vídeo obrigatório)
-// exports.uploadCompanionMedia = async (req, res) => {
-//     try {
-//         const userId = req.user?.id;
-
-//         if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado.' });
-
-//         const videoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.file.key}`;
-
-//         const companion = await prisma.companion.findUnique({ where: { userId } });
-
-//         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-
-//         const newMedia = await prisma.media.create({
-//             data: {
-//                 companionId: companion.id,
-//                 url: videoUrl,
-//                 mediaType: "VIDEO",
-//             },
-//         });
-
-//         return res.status(200).json({
-//             message: "Vídeo enviado e armazenado com sucesso.",
-//             videoUrl,
-//             media: newMedia,
-//         });
-//     } catch (error) {
-//         console.error('Erro ao adicionar vídeo de comparação:', error);
-//         return res.status(500).json({ error: 'Erro ao processar o vídeo.' });
-//     }
-// };
 
 
 // Adicionar Contato
@@ -777,67 +689,6 @@ exports.getLocationManagement = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-
-
-// Atualizar Cidade onde a acompanhante atende
-// exports.updateCompanionLocation = async (req, res) => {
-//     const userId = req.user?.id;
-//     const { city, state } = req.body;
-
-//     try {
-//         await prisma.companion.update({
-//             where: { userId },
-//             data: { city, state }
-//         });
-
-//         return res.status(200).json({ message: 'Localização atualizada com sucesso.' });
-
-//     } catch (error) {
-//         console.error('Erro ao atualizar localização:', error);
-//         return res.status(500).json({ error: 'Erro ao processar os dados.' });
-//     }
-// };
-// Atualizar Locais Atendidos
-// exports.updateAttendedLocations = async (req, res) => {
-//     const userId = req.user?.id;
-//     const { locations } = req.body;
-
-//     try {
-//         const companion = await prisma.companion.findUnique({ where: { userId } });
-
-//         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-
-//         await prisma.locationCompanion.deleteMany({ where: { companionId: companion.id } });
-
-//         const locationRecords = await prisma.location.findMany({
-//             where: {
-//                 name: { in: locations.map(loc => loc.name) }
-//             }
-//         });
-
-//         // Se algum local enviado não existir no banco, retorna erro
-//         const foundLocationIds = locationRecords.map(loc => loc.id);
-//         const foundLocationNames = locationRecords.map(loc => loc.name);
-//         const missingLocations = locations.map(loc => loc.name).filter(name => !foundLocationNames.includes(name));
-
-//         if (missingLocations.length > 0) {
-//             return res.status(400).json({ error: `Os seguintes locais não existem no banco: ${missingLocations.join(', ')}` });
-//         }
-
-//         const locationData = foundLocationIds.map(locationId => ({
-//             companionId: companion.id,
-//             locationId
-//         }));
-
-//         await prisma.locationCompanion.createMany({ data: locationData });
-
-//         return res.status(200).json({ message: 'Locais atendidos atualizados com sucesso.' });
-
-//     } catch (error) {
-//         console.error('Erro ao atualizar locais atendidos:', error);
-//         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
-//     }
-// };
 
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
