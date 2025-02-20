@@ -13,7 +13,6 @@ const getUser = require('../utils/getUser.js');
 //Informações Usuario Get
 router.get('/info', getUser.getUserIdBd);
 
-
 // documentRoutes.js
 router.post("/documents/upload", uploadDocuments, documentController.uploadDocument);
 

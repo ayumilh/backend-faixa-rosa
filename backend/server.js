@@ -47,6 +47,8 @@ app.get('/', (req, res) => {
 // USER ROUTES
 const userRoutes = require('./routes/userRoutes.js');
 
+const searchRoutes = require('./routes/searchCompanionRoute.js');
+
 app.use('/api/user', authRoutes);
 
 
@@ -94,6 +96,8 @@ app.use('/api/companions', authenticate,
   storyRoutes,
   feedPostRoutes
 );
+
+app.use('/api/search', searchRoutes);
 
 app.use('/api/payments', authenticate, paymentRoutes);
 
