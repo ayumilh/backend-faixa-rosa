@@ -107,20 +107,58 @@ exports.searchCompanionProfile = async (req, res) => {
             // Busque as informações da acompanhante no banco de dados
             const companion = await prisma.companion.findUnique({
                 where: {
-                    id: companionId, // Converte o id para um número inteiro
+                    id: companionId,
                 },
-                include: {
-                    plan: true, // Inclui os dados do plano
-                    planType: true, // Inclui os dados do tipo de plano
-                    media: true, // Inclui as mídias (imagens/vídeos)
+                select: {
+                    id: true,
+                    name: true,
+                    description: true, // Agora a descrição será carregada corretamente
+                    age: true,
+                    city: true,
+                    state: true,
+                    profileStatus: true,
+                    lastOnline: true,
+                    points: true,
+                    plan: true,
+                    planType: true,
+                    media: true,
                     user: {
                         select: {
-                            email: true, // Inclui o email do usuário
-                            phone: true, // Inclui o telefone do usuário
-                            birthDate: true, // Inclui a data de nascimento do usuário
+                            email: true,
+                            phone: true,
+                            birthDate: true,
                         },
                     },
-                    servicesOffered: true, // Inclui os serviços oferecidos
+                    servicesOffered: {
+                        include: {
+                            service: true,
+                        },
+                    },
+                    PhysicalCharacteristics: true,
+                    timedServiceCompanion: {
+                        include: {
+                            TimedService: true, // Inclui os dados do serviço de tempo (name, description)
+                        },
+                    },
+                    paymentMethods: {  // Obtém apenas os métodos de pagamento específicos da acompanhante
+                        select: {
+                            paymentMethod: true
+                        },
+                    },
+                    lugares: {
+                        include: {
+                            location: true, // Inclui os dados da tabela Location
+                        }
+                    },
+                    weeklySchedules: {
+                        select: {
+                            id: true,
+                            dayOfWeek: true,
+                            startTime: true,
+                            endTime: true,
+                            isActive: true,
+                        }
+                    }
                 },
             });
 
@@ -128,18 +166,66 @@ exports.searchCompanionProfile = async (req, res) => {
                 return res.status(404).json({ message: 'Acompanhante não encontrada' });
             }
 
-            // Verifique se o campo birthDate existe dentro de user
             if (!companion.user || !companion.user.birthDate) {
                 return res.status(400).json({ message: 'Data de nascimento não encontrada para a acompanhante' });
             }
 
-            // Calcular a idade corretamente usando a birthDate do usuário
-            const birthDate = new Date(companion.user.birthDate); // Certifique-se que birthDate é um objeto Date válido
+            // Calcular a idade corretamente
+            const birthDate = new Date(companion.user.birthDate);
             const age = calculateAge(birthDate);
+            companion.age = age;
 
-            companion.age = age; // Atribua a idade calculada ao objeto companion
+            // Ajustar os serviços oferecidos para incluir nome e descrição
+            companion.servicesOffered = companion.servicesOffered.map(service => ({
+                id: service.id,
+                companionId: service.companionId,
+                serviceId: service.serviceId,
+                isOffered: service.isOffered,
+                price: service.price,
+                name: service.service.name,
+                description: service.service.description,
+            }));
 
-            res.status(200).json(companion); // Retorna os dados da acompanhante
+            // Ajustar os serviços por tempo para incluir nome e descrição
+            companion.timedServiceCompanion = companion.timedServiceCompanion.map(service => ({
+                id: service.id,
+                companionId: service.companionId,
+                timedServiceId: service.timedServiceId,
+                isOffered: service.isOffered,
+                price: service.price,
+                name: service.TimedService?.name ?? "Nome não informado",
+                description: service.TimedService?.description ?? "Descrição não informada",
+            }));
+
+            // Filtrar os métodos de pagamento para garantir que apenas os cadastrados no banco sejam exibidos
+            companion.paymentMethods = companion.paymentMethods.map(method => method.paymentMethod);
+
+            // Ajustar os dados da localização
+            companion.lugares = companion.lugares.map(loc => ({
+                id: loc.id,
+                companionId: loc.companionId,
+                locationId: loc.locationId,
+                amenities: loc.amenities, // Lista de AmenityType[]
+                location: loc.location ? {
+                    id: loc.location.id,
+                    name: loc.location.name,
+                    address: loc.location.address,
+                    city: loc.location.city,
+                    state: loc.location.state,
+                    country: loc.location.country
+                } : null
+            }));
+
+            // Ajustar os horários semanais
+            companion.weeklySchedules = companion.weeklySchedules.map(schedule => ({
+                id: schedule.id,
+                dayOfWeek: schedule.dayOfWeek,
+                startTime: schedule.startTime || "Horário não informado",
+                endTime: schedule.endTime || "Horário não informado",
+                isActive: schedule.isActive,
+            }));
+
+            res.status(200).json(companion);
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
@@ -148,6 +234,7 @@ exports.searchCompanionProfile = async (req, res) => {
         res.status(405).json({ message: 'Método não permitido' });
     }
 };
+
 
 // Função para calcular a idade com base na data de nascimento
 function calculateAge(birthDate) {
@@ -161,5 +248,3 @@ function calculateAge(birthDate) {
 
     return age;
 }
-
-
