@@ -10,7 +10,7 @@ exports.searchCompanionCity = async (req, res) => {
             return res.status(400).json({ error: "Cidade e estado são obrigatórios" });
         }
 
-        // 🔹 Removendo espaços extras e normalizando strings
+        // Removendo espaços extras e normalizando strings
         cidade = cidade.trim().toLowerCase();
         estado = estado.trim().toUpperCase();
 
@@ -21,7 +21,7 @@ exports.searchCompanionCity = async (req, res) => {
                     {
                         city: {
                             equals: cidade,
-                            mode: "insensitive", // 🔹 Faz a busca ignorando case-sensitive
+                            mode: "insensitive",
                         }
                     },
                     {
@@ -30,7 +30,7 @@ exports.searchCompanionCity = async (req, res) => {
                             mode: "insensitive"
                         }
                     },
-                    { profileStatus: "ACTIVE" }
+                    // { profileStatus: "ACTIVE" }
                 ]
             },
             select: {
@@ -48,6 +48,7 @@ exports.searchCompanionCity = async (req, res) => {
                         id: true,
                         email: true,
                         phone: true,
+                        birthDate: true,
                     },
                 },
                 media: {
@@ -57,16 +58,108 @@ exports.searchCompanionCity = async (req, res) => {
                     },
                     take: 1, // Retorna apenas a primeira mídia
                 },
+                plan: {  // Trazendo informações sobre o plano do acompanhante
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                        description: true,
+                    },
+                },
+                planType: {  // Trazendo informações sobre o tipo de plano
+                    select: {
+                        id: true,
+                        name: true,
+                        size: true,
+                    },
+                },
             },
         });
 
-        if (acompanhantes.length === 0) {
-            return res.status(404).json({ message: "Nenhuma acompanhante encontrada." });
+        // Calculando a idade com base na data de nascimento
+        const acompanhantesComIdade = acompanhantes.map(companion => {
+            const birthDate = new Date(companion.user.birthDate);
+            const age = new Date().getFullYear() - birthDate.getFullYear();
+            const ageDate = new Date(new Date().setFullYear(birthDate.getFullYear()));
+
+            // Se a data de nascimento ainda não passou este ano, subtrai um ano da idade
+            companion.age = ageDate > new Date() ? age - 1 : age;
+            return companion;
+        });
+
+        if (acompanhantesComIdade.length === 0) {
+            return res.status(200).json(acompanhantesComIdade || []);
         }
 
-        return res.status(200).json(acompanhantes);
+        return res.status(200).json(acompanhantesComIdade);
     } catch (error) {
         console.error("Erro ao buscar acompanhantes:", error);
         return res.status(500).json({ error: "Erro interno do servidor" });
     }
 }
+
+
+exports.searchCompanionProfile = async (req, res) => {
+    const companionId = parseInt(req.query.id, 10);
+
+    if (req.method === 'GET') {
+        try {
+            // Busque as informações da acompanhante no banco de dados
+            const companion = await prisma.companion.findUnique({
+                where: {
+                    id: companionId, // Converte o id para um número inteiro
+                },
+                include: {
+                    plan: true, // Inclui os dados do plano
+                    planType: true, // Inclui os dados do tipo de plano
+                    media: true, // Inclui as mídias (imagens/vídeos)
+                    user: {
+                        select: {
+                            email: true, // Inclui o email do usuário
+                            phone: true, // Inclui o telefone do usuário
+                            birthDate: true, // Inclui a data de nascimento do usuário
+                        },
+                    },
+                    servicesOffered: true, // Inclui os serviços oferecidos
+                },
+            });
+
+            if (!companion) {
+                return res.status(404).json({ message: 'Acompanhante não encontrada' });
+            }
+
+            // Verifique se o campo birthDate existe dentro de user
+            if (!companion.user || !companion.user.birthDate) {
+                return res.status(400).json({ message: 'Data de nascimento não encontrada para a acompanhante' });
+            }
+
+            // Calcular a idade corretamente usando a birthDate do usuário
+            const birthDate = new Date(companion.user.birthDate); // Certifique-se que birthDate é um objeto Date válido
+            const age = calculateAge(birthDate);
+
+            companion.age = age; // Atribua a idade calculada ao objeto companion
+
+            res.status(200).json(companion); // Retorna os dados da acompanhante
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
+        }
+    } else {
+        res.status(405).json({ message: 'Método não permitido' });
+    }
+};
+
+// Função para calcular a idade com base na data de nascimento
+function calculateAge(birthDate) {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--; // Se ainda não fez aniversário neste ano
+    }
+
+    return age;
+}
+
+
