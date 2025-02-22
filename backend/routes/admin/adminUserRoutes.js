@@ -7,7 +7,7 @@ const {
     deleteUser 
 } = require('../../controllers/admin/adminUserController'); 
 
-// Listar todos os usuários
+// Listar contratantes
 router.get('/users', listUsers);
 
 // Obter detalhes de um usuário específico

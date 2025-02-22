@@ -1,10 +1,13 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Listar todos os usuários
+// Listar contratantes
 exports.listUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany({
+            where: {
+                userType: 'CONTRATANTE'
+            },
             select: {
                 id: true,
                 firstName: true,
@@ -25,6 +28,7 @@ exports.listUsers = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao listar usuários.' });
     }
 };
+
 
 // Obter detalhes de um usuário específico
 exports.getUserById = async (req, res) => {

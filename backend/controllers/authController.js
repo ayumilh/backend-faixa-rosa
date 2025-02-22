@@ -18,7 +18,7 @@ const userSchema = Joi.object({
     phone: Joi.string().length(11).optional(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
-        .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA')
+        .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA', 'ADMIN')
         .required(),
 });
 

@@ -53,6 +53,7 @@ exports.listAcompanhantes = async (req, res) => {
                 city: companion.city,
                 state: companion.state,
                 profileStatus: companion.profileStatus, // PENDENTE, ATIVO ou REJEITADO
+                documentStatus,
                 documents: companion.documents, // Lista de documentos
                 plan: companion.plan ? {
                     id: companion.plan.id,
