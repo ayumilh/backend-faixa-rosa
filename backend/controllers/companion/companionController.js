@@ -73,6 +73,47 @@ exports.updateCompanion = async (req, res) => {
     }
 };
 
+// Controller para atualizar as imagens
+exports.updateProfileAndBanner = async (req, res) => {
+    try {
+      // Obtenha o companionId a partir da autenticação
+      const companionId = req.user?.companionId; 
+      if (!companionId) {
+        return res.status(401).json({ error: "Usuário não autenticado ou acompanhante não encontrado." });
+      }
+  
+      // Pegar as URLs dos arquivos que o multerS3 retornou
+      // Por padrão, o multer-s3 retorna em req.files[<nomeCampo>][0].location
+      // se estiver usando a lib v2 do AWS, é .location; se for v3 do AWS-SDK, permanece .location (multer-s3 abstrai)
+      let profileImageUrl = null;
+      let bannerImageUrl = null;
+  
+      if (req.files.profileImage) {
+        profileImageUrl = req.files.profileImage[0].location; 
+      }
+      if (req.files.bannerImage) {
+        bannerImageUrl = req.files.bannerImage[0].location;
+      }
+  
+      // Atualiza no banco
+      const updatedCompanion = await prisma.companion.update({
+        where: { id: companionId },
+        data: {
+          profileImage: profileImageUrl || undefined,
+          bannerImage: bannerImageUrl || undefined,
+        },
+      });
+  
+      return res.status(200).json({
+        message: "Imagens de perfil e banner atualizadas com sucesso!",
+        companion: updatedCompanion,
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar imagens de perfil e banner:", error);
+      return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
+    }
+  };
+
 // Atualizar descrição do perfil
 exports.updateCompanionDescriptionProfile = async (req, res) => {
     try {

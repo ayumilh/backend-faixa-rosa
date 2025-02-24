@@ -148,6 +148,8 @@ model Companion {
   city                    String
   state                   String
   profileStatus           String                       @default("PENDING")
+  profileImage            String?
+  bannerImage             String?
   lastOnline              DateTime
   points                  Int                          @default(0)
   top10Id                 Int?
@@ -179,7 +181,6 @@ model Companion {
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
 
   // Relacionamentos para denúncias
-
   denunciasFeitas    Denuncia[] @relation("DenunciasFeitasCompanion")
   denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasCompanion")
 

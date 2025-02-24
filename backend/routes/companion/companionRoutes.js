@@ -2,6 +2,7 @@ const express = require('express');
 const {
     updateCompanion,
     updateCompanionDescriptionProfile,
+    updateProfileAndBanner,
     getCompanionDescriptionProfile,
     updateCompanionContact,
     getCompanionContact,
@@ -18,7 +19,7 @@ const {
     listCompanions,
     deleteCompanion
 } = require('../../controllers/companion/companionController.js');
-const { uploadSingleVideo } = require("../../config/wasabi.js");
+const { uploadSingleVideo, uploadProfileAndBanner } = require("../../config/wasabi.js");
 
 const router = express.Router();
 
@@ -26,6 +27,8 @@ router.get('/', listCompanions);
 router.delete('/delete/:id', deleteCompanion);
 
 router.put('/update', updateCompanion);
+
+router.post("/profile-banner/update", uploadProfileAndBanner, updateProfileAndBanner );
 
 router.post("/description/update", uploadSingleVideo, updateCompanionDescriptionProfile);
 router.get('/description/', uploadSingleVideo, getCompanionDescriptionProfile);

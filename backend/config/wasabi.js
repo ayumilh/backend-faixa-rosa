@@ -65,7 +65,6 @@ const uploadVideo = multer({
     },
 });
 
-
 const uploadStory = multer({
     storage: multerS3({
         s3: wasabiS3,
@@ -112,6 +111,39 @@ const uploadFeed = multer({
         }
     },
 });
+
+const uploadProfileAndBanner = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read", // Deixa os arquivos publicamente acessíveis
+        contentType: multerS3.AUTO_CONTENT_TYPE, // Ajusta automaticamente o tipo do arquivo
+        key: function (req, file, cb) {
+            // Dependendo do campo, definimos a pasta no Wasabi
+            let folder = "companions/profile";
+            if (file.fieldname === "bannerImage") {
+                folder = "companions/banner";
+            }
+            const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName);
+        },
+    }),
+    fileFilter: (req, file, cb) => {
+        // Apenas imagens são permitidas (caso queira liberar vídeos, adapte aqui)
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas imagens são permitidas!"), false);
+        }
+    },
+});
+
+// Middleware para upload de imagens de perfil e banner
+exports.uploadProfileAndBanner = uploadProfileAndBanner.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "bannerImage", maxCount: 1 },
+]);
+
 
 // Middleware para upload de vídeos de comparação
 exports.uploadSingleVideo = uploadVideo.single("comparisonMedia");
