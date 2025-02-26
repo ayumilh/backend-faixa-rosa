@@ -122,6 +122,8 @@ exports.searchCompanionProfile = async (req, res) => {
                     plan: true,
                     planType: true,
                     media: true,
+                    profileImage: true,
+                    bannerImage: true,
                     user: {
                         select: {
                             email: true,

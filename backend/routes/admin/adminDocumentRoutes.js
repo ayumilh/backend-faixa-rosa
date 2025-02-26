@@ -6,9 +6,9 @@ const {
  } = require('../../controllers/admin/adminDocumentController');
 
 
-router.patch('/acompanhante/:id/documents/approve', approvedDocuments);
+router.post('/acompanhante/:id/documents/approve', approvedDocuments);
 
-router.patch('/acompanhante/:id/documents/reject', rejectDocument);
+router.post('/acompanhante/:id/documents/reject', rejectDocument);
 
 
 module.exports = router;
