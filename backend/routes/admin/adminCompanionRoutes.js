@@ -11,7 +11,7 @@ const {
 } = require('../../controllers/admin/adminCompanionController');
 
 
-router.get('/acompanhante', listAcompanhantes);
+router.get('/companion', listAcompanhantes);
 
 // PERFIL DAS ACOMPANHANTES
 router.patch('/companion/:id/approve', approveAcompanhantes);
