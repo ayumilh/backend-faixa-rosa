@@ -14,19 +14,15 @@ const {
 router.get('/acompanhante', listAcompanhantes);
 
 // PERFIL DAS ACOMPANHANTES
-router.patch('/acompanhante/:id/approve', approveAcompanhantes);
+router.patch('/companion/:id/approve', approveAcompanhantes);
 
-router.patch('/acompanhante/:id/reject', rejectAcompanhantes);
+router.patch('/companion/:id/reject', rejectAcompanhantes);
 
-router.patch('/acompanhante/:id/suspend', suspendAcompanhantes);
+router.patch('/companion/:id/suspend', suspendAcompanhantes);
 
-router.put('/acompanhante/:id/update-plan', updatePlan);
+router.put('/companion/:id/update-plan', updatePlan);
 
-router.delete('/acompanhante/:id/delete', deleteAcompanhante);
+router.delete('/companion/:id/delete', deleteAcompanhante);
 
-
-
-// Monitorar postagens
-router.get('/acompanhante/:id/posts', monitorPosts);
 
 module.exports = router;

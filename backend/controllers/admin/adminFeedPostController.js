@@ -21,27 +21,42 @@ exports.listFeedPosts = async (req, res) => {
     }
 };
 
-// Obter detalhes de um post específico
-exports.getFeedPostById = async (req, res) => {
+// Obter detalhes de um post no feed
+exports.getPostsByCompanion = async (req, res) => {
     const { id } = req.params;
+
+    const companionId = parseInt(id);
+    if (isNaN(companionId)) {
+        return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });
+    }
+
+    if (!req.user || req.user.userType !== "ADMIN") {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar postagens." });
+    }
+
     try {
-        const post = await prisma.feedPost.findUnique({
-            where: { id: parseInt(id) },
+        const posts = await prisma.feedPost.findMany({
+            where: { companionId },
             include: {
                 companion: {
                     select: { name: true }
                 }
-            }
+            },
+            orderBy: { createdAt: "desc" }
         });
 
-        if (!post) return res.status(404).json({ error: 'Post não encontrado.' });
+        if (!posts || posts.length === 0) {
+            return res.status(404).json({ message: "Nenhuma postagem encontrada para este anunciante." });
+        }
 
-        return res.status(200).json(post);
+        return res.status(200).json(posts);
     } catch (error) {
-        console.error('Erro ao buscar post no feed:', error);
-        return res.status(500).json({ error: 'Erro ao buscar post no feed.' });
+        console.error("Erro ao buscar postagens do anunciante:", error);
+        return res.status(500).json({ error: "Erro ao buscar postagens do anunciante." });
     }
 };
+
+
 
 // Deletar um post do feed
 exports.deleteFeedPost = async (req, res) => {

@@ -73,9 +73,19 @@ exports.listAcompanhantes = async (req, res) => {
 // Aprovar perfil de acompanhantes 
 exports.approveAcompanhantes = async (req, res) => {
     const { id } = req.params;
+
+    const companionId = parseInt(id);
+    if (isNaN(companionId)) {
+        return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });
+    }
+
+    if (!req.user || req.user.userType !== "ADMIN") {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores podem aprovar documentos." });
+    }
+
     try {
         await prisma.companion.update({
-            where: { userId: parseInt(id) },
+            where: { id: companionId },
             data: { profileStatus: 'ACTIVE' },
         });
         return res.status(200).json({ message: 'acompanhantes aprovado com sucesso.' });
@@ -88,9 +98,19 @@ exports.approveAcompanhantes = async (req, res) => {
 // Rejeitar perfil de acompanhantes
 exports.rejectAcompanhantes = async (req, res) => {
     const { id } = req.params;
+    
+    const companionId = parseInt(id);
+    if (isNaN(companionId)) {
+        return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });
+    }
+
+    if (!req.user || req.user.userType !== "ADMIN") {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores podem aprovar documentos." });
+    }
+
     try {
         await prisma.companion.update({
-            where: { userId: parseInt(id) },
+            where: { id: companionId },
             data: { profileStatus: 'REJECTED' },
         });
         return res.status(200).json({ message: 'acompanhantes rejeitado com sucesso.' });
@@ -103,9 +123,19 @@ exports.rejectAcompanhantes = async (req, res) => {
 // Suspender perfil de acompanhantes
 exports.suspendAcompanhantes = async (req, res) => {
     const { id } = req.params;
+    
+    const companionId = parseInt(id);
+    if (isNaN(companionId)) {
+        return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });
+    }
+
+    if (!req.user || req.user.userType !== "ADMIN") {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores podem aprovar documentos." });
+    }
+
     try {
         await prisma.companion.update({
-            where: { userId: parseInt(id) },
+            where: { id: companionId },
             data: { profileStatus: 'SUSPENDED' },
         });
         return res.status(200).json({ message: 'acompanhantes suspenso com sucesso.' });
@@ -194,18 +224,3 @@ exports.updatePlan = async (req, res) => {
         return res.status(500).json({ message: 'Erro ao atualizar plano.', error });
     }
 };
-
-
-// Monitorar postagens (simples exemplo)
-exports.monitorPosts = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const posts = await prisma.post.findMany({
-            where: { userId: parseInt(id) },
-        });
-        return res.status(200).json(posts);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erro ao monitorar postagens.' });
-    }
-}

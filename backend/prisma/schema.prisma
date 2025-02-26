@@ -8,37 +8,35 @@ datasource db {
 }
 
 model User {
-  id                Int        @id @default(autoincrement())
-  firstName         String?    @default("") @db.VarChar(50)
-  lastName          String?    @default("") @db.VarChar(100)
-  email             String     @unique @db.VarChar(320)
-  password          String?    @default("") @db.VarChar(64)
-  birthDate         DateTime?  @db.Date
-  cpf               String?    @unique @db.VarChar(11)
-  phone             String?    @default("") @db.VarChar(11)
-  userType          UserType   @default(CONTRATANTE)
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  id                Int         @id @default(autoincrement())
+  firstName         String?     @default("") @db.VarChar(50)
+  lastName          String?     @default("") @db.VarChar(100)
+  email             String      @unique @db.VarChar(320)
+  password          String?     @default("") @db.VarChar(64)
+  birthDate         DateTime?   @db.Date
+  cpf               String?     @unique @db.VarChar(11)
+  phone             String?     @default("") @db.VarChar(11)
+  userType          UserType    @default(CONTRATANTE)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   companyName       String?
   companyAddress    String?
   companyCity       String?
   companyState      String?
   companyBio        String?
-  basePoints        Int        @default(0)
+  basePoints        Int         @default(0)
   planId            Int?
-  points            Int        @default(0)
-  profileVisibility Boolean    @default(true)
+  points            Int         @default(0)
+  profileVisibility Boolean     @default(true)
   rank              Int?
-  temporaryPoints   Int        @default(0)
-  totalPoints       Int        @default(0)
+  temporaryPoints   Int         @default(0)
+  totalPoints       Int         @default(0)
   companion         Companion?
+  Contractor        Contractor?
+  conveniosCriados  Convenio[]
+  payments          Payment[]
+  reviews           Review[]
   Top10             Top10?
-
-  conveniosCriados Convenio[]
-  payments         Payment[]
-  reviews          Review[]
-
-  Contractor Contractor[]
 }
 
 model Document {
@@ -71,23 +69,22 @@ model PlanType {
 }
 
 model ExtraPlan {
-  id               Int     @id @default(autoincrement())
-  name             String  @unique
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
   description      String
-  isTemporary      Boolean @default(false)
+  isTemporary      Boolean            @default(false)
   duration         Int?
-  pointsBonus      Int     @default(0)
-  tempPoints       Int     @default(0)
-  isEnabled        Boolean @default(true)
-  hasContact       Boolean @default(false)
-  canHideAge       Boolean @default(false)
-  hasPublicReviews Boolean @default(false)
-  hasDarkMode      Boolean @default(false)
-  hasStories       Boolean @default(false)
-
+  pointsBonus      Int                @default(0)
+  tempPoints       Int                @default(0)
+  isEnabled        Boolean            @default(true)
+  hasContact       Boolean            @default(false)
+  canHideAge       Boolean            @default(false)
+  hasPublicReviews Boolean            @default(false)
+  hasDarkMode      Boolean            @default(false)
+  hasStories       Boolean            @default(false)
+  PlanSubscription PlanSubscription[]
   companions       Companion[]        @relation("CompanionExtraPlans")
   plans            Plan[]             @relation("PlanExtraPlans")
-  PlanSubscription PlanSubscription[]
 }
 
 model Plan {
@@ -108,35 +105,32 @@ model Plan {
 }
 
 model PlanSubscription {
-  id          Int       @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   companionId Int
   planId      Int?
-  extraPlanId Int?
-  isExtra     Boolean   @default(false)
-  startDate   DateTime  @default(now())
+  startDate   DateTime   @default(now())
   endDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  companion Companion  @relation(fields: [companionId], references: [id], map: "CompanionSubscriptions")
-  plan      Plan?      @relation(fields: [planId], references: [id])
-  extraPlan ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  isExtra     Boolean    @default(false)
+  extraPlanId Int?
+  companion   Companion  @relation(fields: [companionId], references: [id], map: "CompanionSubscriptions")
+  extraPlan   ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
+  plan        Plan?      @relation(fields: [planId], references: [id])
 }
 
 model Contractor {
-  id             Int      @id @default(autoincrement())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         Int      @unique
-  name           String
-  age            Int
-  profileStatus  String   @default("PENDING") // PENDING, ACTIVE, BANNED
-  documentStatus String   @default("UNVERIFIED") // UNVERIFIED, VERIFIED, REJECTED
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relacionamentos para denúncias
-  denunciasFeitas    Denuncia[] @relation("DenunciasFeitasContractor")
+  id                 Int        @id @default(autoincrement())
+  userId             Int        @unique
+  name               String
+  age                Int
+  profileStatus      String     @default("PENDING")
+  documentStatus     String     @default("UNVERIFIED")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasContractor")
+  denunciasFeitas    Denuncia[] @relation("DenunciasFeitasContractor")
 }
 
 model Companion {
@@ -148,8 +142,6 @@ model Companion {
   city                    String
   state                   String
   profileStatus           String                       @default("PENDING")
-  profileImage            String?
-  bannerImage             String?
   lastOnline              DateTime
   points                  Int                          @default(0)
   top10Id                 Int?
@@ -158,33 +150,32 @@ model Companion {
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   documentStatus          String                       @default("PENDING")
+  bannerImage             String?
+  profileImage            String?
   ageCategories           AgeCategoryCompanion[]
   plan                    Plan?                        @relation(fields: [planId], references: [id])
   planType                PlanType?                    @relation(fields: [planTypeId], references: [id])
   top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
   user                    User                         @relation(fields: [userId], references: [id])
   contactMethods          ContactMethodCompanion[]
+  denunciasRecebidas      Denuncia[]                   @relation("DenunciasRecebidasCompanion")
+  denunciasFeitas         Denuncia[]                   @relation("DenunciasFeitasCompanion")
   documents               Document[]
   feedPosts               FeedPost[]
   lugares                 LocationCompanion[]
   media                   Media[]
   paymentMethods          PaymentMethodCompanion[]
   PhysicalCharacteristics PhysicalCharacteristics?
-  subscriptions           PlanSubscription[]           @relation(map: "CompanionSubscriptions")
+  subscriptions           PlanSubscription[]
   reviews                 Review[]
   servicesOffered         ServiceCompanionOffered[]
   servicosEspeciais       ServicosEspeciaisCompanion[]
   servicosGerais          ServicosGeraisCompanion[]
+  Story                   Story[]
   timedServiceCompanion   TimedServiceCompanion[]
   unavailableDays         UnavailableDates[]
   weeklySchedules         WeeklySchedule[]
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
-
-  // Relacionamentos para denúncias
-  denunciasFeitas    Denuncia[] @relation("DenunciasFeitasCompanion")
-  denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasCompanion")
-
-  Story Story[]
 }
 
 model ContactMethodCompanion {
@@ -199,14 +190,13 @@ model ContactMethodCompanion {
 }
 
 model TimedServiceCompanion {
-  id             Int     @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   companionId    Int
   timedServiceId Int?
-  isOffered      Boolean @default(true)
+  isOffered      Boolean       @default(true)
   price          Float?
-
-  companion    Companion     @relation(fields: [companionId], references: [id])
-  TimedService TimedService? @relation(fields: [timedServiceId], references: [id])
+  companion      Companion     @relation(fields: [companionId], references: [id])
+  TimedService   TimedService? @relation(fields: [timedServiceId], references: [id])
 }
 
 model PaymentMethodCompanion {
@@ -219,14 +209,9 @@ model PaymentMethodCompanion {
 model PhysicalCharacteristics {
   id                 Int         @id @default(autoincrement())
   companionId        Int         @unique
-  gender             GenderType?
-  genitalia          Genitalia?
   weight             Float?
   height             Int?
   ethnicity          Etnia?
-  eyeColor           EyeColor?
-  hairStyle          hairStyle?
-  hairLength         hairLength?
   shoeSize           String?
   hasSilicone        Boolean?
   hasTattoos         Boolean?
@@ -234,8 +219,12 @@ model PhysicalCharacteristics {
   smoker             Boolean?
   comparisonMedia    String?
   hasComparisonMedia Boolean?    @default(false)
-
-  companion Companion @relation(fields: [companionId], references: [id])
+  gender             GenderType?
+  genitalia          Genitalia?
+  eyeColor           EyeColor?
+  hairLength         hairLength?
+  hairStyle          hairStyle?
+  companion          Companion   @relation(fields: [companionId], references: [id])
 }
 
 model AgeCategoryCompanion {
@@ -362,48 +351,41 @@ model Review {
 }
 
 model Denuncia {
-  id             Int      @id @default(autoincrement())
-  motivo         String
-  descricao      String
-  denunciaStatus String   @default("PENDING")
-  createdAt      DateTime @default(now())
-
-  // podem fazer denúncias
-  denuncianteCompanion   Companion? @relation("DenunciasFeitasCompanion", fields: [denuncianteCompanionId], references: [id])
-  denuncianteCompanionId Int?
-
-  denuncianteContractor   Contractor? @relation("DenunciasFeitasContractor", fields: [denuncianteContractorId], references: [id])
+  id                      Int         @id @default(autoincrement())
+  motivo                  String
+  descricao               String
+  createdAt               DateTime    @default(now())
+  denunciadoCompanionId   Int?
+  denunciadoContractorId  Int?
+  denuncianteCompanionId  Int?
   denuncianteContractorId Int?
-
-  // podem ser denunciados
-  denunciadoCompanion   Companion? @relation("DenunciasRecebidasCompanion", fields: [denunciadoCompanionId], references: [id])
-  denunciadoCompanionId Int?
-
-  denunciadoContractor   Contractor? @relation("DenunciasRecebidasContractor", fields: [denunciadoContractorId], references: [id])
-  denunciadoContractorId Int?
+  denunciaStatus          String      @default("PENDING")
+  denunciadoCompanion     Companion?  @relation("DenunciasRecebidasCompanion", fields: [denunciadoCompanionId], references: [id])
+  denunciadoContractor    Contractor? @relation("DenunciasRecebidasContractor", fields: [denunciadoContractorId], references: [id])
+  denuncianteCompanion    Companion?  @relation("DenunciasFeitasCompanion", fields: [denuncianteCompanionId], references: [id])
+  denuncianteContractor   Contractor? @relation("DenunciasFeitasContractor", fields: [denuncianteContractorId], references: [id])
 }
 
 model Story {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   companionId Int
   url         String
-  mediaType   String // "image" ou "video"
-  expiresAt   DateTime // Tempo de expiração (24h após a criação)
-  createdAt   DateTime @default(now())
-
-  companion Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  mediaType   String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
 }
 
 model FeedPost {
   id          Int       @id @default(autoincrement())
   title       String?
   description String?
-  mediaUrl    String
-  mediaType   String
   lastOnline  DateTime?
   companionId Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  mediaType   String
+  mediaUrl    String
   companion   Companion @relation(fields: [companionId], references: [id])
 }
 
@@ -494,7 +476,6 @@ enum ContactMethod {
   TELEGRAM
 }
 
-// CARACTERISTICAS FISICAS
 enum GenderType {
   MULHER_CISGENERO
   HOMEM_CISGENERO
@@ -559,7 +540,6 @@ enum Pubis {
   DEPILADO
 }
 
-// SERVICOS OFERECIDOS
 enum ServicosGerais {
   BEIJOS_BOCA
   EJACULACAO_CORPO

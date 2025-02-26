@@ -6,7 +6,7 @@ const feedPostController = require('../../controllers/admin/adminFeedPostControl
 router.get('/feed', feedPostController.listFeedPosts);
 
 // Obter detalhes de um post específico
-router.get('/feed/:id', feedPostController.getFeedPostById);
+router.get('/companion/:id/posts', feedPostController.getPostsByCompanion);
 
 // Deletar um post do feed
 router.delete('/feed/:id/delete', feedPostController.deleteFeedPost);
