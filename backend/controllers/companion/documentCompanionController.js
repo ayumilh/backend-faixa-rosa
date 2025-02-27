@@ -1,10 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { uploadDocuments } = require("../../config/wasabi");
+const { logActivity } = require('../../utils/activityService');
 
 exports.uploadDocument = async (req, res) => {
     try {
-        const userId = req.user?.id; 
+        const userId = req.user?.id;
         const { type } = req.body;
 
         const companion = await prisma.companion.findUnique({ where: { userId } });
@@ -18,7 +19,12 @@ exports.uploadDocument = async (req, res) => {
         const existingDocument = await prisma.document.findFirst({
             where: { companionId, type },
         });
-        if (existingDocument) return res.status(200).json({ error: `O documento ${type} já foi enviado.` });
+        if (existingDocument) {
+            await logActivity(companion.id, "Envio de Documento",
+                `Acompanhante tentou enviar o documento tipo ${type}, mas já foi enviado anteriormente.`
+            );
+            return res.status(200).json({ error: `O documento ${type} já foi enviado.` })
+        };
 
         if (!req.files || !req.files.fileFront || !req.files.fileBack) {
             return res.status(400).json({ error: "Ambas as imagens (frente e verso) são obrigatórias." });
@@ -37,6 +43,12 @@ exports.uploadDocument = async (req, res) => {
             },
         });
 
+        // Registra no log que o documento foi enviado
+        await logActivity(companion.id, "Envio de Documento",
+            `Acompanhante enviou o documento tipo ${type}. Front: ${fileFrontUrl}, Back: ${fileBackUrl}`
+        );
+
+
         return res.status(201).json({ message: 'Documento enviado com sucesso.', document });
 
     } catch (error) {
@@ -44,7 +56,6 @@ exports.uploadDocument = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao enviar documento.' });
     }
 };
-
 
 exports.getDocuments = async (req, res) => {
     const { companionId } = req.params;

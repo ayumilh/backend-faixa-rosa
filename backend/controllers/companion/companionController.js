@@ -80,8 +80,11 @@ exports.updateCompanion = async (req, res) => {
 exports.updateProfileAndBanner = async (req, res) => {
     try {
         // Obtenha o companionId a partir da autenticação
-        const companionId = req.user?.companionId;
-        if (!companionId) {
+        const userId = req.user?.id;
+
+        const companion = await prisma.companion.findUnique({  where: { userId } });
+        
+        if (!companion) {
             return res.status(401).json({ error: "Usuário não autenticado ou acompanhante não encontrado." });
         }
 
@@ -100,14 +103,14 @@ exports.updateProfileAndBanner = async (req, res) => {
 
         // Atualiza no banco
         const updatedCompanion = await prisma.companion.update({
-            where: { id: companionId },
+            where: { id: companion.id },
             data: {
                 profileImage: profileImageUrl || undefined,
                 bannerImage: bannerImageUrl || undefined,
             },
         });
 
-        await logActivity(companionId, "Atualização de Imagens", "Acompanhante atualizou suas imagens de perfil e banner.");
+        await logActivity(companion.id, "Atualização de Imagens", "Acompanhante atualizou suas imagens de perfil e banner.");
 
         return res.status(200).json({
             message: "Imagens de perfil e banner atualizadas com sucesso!",
@@ -544,6 +547,19 @@ exports.updateWeeklySchedule = async (req, res) => {
             return res.status(404).json({ error: 'Acompanhante não encontrada.' });
         }
 
+        const companionId = companion.id;
+
+        // Armazena os horários antes da atualização para log
+        const oldSchedules = await prisma.weeklySchedule.findMany({
+            where: { companionId },
+            select: {
+                dayOfWeek: true,
+                startTime: true,
+                endTime: true,
+                isActive: true
+            }
+        });
+
         // Percorre a lista de horários e faz update ou insert
         for (const day of schedule) {
             await prisma.weeklySchedule.upsert({
@@ -573,10 +589,38 @@ exports.updateWeeklySchedule = async (req, res) => {
             });
         }
 
-        await logActivity(companion.id, "Atualização de Horários", 
-            `Acompanhante atualizou seus horários semanais: ${weeklySchedules.map(s => `${s.dayOfWeek}: ${s.startTime} - ${s.endTime}`).join(", ")}`
-        );        
+        // Coleta os novos horários após a atualização para gerar log
+        const updatedSchedules = await prisma.weeklySchedule.findMany({
+            where: { companionId },
+            select: {
+                dayOfWeek: true,
+                startTime: true,
+                endTime: true,
+                isActive: true
+            }
+        });
 
+        // Criar descrição detalhada das mudanças
+        const addedSchedules = updatedSchedules.filter(updated => 
+            !oldSchedules.some(old => old.dayOfWeek === updated.dayOfWeek)
+        );
+        const removedSchedules = oldSchedules.filter(old => 
+            !updatedSchedules.some(updated => updated.dayOfWeek === old.dayOfWeek)
+        );
+
+        let scheduleUpdateDescription = '';
+        if (addedSchedules.length > 0) {
+            scheduleUpdateDescription += `Horários adicionados: ${addedSchedules.map(s => `${s.dayOfWeek}: ${s.startTime} - ${s.endTime}`).join(", ")}. `;
+        }
+        if (removedSchedules.length > 0) {
+            scheduleUpdateDescription += `Horários removidos: ${removedSchedules.map(s => `${s.dayOfWeek}: ${s.startTime} - ${s.endTime}`).join(", ")}. `;
+        }
+
+        // Log detalhado das mudanças
+        await logActivity(companion.id, "Atualização de Horários", 
+            `Acompanhante atualizou seus horários semanais: ${scheduleUpdateDescription}`
+        );
+        
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
         console.error('Erro ao atualizar horários semanais:', error);
@@ -697,6 +741,28 @@ exports.updateLocationManagement = async (req, res) => {
         const companion = await prisma.companion.findUnique({ where: { userId } });
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
+        // Armazena locais antigos para log
+        let oldLocations = [];
+        if (locations && locations.length > 0) {
+            oldLocations = await prisma.locationCompanion.findMany({
+                where: { companionId: companion.id },
+                include: { location: true }
+            });
+            oldLocations = oldLocations.map(loc => loc.location.name);
+        }
+
+        // Armazena comodidades antigas para log
+        let oldAmenities = [];
+        if (locations && locations.length > 0) {
+            oldAmenities = await prisma.locationCompanion.findMany({
+                where: { companionId: companion.id },
+                select: { amenities: true }
+            });
+
+            // Extrair os nomes das comodidades para comparação
+            oldAmenities = oldAmenities.map(loc => loc.amenities).flat();
+        }
+
         // Atualiza cidade e estado da acompanhante
         if (city && state) {
             await prisma.companion.update({
@@ -752,13 +818,52 @@ exports.updateLocationManagement = async (req, res) => {
             await Promise.all(locationCompanionIds.map(async (locationCompanionId) => {
                 await prisma.locationCompanion.update({
                     where: { id: locationCompanionId },
-                    data: { amenities }
+                    data: { amenities: { set: amenities } } // Atualizando o campo `enum` diretamente
                 });
             }));
         }
-        
+
+        // Obter locais após atualização
+        const updatedLocations = await prisma.locationCompanion.findMany({
+            where: { companionId: companion.id },
+            include: { location: true }
+        });
+        const updatedLocationNames = updatedLocations.map(loc => loc.location.name);
+
+        // Obter comodidades após atualização
+        const updatedAmenities = await prisma.locationCompanion.findMany({
+            where: { companionId: companion.id },
+            select: { amenities: true } // Apenas os campos `enum`
+        });
+        const updatedAmenitiesList = updatedAmenities.map(loc => loc.amenities).flat();
+
+        // Criar uma descrição detalhada das mudanças nos locais
+        const addedLocations = updatedLocationNames.filter(loc => !oldLocations.includes(loc));
+        const removedLocations = oldLocations.filter(loc => !updatedLocationNames.includes(loc));
+
+        let locationUpdateDescription = '';
+        if (addedLocations.length > 0) {
+            locationUpdateDescription += `Locais adicionados: ${addedLocations.join(', ')}. `;
+        }
+        if (removedLocations.length > 0) {
+            locationUpdateDescription += `Locais removidos: ${removedLocations.join(', ')}. `;
+        }
+
+        // Criar uma descrição detalhada das mudanças nas comodidades
+        const addedAmenities = updatedAmenitiesList.filter(amenity => !oldAmenities.includes(amenity));
+        const removedAmenities = oldAmenities.filter(amenity => !updatedAmenitiesList.includes(amenity));
+
+        let amenitiesUpdateDescription = '';
+        if (addedAmenities.length > 0) {
+            amenitiesUpdateDescription += `Comodidades adicionadas: ${addedAmenities.join(', ')}. `;
+        }
+        if (removedAmenities.length > 0) {
+            amenitiesUpdateDescription += `Comodidades removidas: ${removedAmenities.join(', ')}. `;
+        }
+
+        // Log detalhado das mudanças
         await logActivity(companion.id, "Atualização de Localização", 
-            `Acompanhante atualizou a cidade para ${city}, estado para ${state}, e os locais atendidos.`
+            `Acompanhante atualizou a cidade para ${city}, estado para ${state}. ${locationUpdateDescription} ${amenitiesUpdateDescription}`
         );
         
         return res.status(200).json({ message: 'Localização, locais atendidos e comodidades atualizados com sucesso.' });
@@ -768,6 +873,7 @@ exports.updateLocationManagement = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
+
 exports.getLocationManagement = async (req, res) => {
     const userId = req.user?.id;
 
@@ -828,18 +934,24 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: "Acompanhante não encontrada." });
 
+        let paymentMethodsChanges = [];
+        let servicesChanges = [];
+
         // Atualiza os métodos de pagamento
         await prisma.paymentMethodCompanion.deleteMany({ where: { companionId: companion.id } });
 
         const acceptedPaymentMethods = paymentMethods.filter(method => method.aceito);
 
         if (acceptedPaymentMethods.length > 0) {
-            await prisma.paymentMethodCompanion.createMany({
+            // Adiciona os métodos de pagamento aceitos
+            const createdMethods = await prisma.paymentMethodCompanion.createMany({
                 data: acceptedPaymentMethods.map(method => ({
                     companionId: companion.id,
                     paymentMethod: method.nome
                 }))
             });
+
+            paymentMethodsChanges = acceptedPaymentMethods.map(method => `Método de pagamento ${method.nome} ${method.aceito ? 'adicionado' : 'removido'}.`);
         }
 
         // Atualizar os serviços corretamente
@@ -854,6 +966,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             const isOffered = service.isOffered;
 
             if (existingService) {
+                // Se o serviço já existe, atualiza as informações
                 await prisma.timedServiceCompanion.update({
                     where: { id: existingService.id },
                     data: {
@@ -861,7 +974,10 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
                         price: service.price ?? null
                     }
                 });
+
+                servicesChanges.push(`Serviço ${service.id} atualizado para ${isOffered ? 'oferecido' : 'não oferecido'} com preço ${service.price ?? 'não definido'}.`);
             } else {
+                // Caso o serviço não exista, cria um novo
                 await prisma.timedServiceCompanion.create({
                     data: {
                         companionId: companion.id,
@@ -870,10 +986,21 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
                         price: service.price ?? null
                     }
                 });
+
+                servicesChanges.push(`Serviço ${service.id} adicionado com o status ${isOffered ? 'oferecido' : 'não oferecido'} e preço ${service.price ?? 'não definido'}.`);
             }
         }
 
-        await logActivity(companion.id, "Atualização Financeira e Serviços", `Acompanhante atualizou métodos de pagamento e serviços oferecidos.`);
+        // Log detalhado das mudanças
+        const activityDescription = `
+            Atualização de métodos de pagamento:
+            ${paymentMethodsChanges.join(', ')}
+
+            Atualização de serviços oferecidos:
+            ${servicesChanges.join(', ')}
+        `;
+
+        await logActivity(companion.id, "Atualização Financeira e Serviços", activityDescription);
 
         return res.status(200).json({ message: "Dados financeiros e serviços atualizados com sucesso." });
 

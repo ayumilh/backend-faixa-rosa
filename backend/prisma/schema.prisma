@@ -121,6 +121,7 @@ model PlanSubscription {
 
 model Contractor {
   id                 Int        @id @default(autoincrement())
+  userName           String     @unique
   userId             Int        @unique
   name               String
   age                Int
@@ -135,6 +136,7 @@ model Contractor {
 
 model Companion {
   id                      Int                          @id @default(autoincrement())
+  userName                String                       @unique
   userId                  Int                          @unique
   name                    String
   age                     Int                          @default(0)
@@ -402,15 +404,14 @@ model Metric {
 }
 
 model ActivityLog {
-  id           Int       @id @default(autoincrement())
-  companionId  Int
-  action       String
-  details      String?
-  createdAt    DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  companionId Int
+  action      String
+  details     String?
+  createdAt   DateTime @default(now())
 
-  companion    Companion @relation(fields: [companionId], references: [id])
+  companion Companion @relation(fields: [companionId], references: [id])
 }
-
 
 model Media {
   id          Int        @id @default(autoincrement())

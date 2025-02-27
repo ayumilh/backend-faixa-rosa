@@ -4,7 +4,7 @@ const {
     listUsers, 
     getUserById, 
     updateUserStatus, 
-    deleteUser 
+    deleteCompanionData 
 } = require('../../controllers/admin/adminUserController'); 
 
 // Listar contratantes
@@ -17,6 +17,6 @@ router.get('/users/:id/', getUserById);
 router.patch('/users/:id/status', updateUserStatus);
 
 // Deletar usuário e dados vinculados
-router.delete('/users/:id/delete', deleteUser);
+router.delete('/users/:id/delete', deleteCompanionData);
 
 module.exports = router;

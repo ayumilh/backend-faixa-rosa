@@ -33,7 +33,7 @@ exports.listUsers = async (req, res) => {
 // Obter detalhes de um usuário específico
 exports.getUserById = async (req, res) => {
     const { id } = req.params;
-    
+
     try {
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
@@ -91,33 +91,69 @@ exports.updateUserStatus = async (req, res) => {
 };
 
 // Deletar usuário e dados vinculados
-exports.deleteUser = async (req, res) => {
+exports.deleteCompanionData = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verifica se o usuário existe
+        // Verifica se o usuário existe e inclui as informações do companion
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
-            include: { companion: true },
+            include: {
+                companion: {
+                    include: {
+                        documents: true,             // Inclui todos os documentos associados ao companion
+                        subscriptions: true,         // Inclui as assinaturas de plano
+                        servicesOffered: true,       // Inclui serviços oferecidos
+                        feedPosts: true,             // Inclui postagens no feed
+                        weeklySchedules: true,       // Inclui os horários de trabalho
+                        unavailableDays: true,       // Inclui os dias de indisponibilidade
+                        reviews: true,               // Inclui as avaliações feitas
+                    }
+                },
+            }
         });
 
-        if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        if (!user || !user.companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrado.' });
         }
 
-        // Se for acompanhante, remover dados vinculados
-        if (user.companion) {
-            await prisma.planSubscription.deleteMany({ where: { companionId: user.companion.id } });
+        // Deleta as referências nas tabelas relacionadas com chave estrangeira
+        if (user.companion.documents.length > 0) {
             await prisma.document.deleteMany({ where: { companionId: user.companion.id } });
-            await prisma.companion.delete({ where: { id: user.companion.id } });
+        }
+        if (user.companion.subscriptions.length > 0) {
+            await prisma.planSubscription.deleteMany({ where: { companionId: user.companion.id } });
+        }
+        if (user.companion.servicesOffered.length > 0) {
+            await prisma.companionService.deleteMany({ where: { companionId: user.companion.id } });
+        }
+        if (user.companion.feedPosts.length > 0) {
+            await prisma.feedPost.deleteMany({ where: { companionId: user.companion.id } });
+        }
+        if (user.companion.weeklySchedules.length > 0) {
+            await prisma.weeklySchedule.deleteMany({ where: { companionId: user.companion.id } });
+        }
+        if (user.companion.unavailableDays.length > 0) {
+            await prisma.unavailableDates.deleteMany({ where: { companionId: user.companion.id } });
         }
 
-        // Excluir usuário
-        await prisma.user.delete({ where: { id: parseInt(id) } });
+        // Remover as referências no ActivityLog
+        await prisma.activityLog.deleteMany({
+            where: { companionId: user.companion.id }
+        });
 
-        return res.status(200).json({ message: 'Usuário deletado com sucesso.' });
+        // Remover as referências no ContactMethodCompanion se existir
+        await prisma.contactMethodCompanion.deleteMany({
+            where: { companionId: user.companion.id }
+        });
+
+        // Deletando o companion depois de remover todos os dados associados
+        await prisma.companion.delete({ where: { id: user.companion.id } });
+
+        return res.status(200).json({ message: 'Dados do acompanhante deletados com sucesso.' });
     } catch (error) {
-        console.error('Erro ao deletar usuário:', error);
-        return res.status(500).json({ error: 'Erro ao deletar usuário.' });
+        console.error('Erro ao deletar dados do acompanhante:', error);
+        return res.status(500).json({ error: 'Erro ao deletar dados do acompanhante.' });
     }
 };
+

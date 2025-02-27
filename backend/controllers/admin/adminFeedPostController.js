@@ -46,7 +46,7 @@ exports.getPostsByCompanion = async (req, res) => {
         });
 
         if (!posts || posts.length === 0) {
-            return res.status(404).json({ message: "Nenhuma postagem encontrada para este anunciante." });
+            return res.status(200).json({ message: "Nenhuma postagem encontrada para este anunciante." });
         }
 
         return res.status(200).json(posts);

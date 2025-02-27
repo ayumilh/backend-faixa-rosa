@@ -6,7 +6,7 @@ exports.listAcompanhantes = async (req, res) => {
     try {
         const acompanhantes = await prisma.companion.findMany({
             include: {
-                user: {
+                user: { 
                     select: {
                         firstName: true,
                         lastName: true,
@@ -60,15 +60,17 @@ exports.listAcompanhantes = async (req, res) => {
                     name: companion.plan.name,
                     price: companion.plan.price,
                 } : null,
+                userName: companion.userName, // Agora acessando 'userName' do modelo 'User'
             };
         });
 
         return res.status(200).json(formattedAcompanhantes);
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Erro ao listar acompanhantes.' });
+        return res.status(500).json({ message: 'Erro ao listar acompanhantes.', error: error.message });
     }
 };
+
 
 // Aprovar perfil de acompanhantes 
 exports.approveAcompanhantes = async (req, res) => {
@@ -241,7 +243,7 @@ exports.getActivityLog = async (req, res) => {
         });
 
         if (!activities.length) {
-            return res.status(404).json({ message: "Nenhuma atividade registrada." });
+            return res.status(200).json({ message: "Nenhuma atividade registrada." });
         }
 
         return res.status(200).json(activities);
