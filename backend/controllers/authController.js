@@ -186,9 +186,10 @@ exports.login = async (req, res) => {
             userName = companion?.userName;
         }
         
-        if (!userName) {
+        if (user.userType !== 'ADMIN' && !userName) {
             return res.status(400).json({ error: 'userName é necessário para este tipo de usuário.' });
         }
+        
 
         const token = jwt.sign(
             { 
