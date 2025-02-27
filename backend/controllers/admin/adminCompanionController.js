@@ -64,6 +64,10 @@ exports.listAcompanhantes = async (req, res) => {
             };
         });
 
+        if (!acompanhantes.length) {
+            return res.status(200).json({ message: 'Nenhuma acompanhante encontrada.' });
+        }
+
         return res.status(200).json(formattedAcompanhantes);
     } catch (error) {
         console.error(error);
