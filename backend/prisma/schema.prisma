@@ -176,6 +176,8 @@ model Companion {
   unavailableDays         UnavailableDates[]
   weeklySchedules         WeeklySchedule[]
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
+
+  ActivityLog ActivityLog[]
 }
 
 model ContactMethodCompanion {
@@ -398,6 +400,17 @@ model Metric {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model ActivityLog {
+  id           Int       @id @default(autoincrement())
+  companionId  Int
+  action       String
+  details      String?
+  createdAt    DateTime  @default(now())
+
+  companion    Companion @relation(fields: [companionId], references: [id])
+}
+
 
 model Media {
   id          Int        @id @default(autoincrement())
