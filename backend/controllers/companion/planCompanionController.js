@@ -134,6 +134,8 @@ exports.subscribeToPlan = async (req, res) => {
             },
         });
 
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante assinou o plano ${plan.name}.`);
+
         return res.status(201).json({ message: 'Plano assinado com sucesso.', subscription });
     } catch (error) {
         console.error('Erro ao assinar plano:', error);
@@ -224,6 +226,7 @@ exports.createUserPlan = async (req, res) => {
 
                 await prisma.planSubscription.createMany({ data: extraSubscriptions });
             }
+            await logActivity(companion.id, "Assinatura de Plano", `Acompanhante assinou o plano ${planType.name} e adicionou ${newExtras.length} extras.`);
 
             return res.status(201).json({
                 message: 'Plano principal e extras criados com sucesso.',
@@ -231,6 +234,8 @@ exports.createUserPlan = async (req, res) => {
                 addedExtras: newExtras || []
             });
         }
+
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante assinou o plano ${planType.name}.`);
 
         return res.status(201).json({
             message: 'Plano principal criado com sucesso.',
@@ -290,6 +295,8 @@ exports.addUserExtras = async (req, res) => {
 
         await prisma.planSubscription.createMany({ data: subscriptions });
 
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante adicionou ${newSubscriptions.length} extras.`);
+
         return res.status(200).json({
             message: 'Planos extras adicionados com sucesso.',
             addePlans: newSubscriptions
@@ -304,8 +311,6 @@ exports.addUserExtras = async (req, res) => {
 exports.disableExtraPlans = async (req, res) => {
     const userId = req.user?.id;
     const { extraPlanIds } = req.body;
-
-    console.log("🔍 Planos extras a desativar:", extraPlanIds);
 
     if (!extraPlanIds || !Array.isArray(extraPlanIds) || extraPlanIds.length === 0) return res.status(400).json({ error: 'É necessário informar pelo menos um plano extra para desativar.' });
 
@@ -328,8 +333,6 @@ exports.disableExtraPlans = async (req, res) => {
             select: { id: true, planId: true, isExtra: true, endDate: true },
         });
 
-        console.log("🔍 Planos extras ativos encontrados:", activeExtraPlans);
-
         if (activeExtraPlans.length === 0) return res.status(404).json({ error: 'Nenhum dos planos extras informados está ativo ou pertence a você.' });
 
         // Desativar os planos extras escolhidos (definir `endDate`)
@@ -339,6 +342,8 @@ exports.disableExtraPlans = async (req, res) => {
             },
             data: { endDate: new Date() },
         });
+
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante desativou ${activeExtraPlans.length} extras.`);
 
         return res.status(200).json({
             message: 'Planos extras desativados com sucesso.',
@@ -401,6 +406,8 @@ exports.disablePlan = async (req, res) => {
             },
         });
 
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante finalizou o plano.`);
+
         return res.status(200).json({
             message: 'Assinatura finalizada com sucesso.',
             updatedSubscription
@@ -410,51 +417,3 @@ exports.disablePlan = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar a finalização do plano.' });
     }
 };
-
-
-// FUNÇÕES DE CRUD PARA ADMINISTRADORES
-
-// exports.updatePlan = async (req, res) => {
-//     const planId = parseInt(req.query.planId);
-//     const { name, price, description, isDarkMode } = req.body;
-
-//     if (!planId || isNaN(planId)) {
-//         return res.status(400).json({ error: 'O ID do plano é obrigatório.' });
-//     }
-
-//     try {
-//         const updatedPlan = await prisma.plan.update({
-//             where: { id: parseInt(planId) },
-//             data: {
-//                 name,
-//                 price: price ? parseFloat(price) : undefined,
-//                 description,
-//                 isDarkMode: isDarkMode !== undefined ? isDarkMode : undefined,
-//             },
-//         });
-
-//         return res.status(200).json({ message: 'Plano atualizado com sucesso.', plan: updatedPlan });
-//     } catch (error) {
-//         console.error('Erro ao atualizar plano:', error.message);
-//         return res.status(500).json({ error: 'Erro ao processar a atualização do plano.' });
-//     }
-// };
-
-// exports.deletePlan = async (req, res) => {
-//     const { planId } = req.query;
-
-//     if (!planId || isNaN(planId)) {
-//         return res.status(400).json({ error: 'O ID do plano é obrigatório.' });
-//     }
-
-//     try {
-//         await prisma.plan.delete({
-//             where: { id: parseInt(planId) },
-//         });
-
-//         return res.status(200).json({ message: 'Plano deletado com sucesso.' });
-//     } catch (error) {
-//         console.error('Erro ao deletar plano:', error.message);
-//         return res.status(500).json({ error: 'Erro ao processar a exclusão do plano.' });
-//     }
-// };

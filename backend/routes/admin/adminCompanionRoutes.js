@@ -7,22 +7,24 @@ const {
     suspendAcompanhantes,
     updatePlan,
     deleteAcompanhante,
-    monitorPosts
+    getActivityLog
 } = require('../../controllers/admin/adminCompanionController');
 
 
 router.get('/companion', listAcompanhantes);
 
 // PERFIL DAS ACOMPANHANTES
-router.patch('/companion/:id/approve', approveAcompanhantes);
+router.post('/companion/:id/approve', approveAcompanhantes);
 
-router.patch('/companion/:id/reject', rejectAcompanhantes);
+router.post('/companion/:id/reject', rejectAcompanhantes);
 
-router.patch('/companion/:id/suspend', suspendAcompanhantes);
+router.post('/companion/:id/suspend', suspendAcompanhantes);
+
+router.delete('/companion/:id/delete', deleteAcompanhante);
 
 router.put('/companion/:id/update-plan', updatePlan);
 
-router.delete('/companion/:id/delete', deleteAcompanhante);
+router.get('/companion/:id/activity', getActivityLog);
 
 
 module.exports = router;

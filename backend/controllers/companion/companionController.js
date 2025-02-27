@@ -2,6 +2,7 @@ const { PrismaClient, LocationType } = require('@prisma/client');
 const prisma = new PrismaClient();
 const Joi = require('joi');
 const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { logActivity } = require("../../utils/activityService"); 
 const { uploadSingleVideo, uploadDocuments, wasabiS3, bucketName } = require("../../config/wasabi");
 
 // Listar todos os acompanhantes
@@ -66,6 +67,8 @@ exports.updateCompanion = async (req, res) => {
             },
         });
 
+        await logActivity(companion.id, "Atualização de Perfil", "Acompanhante atualizou suas informações.");
+
         return res.status(200).json({ message: 'Acompanhante atualizado com sucesso', updatedCompanion });
     } catch (error) {
         console.error('Erro ao atualizar acompanhante:', error);
@@ -76,43 +79,45 @@ exports.updateCompanion = async (req, res) => {
 // Controller para atualizar as imagens
 exports.updateProfileAndBanner = async (req, res) => {
     try {
-      // Obtenha o companionId a partir da autenticação
-      const companionId = req.user?.companionId; 
-      if (!companionId) {
-        return res.status(401).json({ error: "Usuário não autenticado ou acompanhante não encontrado." });
-      }
-  
-      // Pegar as URLs dos arquivos que o multerS3 retornou
-      // Por padrão, o multer-s3 retorna em req.files[<nomeCampo>][0].location
-      // se estiver usando a lib v2 do AWS, é .location; se for v3 do AWS-SDK, permanece .location (multer-s3 abstrai)
-      let profileImageUrl = null;
-      let bannerImageUrl = null;
-  
-      if (req.files.profileImage) {
-        profileImageUrl = req.files.profileImage[0].location; 
-      }
-      if (req.files.bannerImage) {
-        bannerImageUrl = req.files.bannerImage[0].location;
-      }
-  
-      // Atualiza no banco
-      const updatedCompanion = await prisma.companion.update({
-        where: { id: companionId },
-        data: {
-          profileImage: profileImageUrl || undefined,
-          bannerImage: bannerImageUrl || undefined,
-        },
-      });
-  
-      return res.status(200).json({
-        message: "Imagens de perfil e banner atualizadas com sucesso!",
-        companion: updatedCompanion,
-      });
+        // Obtenha o companionId a partir da autenticação
+        const companionId = req.user?.companionId;
+        if (!companionId) {
+            return res.status(401).json({ error: "Usuário não autenticado ou acompanhante não encontrado." });
+        }
+
+        // Pegar as URLs dos arquivos que o multerS3 retornou
+        // Por padrão, o multer-s3 retorna em req.files[<nomeCampo>][0].location
+        // se estiver usando a lib v2 do AWS, é .location; se for v3 do AWS-SDK, permanece .location (multer-s3 abstrai)
+        let profileImageUrl = null;
+        let bannerImageUrl = null;
+
+        if (req.files.profileImage) {
+            profileImageUrl = req.files.profileImage[0].location;
+        }
+        if (req.files.bannerImage) {
+            bannerImageUrl = req.files.bannerImage[0].location;
+        }
+
+        // Atualiza no banco
+        const updatedCompanion = await prisma.companion.update({
+            where: { id: companionId },
+            data: {
+                profileImage: profileImageUrl || undefined,
+                bannerImage: bannerImageUrl || undefined,
+            },
+        });
+
+        await logActivity(companionId, "Atualização de Imagens", "Acompanhante atualizou suas imagens de perfil e banner.");
+
+        return res.status(200).json({
+            message: "Imagens de perfil e banner atualizadas com sucesso!",
+            companion: updatedCompanion,
+        });
     } catch (error) {
-      console.error("Erro ao atualizar imagens de perfil e banner:", error);
-      return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
+        console.error("Erro ao atualizar imagens de perfil e banner:", error);
+        return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
     }
-  };
+};
 
 // Atualizar descrição do perfil
 exports.updateCompanionDescriptionProfile = async (req, res) => {
@@ -262,8 +267,12 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                 data: updateData,
             });
 
+            await logActivity(companion.id, "Atualização de Perfil", "Acompanhante atualizou sua descrição.");
+            
             return res.status(200).json({ message: "Perfil atualizado com sucesso." });
         }
+
+        await logActivity(companion.id, "Atualização de Perfil", "Nenhuma alteração necessária.");
 
         return res.status(200).json({ message: "Nenhuma alteração necessária." });
 
@@ -310,7 +319,6 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
 };
 
 
-
 // Adicionar Contato
 exports.updateCompanionContact = async (req, res) => {
     const userId = req.user?.id;
@@ -343,6 +351,11 @@ exports.updateCompanionContact = async (req, res) => {
                 phoneNumber
             },
         });
+
+        await logActivity(companion.id, "Atualização de Contato", 
+            `Acompanhante atualizou seus contatos: ${whatsappNumber ? `WhatsApp: ${whatsappNumber}` : ""} ${telegramUsername ? `Telegram: ${telegramUsername}` : ""} ${phoneNumber ? `Telefone: ${phoneNumber}` : ""}`
+        );
+        
 
         return res
             .status(200)
@@ -405,8 +418,6 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
         }
 
-        console.log("📌 Serviços recebidos para atualização:", JSON.stringify(services, null, 2));
-
         // Obtém os IDs dos serviços a serem atualizados
         const requestedServiceIds = services.map(s => s.id).filter(id => id !== null && id !== undefined);
 
@@ -443,14 +454,11 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             const price = service.price ?? null;
 
             if (existingServiceMap.has(service.id)) {
-                // Se já existe, atualiza
                 await prisma.serviceCompanionOffered.update({
                     where: { id: existingServiceMap.get(service.id).id },
                     data: { isOffered, price }
                 });
-                console.log(`🔄 Serviço ID ${service.id} atualizado -> isOffered: ${isOffered}, price: ${price}`);
             } else {
-                // Se não existe, cria um novo
                 await prisma.serviceCompanionOffered.create({
                     data: {
                         companionId: companion.id,
@@ -459,11 +467,13 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
                         price
                     }
                 });
-                console.log(`🆕 Serviço ID ${service.id} adicionado -> isOffered: ${isOffered}, price: ${price}`);
             }
         }
 
-        console.log("Atualização concluída com sucesso!");
+        await logActivity(companion.id, "Atualização de Serviços e Preços", 
+            `Acompanhante atualizou os serviços oferecidos e preços: ${services.map(s => `${s.name} - R$${s.price ?? "Não definido"}`).join(", ")}`
+        );
+        
         return res.status(200).json({ message: "Serviços e preços atualizados com sucesso." });
 
     } catch (error) {
@@ -563,6 +573,9 @@ exports.updateWeeklySchedule = async (req, res) => {
             });
         }
 
+        await logActivity(companion.id, "Atualização de Horários", 
+            `Acompanhante atualizou seus horários semanais: ${weeklySchedules.map(s => `${s.dayOfWeek}: ${s.startTime} - ${s.endTime}`).join(", ")}`
+        );        
 
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
@@ -629,6 +642,10 @@ exports.updateUnavailableDates = async (req, res) => {
         }));
 
         await prisma.unavailableDates.createMany({ data: datesData });
+
+        await logActivity(companion.id, "Atualização de Indisponibilidade", 
+            `Acompanhante atualizou seus dias indisponíveis para: ${unavailableDates.join(", ")}`
+        );        
 
         return res.status(200).json({ message: 'Datas indisponíveis atualizadas com sucesso.' });
     } catch (error) {
@@ -739,7 +756,11 @@ exports.updateLocationManagement = async (req, res) => {
                 });
             }));
         }
-
+        
+        await logActivity(companion.id, "Atualização de Localização", 
+            `Acompanhante atualizou a cidade para ${city}, estado para ${state}, e os locais atendidos.`
+        );
+        
         return res.status(200).json({ message: 'Localização, locais atendidos e comodidades atualizados com sucesso.' });
 
     } catch (error) {
@@ -802,8 +823,6 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
         const userId = req.user?.id;
         const { paymentMethods, timedServices } = req.body;
 
-        console.log("Recebendo dados do frontend:", JSON.stringify(req.body, null, 2));
-
         // Busca o Companion no banco
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
@@ -823,8 +842,6 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             });
         }
 
-        console.log(`Métodos de pagamento atualizados. Métodos aceitos: ${acceptedPaymentMethods.map(m => m.nome).join(', ')}`);
-
         // Atualizar os serviços corretamente
         for (const service of timedServices) {
             const existingService = await prisma.timedServiceCompanion.findFirst({
@@ -835,8 +852,6 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             });
 
             const isOffered = service.isOffered;
-
-            console.log(`Atualizando serviço ID: ${service.id} -> isOffered: ${isOffered}, price: ${service.price}`);
 
             if (existingService) {
                 await prisma.timedServiceCompanion.update({
@@ -858,7 +873,8 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
             }
         }
 
-        console.log("Atualização concluída com sucesso!");
+        await logActivity(companion.id, "Atualização Financeira e Serviços", `Acompanhante atualizou métodos de pagamento e serviços oferecidos.`);
+
         return res.status(200).json({ message: "Dados financeiros e serviços atualizados com sucesso." });
 
     } catch (error) {

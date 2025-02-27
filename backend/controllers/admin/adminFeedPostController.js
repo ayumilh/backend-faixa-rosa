@@ -56,8 +56,6 @@ exports.getPostsByCompanion = async (req, res) => {
     }
 };
 
-
-
 // Deletar um post do feed
 exports.deleteFeedPost = async (req, res) => {
     const { id } = req.params;

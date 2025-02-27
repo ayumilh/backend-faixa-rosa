@@ -198,7 +198,6 @@ exports.deleteAcompanhante = async (req, res) => {
 };
 
 
-
 // Atualizar plano
 exports.updatePlan = async (req, res) => {
     const { id } = req.params;
@@ -222,5 +221,32 @@ exports.updatePlan = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Erro ao atualizar plano.', error });
+    }
+};
+
+
+// Buscar histórico de atividades
+exports.getActivityLog = async (req, res) => {
+    const { id } = req.params;
+    const companionId = parseInt(id);
+
+    if (isNaN(companionId)) {
+        return res.status(400).json({ error: "ID inválido." });
+    }
+
+    try {
+        const activities = await prisma.activityLog.findMany({
+            where: { companionId: companionId },
+            orderBy: { createdAt: "desc" }
+        });
+
+        if (!activities.length) {
+            return res.status(404).json({ message: "Nenhuma atividade registrada." });
+        }
+
+        return res.status(200).json(activities);
+    } catch (error) {
+        console.error("Erro ao buscar histórico:", error);
+        return res.status(500).json({ error: "Erro ao buscar histórico." });
     }
 };
