@@ -35,7 +35,7 @@ exports.searchCompanionCity = async (req, res) => {
             },
             select: {
                 id: true,
-                name: true,
+                userName: true,
                 age: true,
                 city: true,
                 state: true,
@@ -100,18 +100,18 @@ exports.searchCompanionCity = async (req, res) => {
 
 
 exports.searchCompanionProfile = async (req, res) => {
-    const companionId = parseInt(req.query.id, 10);
+    const { userName } = req.query;
 
     if (req.method === 'GET') {
         try {
             // Busque as informações da acompanhante no banco de dados
             const companion = await prisma.companion.findUnique({
                 where: {
-                    id: companionId,
+                    userName: userName,
                 },
                 select: {
                     id: true,
-                    name: true,
+                    userName: true,
                     description: true, // Agora a descrição será carregada corretamente
                     age: true,
                     city: true,
