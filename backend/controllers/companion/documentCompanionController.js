@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { uploadDocuments } = require("../../config/wasabi");
-const { logActivity } = require('../../utils/activityService');
+const { logActivity } = require("../../utils/activityService"); 
 
 exports.uploadDocument = async (req, res) => {
     try {

@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { logActivity } = require("../../utils/activityService");
 
 // listar planos
 exports.listPlans = async (req, res) => {
@@ -143,7 +144,6 @@ exports.subscribeToPlan = async (req, res) => {
     }
 };
 
-
 // criar plano e adicionar extras, durante o processo de criar plano
 exports.createUserPlan = async (req, res) => {
     try {
@@ -282,9 +282,28 @@ exports.addUserExtras = async (req, res) => {
             return res.status(400).json({ error: 'Plano extra já assinado.' });
         }
 
+        // Verifica se todos os planos extras existem
+        const newExtraPlans = await prisma.extraPlan.findMany({
+            where: {
+                id: { in: newSubscriptions },
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        // Verifica se algum plano extra não existe
+        const newExtraPlanIds = newExtraPlans.map(plan => plan.id);
+        const invalidPlans = newSubscriptions.filter(extraId => !newExtraPlanIds.includes(extraId));
+
+        if (invalidPlans.length > 0) {
+            return res.status(400).json({
+                error: `Os seguintes planos extras não são válidos: ${invalidPlans.join(', ')}`,
+            });
+        }
 
         // Adiciona os planos extras na tabela `PlanSubscription`
-        // Adiciona os novos planos extras na tabela `PlanSubscription`
         const subscriptions = newSubscriptions.map((extraId) => ({
             companionId: companion.id,
             extraPlanId: extraId,
@@ -295,7 +314,9 @@ exports.addUserExtras = async (req, res) => {
 
         await prisma.planSubscription.createMany({ data: subscriptions });
 
-        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante adicionou ${newSubscriptions.length} extras.`);
+        // Loga a atividade com os nomes dos planos extras adicionados
+        const planNames = newExtraPlans.map(plan => plan.name).join(', ');
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante adicionou os planos extras: ${planNames}.`);
 
         return res.status(200).json({
             message: 'Planos extras adicionados com sucesso.',
@@ -307,12 +328,15 @@ exports.addUserExtras = async (req, res) => {
     }
 };
 
+
 // desativar planos extras
 exports.disableExtraPlans = async (req, res) => {
     const userId = req.user?.id;
     const { extraPlanIds } = req.body;
 
-    if (!extraPlanIds || !Array.isArray(extraPlanIds) || extraPlanIds.length === 0) return res.status(400).json({ error: 'É necessário informar pelo menos um plano extra para desativar.' });
+    if (!extraPlanIds || !Array.isArray(extraPlanIds) || extraPlanIds.length === 0) {
+        return res.status(400).json({ error: 'É necessário informar pelo menos um plano extra para desativar.' });
+    }
 
     try {
         // Busca a acompanhante vinculada ao usuário
@@ -330,10 +354,25 @@ exports.disableExtraPlans = async (req, res) => {
                 isExtra: true,
                 extraPlanId: { in: extraPlanIds.map(Number) },
             },
-            select: { id: true, planId: true, isExtra: true, endDate: true },
+            select: { id: true, extraPlanId: true },
         });
 
-        if (activeExtraPlans.length === 0) return res.status(404).json({ error: 'Nenhum dos planos extras informados está ativo ou pertence a você.' });
+        if (activeExtraPlans.length === 0) {
+            return res.status(404).json({ error: 'Nenhum dos planos extras informados está ativo ou pertence a você.' });
+        }
+
+        // Busca os detalhes dos planos extras desativados
+        const extraPlansDetails = await prisma.extraPlan.findMany({
+            where: {
+                id: { in: activeExtraPlans.map(plan => plan.extraPlanId) },
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        const planNames = extraPlansDetails.map(plan => plan.name).join(', ');
 
         // Desativar os planos extras escolhidos (definir `endDate`)
         await prisma.planSubscription.updateMany({
@@ -343,11 +382,12 @@ exports.disableExtraPlans = async (req, res) => {
             data: { endDate: new Date() },
         });
 
-        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante desativou ${activeExtraPlans.length} extras.`);
+        // Loga a atividade com os nomes dos planos extras desativados
+        await logActivity(companion.id, "Assinatura de Plano", `Acompanhante desativou os planos extras: ${planNames}.`);
 
         return res.status(200).json({
             message: 'Planos extras desativados com sucesso.',
-            disabledPlans: activeExtraPlans.map(plan => plan.id),
+            disabledPlans: extraPlansDetails,
         });
 
     } catch (error) {
@@ -355,6 +395,7 @@ exports.disableExtraPlans = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar a desativação dos planos extras.' });
     }
 };
+
 
 // desativar assinatura
 exports.disablePlan = async (req, res) => {

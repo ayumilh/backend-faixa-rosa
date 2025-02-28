@@ -6,6 +6,7 @@ const {
     rejectAcompanhantes,
     suspendAcompanhantes,
     updatePlan,
+    updateExtraPlanForCompanion,
     deleteAcompanhante,
     getActivityLog
 } = require('../../controllers/admin/adminCompanionController');
@@ -23,6 +24,7 @@ router.post('/companion/:id/suspend', suspendAcompanhantes);
 router.delete('/companion/:id/delete', deleteAcompanhante);
 
 router.put('/companion/:id/update-plan', updatePlan);
+router.put('/companion/:id/update-extrasPlan', updateExtraPlanForCompanion);
 
 router.get('/companion/:id/activity', getActivityLog);
 

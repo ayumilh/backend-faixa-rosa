@@ -211,7 +211,7 @@ exports.updatePlan = async (req, res) => {
 
     try {
         const companion = await prisma.companion.findUnique({
-            where: { userId: parseInt(id) },
+            where: { id: parseInt(id) },
         });
 
         if (!companion) {
@@ -219,7 +219,7 @@ exports.updatePlan = async (req, res) => {
         }
 
         await prisma.companion.update({
-            where: { userId: parseInt(id) },
+            where: { id: parseInt(id) },
             data: { planId: parseInt(planId) },
         });
 
@@ -229,6 +229,59 @@ exports.updatePlan = async (req, res) => {
         return res.status(500).json({ message: 'Erro ao atualizar plano.', error });
     }
 };
+
+// Atualizar plano extra
+exports.updateExtraPlanForCompanion = async (req, res) => {
+    const { companionId } = req.params; // ID da acompanhante
+    const { extraPlanId, isEnabled, duration, pointsBonus } = req.body; // Novos dados para atualizar o plano extra
+
+    try {
+        // Verifica se a acompanhante existe
+        const companion = await prisma.companion.findUnique({
+            where: { id: parseInt(companionId) },
+            include: { extraPlans: true }, // Inclui os planos extras atuais da acompanhante
+        });
+
+        if (!companion) {
+            return res.status(404).json({ message: 'Acompanhante não encontrada.' });
+        }
+
+        // Verifica se o plano extra existe
+        const extraPlan = await prisma.extraPlan.findUnique({
+            where: { id: parseInt(extraPlanId) },
+        });
+
+        if (!extraPlan) {
+            return res.status(404).json({ message: 'Plano extra não encontrado.' });
+        }
+
+        // Atualiza o plano extra da acompanhante
+        const updatedExtraPlan = await prisma.companion.update({
+            where: { id: parseInt(companionId) },
+            data: {
+                extraPlans: {
+                    update: {
+                        where: { id: parseInt(extraPlanId) },
+                        data: {
+                            isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : undefined,
+                            duration: duration !== undefined ? parseInt(duration) : undefined,
+                            pointsBonus: pointsBonus !== undefined ? parseInt(pointsBonus) : undefined,
+                        },
+                    },
+                },
+            },
+        });
+
+        return res.status(200).json({
+            message: 'Plano extra da acompanhante atualizado com sucesso.',
+            updatedExtraPlan,
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar plano extra:', error);
+        return res.status(500).json({ message: 'Erro ao atualizar plano extra.', error });
+    }
+};
+
 
 
 // Buscar histórico de atividades
