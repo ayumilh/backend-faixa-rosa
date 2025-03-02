@@ -42,9 +42,12 @@ router.get('/extra-plans', adminPlanController.listExtraPlans);
 router.get('/subscriptions', adminPlanController.listActiveSubscriptions);
 
 // Cancelar a assinatura principal de um usuário (desativar plano principal)
-router.patch('/subscriptions/:companionId/disable', adminPlanController.disableUserPlan);
+router.put('/subscriptions/:companionId/disable', adminPlanController.disableUserPlan);
 
 // Cancelar um plano extra específico de um usuário
 router.patch('/subscriptions/:companionId/extra/:extraPlanId/disable', adminPlanController.disableUserExtraPlan);
+
+
+router.get("/expiring", adminPlanController.getExpiringSubscriptions);
 
 module.exports = router;
