@@ -14,6 +14,9 @@ const getUserIdBd = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: userid },
+            include: {
+                companion: true,
+            }
         });
 
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });

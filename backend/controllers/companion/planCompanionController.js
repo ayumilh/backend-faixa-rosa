@@ -9,6 +9,7 @@ exports.listPlans = async (req, res) => {
         const plans = await prisma.plan.findMany({
             include: {
                 planType: true,  // Incluir as funcionalidades da tabela planType
+                extraPlans: true, // Incluir os planos extras
             },
         });
         return res.status(200).json(plans);
