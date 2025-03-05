@@ -178,8 +178,8 @@ model Companion {
   unavailableDays         UnavailableDates[]
   weeklySchedules         WeeklySchedule[]
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
-
-  ActivityLog ActivityLog[]
+  ActivityLog             ActivityLog[]
+  atendimentos            Atendimento[]
 }
 
 model ContactMethodCompanion {

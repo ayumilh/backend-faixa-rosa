@@ -43,6 +43,8 @@ exports.searchCompanionCity = async (req, res) => {
                 points: true,
                 lastOnline: true,
                 profileStatus: true,
+                atendimentos: true,
+                profileImage: true,
                 user: {
                     select: {
                         id: true,
@@ -112,7 +114,7 @@ exports.searchCompanionProfile = async (req, res) => {
                 select: {
                     id: true,
                     userName: true,
-                    description: true, // Agora a descrição será carregada corretamente
+                    description: true,
                     age: true,
                     city: true,
                     state: true,
@@ -124,6 +126,7 @@ exports.searchCompanionProfile = async (req, res) => {
                     media: true,
                     profileImage: true,
                     bannerImage: true,
+                    atendimentos: true,
                     user: {
                         select: {
                             email: true,
@@ -176,16 +179,6 @@ exports.searchCompanionProfile = async (req, res) => {
             const birthDate = new Date(companion.user.birthDate);
             const age = calculateAge(birthDate);
             companion.age = age;
-
-            // Adicionando o prefixo do CDN nas URLs das imagens
-            companion.profileImage = companion.profileImage.replace(
-                'https://s3.us-central-1.wasabisys.com',
-                'https://cdn.faixarosa.com'
-            );
-            companion.bannerImage = companion.bannerImage.replace(
-                'https://s3.us-central-1.wasabisys.com',
-                'https://cdn.faixarosa.com'
-            );
 
             // Ajustar os serviços oferecidos para incluir nome e descrição
             companion.servicesOffered = companion.servicesOffered.map(service => ({

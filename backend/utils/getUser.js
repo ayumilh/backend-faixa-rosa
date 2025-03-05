@@ -21,12 +21,13 @@ const getUserIdBd = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
 
-        res.status(200).json({ user });
+        res.status(200).json(user);
     } catch (error) {
         console.error('Erro:', error);
         res.status(500).json({ message: 'Erro ao recuperar o usuário do banco de dados.' });
     }
 };
+
 
 module.exports = {
     getUserIdBd,

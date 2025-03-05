@@ -2,7 +2,7 @@ const { PrismaClient, LocationType } = require('@prisma/client');
 const prisma = new PrismaClient();
 const Joi = require('joi');
 const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { logActivity } = require("../../utils/activityService"); 
+const { logActivity } = require("../../utils/activityService");
 const { uploadSingleVideo, uploadDocuments, wasabiS3, bucketName } = require("../../config/wasabi");
 
 // Listar todos os acompanhantes
@@ -82,8 +82,8 @@ exports.updateProfileAndBanner = async (req, res) => {
         // Obtenha o companionId a partir da autenticação
         const userId = req.user?.id;
 
-        const companion = await prisma.companion.findUnique({  where: { userId } });
-        
+        const companion = await prisma.companion.findUnique({ where: { userId } });
+
         if (!companion) {
             return res.status(401).json({ error: "Usuário não autenticado ou acompanhante não encontrado." });
         }
@@ -149,6 +149,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
             smoker: Joi.boolean().truthy("true").falsy("false").default(false),
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
+            atendimentos: Joi.array().items(Joi.string().valid('HOMENS', 'MULHERES', 'CASAIS', 'DEFICIENTES_FISICOS')).allow(null),
         });
 
         const { error, value } = schema.validate(data, { convert: true });
@@ -262,7 +263,19 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
 
         // Atualiza apenas os dados da acompanhante se for enviado
         const updateData = {};
-        if (data.description) updateData.description = data.description;
+        let changes = [];
+
+        // Verificando e registrando alterações no campo 'description'
+        if (data.description && data.description !== companion.description) {
+            updateData.description = data.description;
+            changes.push(`Descrição alterada de "${companion.description}" para "${data.description}"`);
+        }
+
+        // Verificando e registrando alterações nos 'atendimentos'
+        if (data.atendimentos && JSON.stringify(data.atendimentos) !== JSON.stringify(companion.atendimentos)) {
+            updateData.atendimentos = data.atendimentos;
+            changes.push(`Atendimentos alterados para: ${data.atendimentos.join(', ')}`);
+        }
 
         if (Object.keys(updateData).length > 0) {
             await prisma.companion.update({
@@ -270,8 +283,10 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                 data: updateData,
             });
 
-            await logActivity(companion.id, "Atualização de Perfil", "Acompanhante atualizou sua descrição.");
-            
+            // Registrar no log as alterações feitas
+            const changeLog = changes.join(', ');
+            await logActivity(companion.id, "Atualização de Perfil", `Acompanhante atualizou o perfil. Alterações: ${changeLog}`);
+
             return res.status(200).json({ message: "Perfil atualizado com sucesso." });
         }
 
@@ -296,7 +311,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
                 media: {
                     where: { mediaType: "VIDEO" },
                     select: { id: true, url: true, createdAt: true }
-                }
+                },
             }
         });
 
@@ -311,7 +326,8 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
             age: companion.age,
             description: companion.description, // Description vem da tabela `companion`
             characteristics: companion.PhysicalCharacteristics || null, // Garante que os dados vêm corretamente
-            video: companion.media.length > 0 ? companion.media[0] : null
+            video: companion.media.length > 0 ? companion.media[0] : null,
+            atendimentos: companion.atendimentos,
         };
 
         return res.status(200).json(response);
@@ -355,10 +371,10 @@ exports.updateCompanionContact = async (req, res) => {
             },
         });
 
-        await logActivity(companion.id, "Atualização de Contato", 
+        await logActivity(companion.id, "Atualização de Contato",
             `Acompanhante atualizou seus contatos: ${whatsappNumber ? `WhatsApp: ${whatsappNumber}` : ""} ${telegramUsername ? `Telegram: ${telegramUsername}` : ""} ${phoneNumber ? `Telefone: ${phoneNumber}` : ""}`
         );
-        
+
 
         return res
             .status(200)
@@ -473,10 +489,10 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
             }
         }
 
-        await logActivity(companion.id, "Atualização de Serviços e Preços", 
+        await logActivity(companion.id, "Atualização de Serviços e Preços",
             `Acompanhante atualizou os serviços oferecidos e preços: ${services.map(s => `${s.name} - R$${s.price ?? "Não definido"}`).join(", ")}`
         );
-        
+
         return res.status(200).json({ message: "Serviços e preços atualizados com sucesso." });
 
     } catch (error) {
@@ -601,10 +617,10 @@ exports.updateWeeklySchedule = async (req, res) => {
         });
 
         // Criar descrição detalhada das mudanças
-        const addedSchedules = updatedSchedules.filter(updated => 
+        const addedSchedules = updatedSchedules.filter(updated =>
             !oldSchedules.some(old => old.dayOfWeek === updated.dayOfWeek)
         );
-        const removedSchedules = oldSchedules.filter(old => 
+        const removedSchedules = oldSchedules.filter(old =>
             !updatedSchedules.some(updated => updated.dayOfWeek === old.dayOfWeek)
         );
 
@@ -617,10 +633,10 @@ exports.updateWeeklySchedule = async (req, res) => {
         }
 
         // Log detalhado das mudanças
-        await logActivity(companion.id, "Atualização de Horários", 
+        await logActivity(companion.id, "Atualização de Horários",
             `Acompanhante atualizou seus horários semanais: ${scheduleUpdateDescription}`
         );
-        
+
         return res.status(200).json({ message: 'Horários semanais atualizados com sucesso.' });
     } catch (error) {
         console.error('Erro ao atualizar horários semanais:', error);
@@ -687,9 +703,9 @@ exports.updateUnavailableDates = async (req, res) => {
 
         await prisma.unavailableDates.createMany({ data: datesData });
 
-        await logActivity(companion.id, "Atualização de Indisponibilidade", 
+        await logActivity(companion.id, "Atualização de Indisponibilidade",
             `Acompanhante atualizou seus dias indisponíveis para: ${unavailableDates.join(", ")}`
-        );        
+        );
 
         return res.status(200).json({ message: 'Datas indisponíveis atualizadas com sucesso.' });
     } catch (error) {
@@ -862,10 +878,10 @@ exports.updateLocationManagement = async (req, res) => {
         }
 
         // Log detalhado das mudanças
-        await logActivity(companion.id, "Atualização de Localização", 
+        await logActivity(companion.id, "Atualização de Localização",
             `Acompanhante atualizou a cidade para ${city}, estado para ${state}. ${locationUpdateDescription} ${amenitiesUpdateDescription}`
         );
-        
+
         return res.status(200).json({ message: 'Localização, locais atendidos e comodidades atualizados com sucesso.' });
 
     } catch (error) {
