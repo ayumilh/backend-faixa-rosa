@@ -241,6 +241,27 @@ exports.searchCompanionProfile = async (req, res) => {
 };
 
 
+// Listar todos os posts
+exports.listFeedPosts = async (req, res) => {
+    const { userName } = req.query;
+
+    const companion = await prisma.companion.findFirst({ where: { userName } });
+    if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
+
+    try {
+        const posts = await prisma.feedPost.findMany({
+            where: { companionId: companion.id },
+            include: {
+                companion: { select: { name: true, city: true, state: true } },
+            },
+        });
+
+        return res.status(200).json(posts);
+    } catch (error) {
+        return res.status(500).json({ error: 'Erro ao listar posts do feed.' });
+    }
+};
+
 // Função para calcular a idade com base na data de nascimento
 function calculateAge(birthDate) {
     const today = new Date();

@@ -47,7 +47,18 @@ exports.createFeedPost = async (req, res) => {
 // Listar todos os posts
 exports.listFeedPosts = async (req, res) => {
     try {
+        const userId = req.user?.id;  // Recupera o userId do usuário autenticado
+
+        if (!userId) {
+            return res.status(400).json({ error: 'Usuário não autenticado.' });
+        }
+
+        const companion = await prisma.companion.findFirst({ where: { userId } });
+        if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
+
         const posts = await prisma.feedPost.findMany({
+            where: { companionId: companion.id,  // Filtra os posts pelo id do acompanhante
+            },
             include: {
                 companion: { select: { name: true, city: true, state: true } },
             },
@@ -58,6 +69,7 @@ exports.listFeedPosts = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao listar posts do feed.' });
     }
 };
+
 
 // Deletar um post do feed
 exports.deleteFeedPost = async (req, res) => {
