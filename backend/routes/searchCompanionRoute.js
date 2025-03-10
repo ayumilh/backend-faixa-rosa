@@ -3,7 +3,7 @@ const router = express.Router();
 const { searchCompanionCity, searchCompanionProfile, listFeedPosts } = require("../controllers/searchCompanionController.js");
 
 // busca das acompanhantes por cidade
-router.get("/companion-city", searchCompanionCity);
+router.get("/companion", searchCompanionCity);
 
 router.get("/profile", searchCompanionProfile);
 

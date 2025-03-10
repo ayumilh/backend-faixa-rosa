@@ -6,33 +6,26 @@ exports.searchCompanionCity = async (req, res) => {
         // Recebendo os parâmetros da query
         let { cidade, estado } = req.query;
 
-        if (!cidade || !estado) {
-            return res.status(400).json({ error: "Cidade e estado são obrigatórios" });
+        // Montando os filtros dinamicamente com base na presença dos parâmetros
+        const filters = {};
+        
+        if (cidade) {
+            filters.city = {
+                equals: cidade.trim().toLowerCase(),
+                mode: "insensitive",
+            };
         }
-
-        // Removendo espaços extras e normalizando strings
-        cidade = cidade.trim().toLowerCase();
-        estado = estado.trim().toUpperCase();
+        
+        if (estado) {
+            filters.state = {
+                equals: estado.trim().toUpperCase(),
+                mode: "insensitive",
+            };
+        }
 
         // Buscando acompanhantes na cidade e estado especificados
         const acompanhantes = await prisma.companion.findMany({
-            where: {
-                AND: [
-                    {
-                        city: {
-                            equals: cidade,
-                            mode: "insensitive",
-                        }
-                    },
-                    {
-                        state: {
-                            equals: estado,
-                            mode: "insensitive"
-                        }
-                    },
-                    // { profileStatus: "ACTIVE" }
-                ]
-            },
+            where: filters,
             select: {
                 id: true,
                 userName: true,
@@ -60,21 +53,119 @@ exports.searchCompanionCity = async (req, res) => {
                     },
                     take: 1, // Retorna apenas a primeira mídia
                 },
-                plan: {  // Trazendo informações sobre o plano do acompanhante
+                plan: {
                     select: {
-                        id: true,
-                        name: true,
-                        price: true,
-                        description: true,
+                      id: true,
+                      name: true,
+                      price: true,
+                      description: true,
+                      planType: {
+                        select: {
+                          id: true,
+                          name: true,
+                          size: true,
+                        },
+                      },
                     },
-                },
-                planType: {  // Trazendo informações sobre o tipo de plano
-                    select: {
-                        id: true,
-                        name: true,
-                        size: true,
-                    },
-                },
+                  }
+
+                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  
             },
         });
 

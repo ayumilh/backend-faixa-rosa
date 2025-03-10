@@ -101,8 +101,15 @@ async function seedPlanTypes() {
     // Inserir no banco de dados
     const plans = await prisma.plan.findMany(); 
 
+    const mapping = {
+        "Plano Rubi": "Plano Rubi",
+        "Plano Safira": "Plano Safira",
+        "Plano Pink": "Plano Pink",
+        "Plano Vip": "Plano Vip"
+      };
+
     for (const planType of planTypes) {
-        const plan = plans.find((p) => p.name.includes(planType.name));
+        const plan = plans.find((p) => p.name === mapping[planType.name]);
 
         if (plan) {
             await prisma.planType.upsert({
