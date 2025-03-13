@@ -16,7 +16,7 @@ const userSchema = Joi.object({
     password: Joi.string().max(64).optional(),
     birthDate: Joi.date().iso().optional(),
     cpf: Joi.string().length(11).optional(),
-    phone: Joi.string().length(11).optional(),
+    phone: Joi.string().length(15).optional(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
         .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA', 'ADMIN')
@@ -141,6 +141,9 @@ exports.login = async (req, res) => {
 
         let user = await prisma.user.findUnique({
             where: { email },
+            include: {
+                companion: true, // Inclui o companion se existir
+            },
         });
 
         if (!user) {
@@ -210,6 +213,22 @@ exports.login = async (req, res) => {
             sameSite: "strict",
             maxAge: 24 * 60 * 60 * 1000,
         });
+
+        res.cookie("userInfo", JSON.stringify({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            userType: user.userType,
+            userName: userName,
+            companion: user.companion,
+        }), {
+            httpOnly: false, // Permitir acesso ao cookie no front-end
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 24 * 60 * 60 * 1000, // 1 dia
+        });
+
 
         console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
 

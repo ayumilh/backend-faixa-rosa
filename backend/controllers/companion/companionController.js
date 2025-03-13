@@ -1,9 +1,9 @@
 const { PrismaClient, LocationType } = require('@prisma/client');
 const prisma = new PrismaClient();
 const Joi = require('joi');
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { logActivity } = require("../../utils/activityService");
-const { uploadSingleVideo, uploadDocuments, wasabiS3, bucketName } = require("../../config/wasabi");
+const { uploadSingleVideo, uploadProfileAndBanner, uploadDocuments, wasabiS3, bucketName } = require("../../config/wasabi");
 
 // Listar todos os acompanhantes
 exports.listCompanions = async (req, res) => {
@@ -76,12 +76,58 @@ exports.updateCompanion = async (req, res) => {
     }
 };
 
-// Controller para atualizar as imagens
+
+const checkFileExists = async (imageKey) => {
+    try {
+        console.log(`Verificando a existência do arquivo com a chave: ${imageKey}`);
+        const data = await wasabiS3.send(new HeadObjectCommand({
+            Bucket: process.env.WASABI_BUCKET, // Nome do seu bucket
+            Key: imageKey, // Caminho completo do arquivo dentro do bucket (chave)
+        }));
+        return data; // Arquivo existe
+    } catch (err) {
+        console.error("Erro ao verificar arquivo:", err);
+        if (err.name === "NotFound") {
+            console.log("Arquivo não encontrado.");
+        }
+        return null; // Arquivo não encontrado
+    }
+};
+
+// Função para excluir imagens antigas do Wasabi
+const deleteImageFromWasabi = async (imageUrl) => {
+    // Extrair a chave do arquivo da URL
+    const imageKey = imageUrl.replace("https://s3.us-central-1.wasabisys.com/", "");
+
+    if (imageKey) {
+        try {
+            console.log(`Verificando a existência do arquivo ${imageKey} antes de deletá-lo.`);
+            // Verificar se o arquivo realmente existe antes de deletar
+            const fileExists = await checkFileExists(imageKey);
+            if (fileExists) {
+                console.log(`Deletando imagem do bucket ${process.env.WASABI_BUCKET} com chave ${imageKey}`);
+                await wasabiS3.send(new DeleteObjectCommand({
+                    Bucket: process.env.WASABI_BUCKET,
+                    Key: imageKey,
+                }));
+                console.log(`Imagem removida: ${imageKey}`);
+            } else {
+                console.log(`Arquivo não encontrado, não será deletado: ${imageKey}`);
+            }
+        } catch (deleteError) {
+            console.error("Erro ao deletar imagem:", deleteError);
+            throw new Error("Erro ao excluir a imagem.");
+        }
+    } else {
+        console.error("Erro: A chave do arquivo não está definida corretamente.");
+    }
+};
+
 exports.updateProfileAndBanner = async (req, res) => {
     try {
-        // Obtenha o companionId a partir da autenticação
         const userId = req.user?.id;
 
+        // Buscar o companion baseado no userId
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
         if (!companion) {
@@ -89,10 +135,10 @@ exports.updateProfileAndBanner = async (req, res) => {
         }
 
         // Pegar as URLs dos arquivos que o multerS3 retornou
-        // Por padrão, o multer-s3 retorna em req.files[<nomeCampo>][0].location
-        // se estiver usando a lib v2 do AWS, é .location; se for v3 do AWS-SDK, permanece .location (multer-s3 abstrai)
         let profileImageUrl = null;
         let bannerImageUrl = null;
+        let oldProfileImageUrl = companion.profileImage;
+        let oldBannerImageUrl = companion.bannerImage;
 
         if (req.files.profileImage) {
             profileImageUrl = req.files.profileImage[0].location;
@@ -101,15 +147,42 @@ exports.updateProfileAndBanner = async (req, res) => {
             bannerImageUrl = req.files.bannerImage[0].location;
         }
 
-        // Atualiza no banco
+        // Verifique se o nome do bucket está correto
+        const bucketName = process.env.WASABI_BUCKET;
+        if (!bucketName) {
+            console.error("Erro: O nome do bucket não está configurado corretamente.");
+            return res.status(500).json({ error: "Nome do bucket não configurado corretamente." });
+        }
+
+        // Deletar imagens antigas, se forem diferentes da nova imagem
+        if (oldProfileImageUrl && oldProfileImageUrl !== profileImageUrl) {
+            console.log(`Deletando imagem antiga de perfil: ${oldProfileImageUrl}`);
+            await deleteImageFromWasabi(oldProfileImageUrl);  // Deletar o arquivo antigo de perfil
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: { profileImage: null }, // Remover a referência da imagem antiga
+            });
+        }
+
+        if (oldBannerImageUrl && oldBannerImageUrl !== bannerImageUrl) {
+            console.log(`Deletando imagem antiga de banner: ${oldBannerImageUrl}`);
+            await deleteImageFromWasabi(oldBannerImageUrl);  // Deletar o arquivo antigo de banner
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: { bannerImage: null }, // Remover a referência da imagem antiga
+            });
+        }
+
+        // Atualiza no banco de dados as imagens de perfil e banner
         const updatedCompanion = await prisma.companion.update({
             where: { id: companion.id },
             data: {
-                profileImage: profileImageUrl || undefined,
-                bannerImage: bannerImageUrl || undefined,
+                profileImage: profileImageUrl || oldProfileImageUrl,  // Não remover a imagem de perfil se não houver uma nova
+                bannerImage: bannerImageUrl || oldBannerImageUrl,   // Não remover a imagem de banner se não houver uma nova
             },
         });
 
+        // Registrar a atividade de atualização de imagens (opcional)
         await logActivity(companion.id, "Atualização de Imagens", "Acompanhante atualizou suas imagens de perfil e banner.");
 
         return res.status(200).json({
@@ -121,6 +194,40 @@ exports.updateProfileAndBanner = async (req, res) => {
         return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
     }
 };
+
+
+
+exports.getCompanionMedia = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+
+        // Buscar o acompanhante baseado no userId
+        const companion = await prisma.companion.findUnique({
+            where: { userId },
+            include: {
+                documents: true,
+            },
+        });
+
+        if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
+
+        // Verificar se os documentos foram aprovados
+        const documentsValidated = companion.documents.every(doc => doc.documentStatus === 'APPROVED');
+
+        // Coletar as URLs das imagens e indicar se os documentos estão validados
+        const media = {
+            profileImage: companion.profileImage, // URL da imagem de perfil
+            bannerImage: companion.bannerImage,   // URL da imagem de banner
+            documentsValidated: documentsValidated, // True se todos os documentos estiverem aprovados
+        };
+
+        return res.status(200).json({ media });
+    } catch (error) {
+        console.error("Erro ao obter mídia do acompanhante:", error);
+        return res.status(500).json({ error: "Erro interno ao obter a mídia." });
+    }
+};
+
 
 // Atualizar descrição do perfil
 exports.updateCompanionDescriptionProfile = async (req, res) => {

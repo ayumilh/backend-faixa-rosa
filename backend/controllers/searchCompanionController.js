@@ -8,14 +8,14 @@ exports.searchCompanionCity = async (req, res) => {
 
         // Montando os filtros dinamicamente com base na presença dos parâmetros
         const filters = {};
-        
+
         if (cidade) {
             filters.city = {
                 equals: cidade.trim().toLowerCase(),
                 mode: "insensitive",
             };
         }
-        
+
         if (estado) {
             filters.state = {
                 equals: estado.trim().toUpperCase(),
@@ -55,117 +55,44 @@ exports.searchCompanionCity = async (req, res) => {
                 },
                 plan: {
                     select: {
-                      id: true,
-                      name: true,
-                      price: true,
-                      description: true,
-                      planType: {
-                        select: {
-                          id: true,
-                          name: true,
-                          size: true,
+                        id: true,
+                        name: true,
+                        price: true,
+                        description: true,
+                        planType: {
+                            select: {
+                                id: true,
+                                name: true,
+                                size: true
+                            }
+                        }
+                    }
+                },
+                subscriptions: {
+                    select: {
+                        id: true,
+                        extraPlan: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true,
+                                hasContact: true,
+                                canHideAge: true,
+                                hasStories: true,
+                                hasPublicReviews: true,
+                                isEnabled: true
+                            },
                         },
-                      },
+                        endDate: true
                     },
-                  }
-
-                  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                  
+                    where: {
+                        endDate: null,
+                        extraPlan: {
+                            // Usando isNot para garantir que extraPlan não seja null
+                            isNot: null
+                        }
+                    }
+                },
             },
         });
 
@@ -189,7 +116,7 @@ exports.searchCompanionCity = async (req, res) => {
         console.error("Erro ao buscar acompanhantes:", error);
         return res.status(500).json({ error: "Erro interno do servidor" });
     }
-}
+};
 
 
 exports.searchCompanionProfile = async (req, res) => {

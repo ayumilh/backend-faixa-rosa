@@ -3,6 +3,7 @@ const {
     updateCompanion,
     updateCompanionDescriptionProfile,
     updateProfileAndBanner,
+    getCompanionMedia,
     getCompanionDescriptionProfile,
     updateCompanionContact,
     getCompanionContact,
@@ -29,6 +30,8 @@ router.delete('/delete/:id', deleteCompanion);
 router.put('/update', updateCompanion);
 
 router.post("/profile-banner/update", uploadProfileAndBanner, updateProfileAndBanner );
+router.get("/profile-banner/", uploadProfileAndBanner, getCompanionMedia );
+
 
 router.post("/description/update", uploadSingleVideo, updateCompanionDescriptionProfile);
 router.get('/description/', uploadSingleVideo, getCompanionDescriptionProfile);
