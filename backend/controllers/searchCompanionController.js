@@ -4,7 +4,75 @@ const prisma = new PrismaClient();
 exports.searchCompanionCity = async (req, res) => {
     try {
         // Recebendo os parâmetros da query
-        let { cidade, estado } = req.query;
+        let { cidade, estado, userName, planos } = req.query;
+
+        // Caso o parâmetro planos seja true, vamos buscar apenas os planos
+        if (planos === "true") {
+            if (!userName) {
+                return res.status(400).json({ error: "O parâmetro userName é obrigatório quando 'planos=true'." });
+            }
+
+            // Buscar o companion pelo userName
+            const companion = await prisma.companion.findUnique({
+                where: { userName: userName.trim() },
+                select: {
+                    id: true,
+                    userName: true,
+                    isAgeHidden: true,
+                    plan: {
+                        select: {
+                            id: true,
+                            name: true,
+                            price: true,
+                            description: true,
+                            planType: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    size: true,
+                                },
+                            },
+                        },
+                    },
+                    subscriptions: {
+                        select: {
+                            id: true,
+                            extraPlan: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    description: true,
+                                    hasContact: true,
+                                    canHideAge: true,
+                                    hasStories: true,
+                                    hasPublicReviews: true,
+                                    isEnabled: true,
+                                },
+                            },
+                            endDate: true,
+                        },
+                        where: {
+                            endDate: null, // Garante que planos desativados (com endDate) não apareçam
+                            extraPlan: {
+                                // Usando isNot para garantir que extraPlan não seja null
+                                isNot: null,
+                            },
+                        },
+                    },
+                },
+            });
+
+            // Verifica se o acompanhante foi encontrado e possui planos
+            if (!companion || !companion.plan) {
+                return res.status(404).json({ error: "Nenhum plano encontrado para o usuário especificado." });
+            }
+
+            // Retorna os planos do acompanhante
+            return res.status(200).json({
+                plan: companion.plan,
+                subscriptions: companion.subscriptions,
+            });
+        }
 
         // Montando os filtros dinamicamente com base na presença dos parâmetros
         const filters = {};
@@ -23,13 +91,38 @@ exports.searchCompanionCity = async (req, res) => {
             };
         }
 
+        if (userName) {
+            filters.userName = {
+                equals: userName.trim(),
+                mode: "insensitive",
+            };
+        }
+
+        // Verifica se a consulta inclui planos
+        let extraPlanFilters = {};
+        if (planos === "true") {
+            extraPlanFilters = {
+                subscriptions: {
+                    some: {
+                        extraPlan: {
+                            isEnabled: true,
+                        },
+                    },
+                },
+            };
+        }
+
         // Buscando acompanhantes na cidade e estado especificados
         const acompanhantes = await prisma.companion.findMany({
-            where: filters,
+            where: {
+                ...filters,
+                ...extraPlanFilters,
+            },
             select: {
                 id: true,
                 userName: true,
                 age: true,
+                isAgeHidden: true,
                 city: true,
                 state: true,
                 description: true,
@@ -38,6 +131,7 @@ exports.searchCompanionCity = async (req, res) => {
                 profileStatus: true,
                 atendimentos: true,
                 profileImage: true,
+                bannerImage: true,
                 user: {
                     select: {
                         id: true,
@@ -63,10 +157,10 @@ exports.searchCompanionCity = async (req, res) => {
                             select: {
                                 id: true,
                                 name: true,
-                                size: true
-                            }
-                        }
-                    }
+                                size: true,
+                            },
+                        },
+                    },
                 },
                 subscriptions: {
                     select: {
@@ -80,18 +174,18 @@ exports.searchCompanionCity = async (req, res) => {
                                 canHideAge: true,
                                 hasStories: true,
                                 hasPublicReviews: true,
-                                isEnabled: true
+                                isEnabled: true,
                             },
                         },
-                        endDate: true
+                        endDate: true,
                     },
                     where: {
                         endDate: null,
                         extraPlan: {
                             // Usando isNot para garantir que extraPlan não seja null
-                            isNot: null
-                        }
-                    }
+                            isNot: null,
+                        },
+                    },
                 },
             },
         });

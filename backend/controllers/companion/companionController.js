@@ -257,6 +257,8 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             smoker: Joi.boolean().truthy("true").falsy("false").default(false),
             hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
             atendimentos: Joi.array().items(Joi.string().valid('HOMENS', 'MULHERES', 'CASAIS', 'DEFICIENTES_FISICOS')).allow(null),
+            userName: Joi.string().allow(null, "").optional(),
+            canHideAge: Joi.boolean().optional(),
         });
 
         const { error, value } = schema.validate(data, { convert: true });
@@ -271,12 +273,29 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                     where: { mediaType: "VIDEO" },
                     select: { id: true, url: true }
                 },
-                PhysicalCharacteristics: true
+                PhysicalCharacteristics: true,
+                subscriptions: {
+                    where: { isExtra: true, endDate: null }, // Apenas planos extras ativos
+                    include: {
+                        extraPlan: true,  // Inclui os detalhes do plano extra
+                    }
+                },
             }
         });
 
         if (!companion) {
             return res.status(404).json({ error: "Acompanhante não encontrada." });
+        }
+
+        // Alterando a visibilidade da idade conforme o valor de `canHideAge`
+        if (data.canHideAge !== undefined) {
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: {
+                    isAgeHidden: data.canHideAge,
+                },
+            });
+            await logActivity(companion.id, "Atualização de Perfil", `Acompanhante atualizou a visibilidade da idade para ${data.canHideAge ? "ocultar" : "exibir"}.`);
         }
 
         let videoUrl = null;
@@ -344,7 +363,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             });
         }
 
-        // Atualiza os dados físicos apenas se forem enviados
+        // Atualiza os dados físicos e demais dados do acompanhante (se necessário)
         const physicalData = {
             gender: value.gender ?? companion.PhysicalCharacteristics?.gender ?? null,
             genitalia: value.genitalia ?? companion.PhysicalCharacteristics?.genitalia ?? null,
@@ -368,36 +387,38 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             create: { ...physicalData, companionId: companion.id },
         });
 
-        // Atualiza apenas os dados da acompanhante se for enviado
-        const updateData = {};
-        let changes = [];
+        let changesSummary = [];
 
         // Verificando e registrando alterações no campo 'description'
         if (data.description && data.description !== companion.description) {
-            updateData.description = data.description;
-            changes.push(`Descrição alterada de "${companion.description}" para "${data.description}"`);
+            changesSummary.push(`Descrição alterada de "${companion.description}" para "${data.description}"`);
         }
 
         // Verificando e registrando alterações nos 'atendimentos'
         if (data.atendimentos && JSON.stringify(data.atendimentos) !== JSON.stringify(companion.atendimentos)) {
-            updateData.atendimentos = data.atendimentos;
-            changes.push(`Atendimentos alterados para: ${data.atendimentos.join(', ')}`);
+            changesSummary.push(`Atendimentos alterados para: ${data.atendimentos.join(', ')}`);
         }
 
-        if (Object.keys(updateData).length > 0) {
+        // Verificando e registrando alterações no 'userName'
+        if (data.userName && data.userName !== companion.userName) {
+            changesSummary.push(`Nome de usuário alterado de "${companion.userName}" para "${data.userName}"`);
+        }
+
+        // Atualiza o perfil do acompanhante
+        if (changesSummary.length > 0) {
             await prisma.companion.update({
                 where: { id: companion.id },
-                data: updateData,
+                data: {
+                    description: data.description ?? companion.description,
+                    atendimentos: data.atendimentos ?? companion.atendimentos,
+                    userName: data.userName ?? companion.userName,
+                },
             });
 
             // Registrar no log as alterações feitas
-            const changeLog = changes.join(', ');
-            await logActivity(companion.id, "Atualização de Perfil", `Acompanhante atualizou o perfil. Alterações: ${changeLog}`);
-
+            await logActivity(companion.id, "Atualização de Perfil", `Acompanhante atualizou o perfil. Alterações: ${changesSummary.join(', ')}`);
             return res.status(200).json({ message: "Perfil atualizado com sucesso." });
         }
-
-        await logActivity(companion.id, "Atualização de Perfil", "Nenhuma alteração necessária.");
 
         return res.status(200).json({ message: "Nenhuma alteração necessária." });
 
@@ -406,6 +427,8 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
+
+
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -430,6 +453,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
         const response = {
             id: companion.id,
             name: companion.name,
+            userName: companion.userName,
             age: companion.age,
             description: companion.description, // Description vem da tabela `companion`
             characteristics: companion.PhysicalCharacteristics || null, // Garante que os dados vêm corretamente
