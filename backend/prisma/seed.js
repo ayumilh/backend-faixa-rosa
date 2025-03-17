@@ -4,24 +4,28 @@ const prisma = new PrismaClient();
 async function seedPlan() {
     const plans = [
         {
+            id: 1,
             name: 'Plano Rubi',
             price: 327.90,
             description: 'Seu anúncio em tamanho grande. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana. Acesso aos stories. Acesso ao convênio. +2000 pontos de listagem.',
             isBasic: true,
         },
         {
+            id: 2,
             name: 'Plano Safira',
             price: 287.90,
             description: 'Seu anúncio em tamanho médio. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana. Acesso aos stories. Acesso ao convênio. +1000 pontos de listagem.',
             isBasic: true,
         },
         {
+            id: 3,
             name: 'Plano Pink',
             price: 227.90,
             description: 'Seu anúncio em tamanho padrão. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana. Acesso aos stories. Acesso ao convênio. +500 pontos de listagem.',
             isBasic: true,
         },
         {
+            id: 4,
             name: 'Plano Vip',
             price: 169.90,
             description: 'Tenha até 10 fotos e 4 vídeos exclusivos. Anúncio online todos os dias da semana. Prioridade no suporte Faixa Rosa. Sem convênio. Sem stories. +300 pontos de listagem.',
@@ -35,6 +39,7 @@ async function seedPlan() {
             where: { name: plan.name },
             update: {},
             create: {
+                id: plan.id,
                 name: plan.name,
                 price: plan.price,
                 description: plan.description,
@@ -49,6 +54,7 @@ async function seedPlan() {
 async function seedPlanTypes() {
     const planTypes = [
         {
+            id: 4,
             name: 'Plano Vip',
             size: 'Pequeno',
             isOnline: true,
@@ -56,11 +62,10 @@ async function seedPlanTypes() {
             accessMetrics: true,
             accessConvenio: false,
             points: 300,
-            cityChangeAllowed: true,
-            cityChangeFee: 50.0,
             isDarkMode: false,
         },
         {
+            id: 3,
             name: 'Plano Pink',
             size: 'Padrão',
             isOnline: true,
@@ -68,11 +73,10 @@ async function seedPlanTypes() {
             accessMetrics: true,
             accessConvenio: true,
             points: 500,
-            cityChangeAllowed: true,
-            cityChangeFee: 50.0,
             isDarkMode: false,
         },
         {
+            id: 2,
             name: 'Plano Safira',
             size: 'Médio',
             isOnline: true,
@@ -80,11 +84,10 @@ async function seedPlanTypes() {
             accessMetrics: true,
             accessConvenio: true,
             points: 1000,
-            cityChangeAllowed: true,
-            cityChangeFee: 30.0,
             isDarkMode: false,
         },
         {
+            id: 1,
             name: 'Plano Rubi',
             size: 'Grande',
             isOnline: true,
@@ -92,39 +95,45 @@ async function seedPlanTypes() {
             accessMetrics: true,
             accessConvenio: true,
             points: 2000,
-            cityChangeAllowed: true,
-            cityChangeFee: 20.0,
             isDarkMode: false,
         },
     ];
 
     // Inserir no banco de dados
-    const plans = await prisma.plan.findMany(); 
+    const plans = await prisma.plan.findMany();
 
     const mapping = {
         "Plano Rubi": "Plano Rubi",
         "Plano Safira": "Plano Safira",
         "Plano Pink": "Plano Pink",
         "Plano Vip": "Plano Vip"
-      };
+    };
 
     for (const planType of planTypes) {
         const plan = plans.find((p) => p.name === mapping[planType.name]);
 
         if (plan) {
             await prisma.planType.upsert({
-                where: { name: planType.name },
+                where: { id: planType.id },
                 update: {},
                 create: {
-                    ...planType,
-                    plans: { connect: { id: plan.id } }, 
+                    id: planType.id, // Atribuindo o ID manualmente
+                    name: planType.name,
+                    size: planType.size,
+                    isOnline: planType.isOnline,
+                    accessDashboard: planType.accessDashboard,
+                    accessMetrics: planType.accessMetrics,
+                    accessConvenio: planType.accessConvenio,
+                    points: planType.points,
+                    isDarkMode: planType.isDarkMode,
+                    plans: { connect: { id: plan.id } },
                 },
             });
         } else {
-            console.error(`⚠️ Erro: Plano correspondente a ${planType.name} não encontrado.`);
+            console.error(`Erro: Plano correspondente a ${planType.name} não encontrado.`);
         }
     }
-    
+
 
     console.log('Seed concluído: Tipos de planos inseridos com sucesso!');
 }
@@ -132,6 +141,7 @@ async function seedPlanTypes() {
 async function seedPlansAndExtras() {
     const extraPlans = [
         {
+            id: 6, // Definir ID manualmente
             name: 'Plano Nitro',
             price: 6.90,
             description: 'Anúncio em posição de destaque (Por uma hora). Todos os benefícios de outros planos (Por uma hora). Opção de stories (Por uma hora). Sem convênio. +4000 pontos de listagem (Por uma hora).',
@@ -139,7 +149,6 @@ async function seedPlansAndExtras() {
                 isTemporary: true,
                 duration: 60,
                 pointsBonus: 4000,
-                tempPoints: 4000,
                 isEnabled: true,
                 hasContact: false,
                 canHideAge: false,
@@ -149,12 +158,12 @@ async function seedPlansAndExtras() {
             },
         },
         {
+            id: 7, // Definir ID manualmente
             name: 'Contato',
             price: 83.60,
             description: 'Até 1.5x mais visitas e 2 mais contatos de clientes que outros perfis da sua cidade. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana.',
             extraDetails: {
                 pointsBonus: 200,
-                tempPoints: 0,
                 hasContact: true,
                 hasStories: false,
                 hasDarkMode: false,
@@ -166,46 +175,29 @@ async function seedPlansAndExtras() {
             },
         },
         {
+            id: 8, // Definir ID manualmente
             name: 'Oculto',
             price: 99.90,
             description: 'Esconda sua idade no Faixa Rosa. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana.',
             extraDetails: {
-                pointsBonus: 100,  // Pontos de destaque
-                tempPoints: 0,    // Pontos de destaque temporário
-                isTemporary: false,       // Destaque temporário
-                hasContact: false,        // Contato
-                canHideAge: true,         // Ocultar idade
-                hasPublicReviews: false,  // Reviews públicos
-                hasDarkMode: false,       // Modo escuro
-                hasStories: false,        // Stories
-                duration: null,           // Duração do destaque temporário
-                isEnabled: true,           // Habilitado
-            },
-        },
-        {
-            name: 'Troca de Cidade',
-            price: 80.00,
-            description: 'Troque de cidade facilmente. Anúncio online na nova cidade.',
-            extraDetails: {
-                pointsBonus: 0,
-                tempPoints: 0,
+                pointsBonus: 100,
                 isTemporary: false,
                 hasContact: false,
-                hasStories: false,
-                hasDarkMode: false,
-                canHideAge: false,
+                canHideAge: true,
                 hasPublicReviews: false,
+                hasDarkMode: false,
+                hasStories: false,
                 duration: null,
                 isEnabled: true,
             },
         },
         {
+            id: 9, // Definir ID manualmente
             name: 'Reviews Públicos',
             price: 314.91,
             description: 'Deixe que os contratantes leiam seus reviews. Prioridade no suporte Faixa Rosa. Anúncio online todos os dias da semana.',
             extraDetails: {
                 pointsBonus: 800,
-                tempPoints: 0,
                 hasContact: false,
                 hasStories: false,
                 hasDarkMode: false,
@@ -217,12 +209,12 @@ async function seedPlansAndExtras() {
             },
         },
         {
+            id: 10, // Definir ID manualmente
             name: 'DarkMode',
             price: 314.91,
             description: 'Anúncio em posição de destaque (Por uma hora). Todos os benefícios de outros planos (Por uma hora).',
             extraDetails: {
                 pointsBonus: 2000,
-                tempPoints: 2000,
                 hasContact: false,
                 hasStories: true,
                 hasDarkMode: true,
@@ -235,47 +227,34 @@ async function seedPlansAndExtras() {
         },
     ];
 
-    // for (const extraPlan of extraPlans) {
-    //     const existingExtraPlan = await prisma.extraPlan.findUnique({
-    //         where: { name: extraPlan.name },
-    //     });
-
-    //     if (!existingExtraPlan) {
-    //         await prisma.extraPlan.create({
-    //             data: {
-    //                 name: extraPlan.name,
-    //                 description: extraPlan.description,
-    //                 ...extraPlan.extraDetails,
-    //             },
-    //         });
-    //         console.log(`Plano extra criado: ${extraPlan.name}`);
-    //     } else {
-    //         console.log(`Plano extra já existe: ${extraPlan.name}`);
-    //     }
-    // }
-
     for (const extraPlan of extraPlans) {
-        // Criar ou atualizar o Plan
-        const plan = await prisma.plan.upsert({
+        // Verificar se o plano principal já existe
+        let plan = await prisma.plan.findUnique({
             where: { name: extraPlan.name },
-            update: {},
-            create: {
-                name: extraPlan.name,
-                price: extraPlan.price,
-                description: extraPlan.description,
-                isBasic: false, // Planos extras não são básicos
-            },
         });
+
+        // Caso o plano principal não exista, criaremos ele
+        if (!plan) {
+            plan = await prisma.plan.create({
+                data: {
+                    id: extraPlan.id, // Definir ID manualmente
+                    name: extraPlan.name,
+                    price: extraPlan.price,
+                    description: extraPlan.description,
+                    isBasic: false, // Planos extras não são básicos
+                },
+            });
+        }
 
         // Criar ou atualizar o ExtraPlan vinculado ao Plan
         await prisma.extraPlan.upsert({
-            where: { name: extraPlan.name },
+            where: { id: extraPlan.id },  // Verificar pelo ID manual
             update: {},
             create: {
+                id: extraPlan.id,  // Definir ID manualmente
                 name: extraPlan.name,
                 description: extraPlan.description,
                 pointsBonus: extraPlan.extraDetails.pointsBonus,
-                tempPoints: extraPlan.extraDetails.tempPoints,
                 isTemporary: extraPlan.extraDetails.isTemporary,
                 duration: extraPlan.extraDetails.duration,
                 isEnabled: extraPlan.extraDetails.isEnabled,
@@ -284,13 +263,15 @@ async function seedPlansAndExtras() {
                 hasPublicReviews: extraPlan.extraDetails.hasPublicReviews,
                 hasDarkMode: extraPlan.extraDetails.hasDarkMode,
                 hasStories: extraPlan.extraDetails.hasStories,
-                plans: { connect: { id: plan.id } }, // Associar ExtraPlan ao Plan
+                plans: { connect: { id: plan.id } },  // Associar ExtraPlan ao Plan
             },
         });
     }
 
     console.log('Seed concluído: Planos extras e funcionalidades inseridos com sucesso!');
 }
+
+
 
 async function seedTimedServices() {
     const services = [
@@ -483,7 +464,7 @@ const seedServicesOffered = async () => {
             name: "Bondage",
             description: "Prática de amarração consensual com cordas para restrição.",
             isOffered: false,
-        },        
+        },
         {
             name: "Quirofilia",
             description: "Excitação sexual causada pelas mãos.",
@@ -524,7 +505,7 @@ async function runAllSeeds() {
     try {
         // await seedPlan();
         // await seedPlanTypes();
-        // await seedPlansAndExtras();
+        await seedPlansAndExtras();
         // await seedTimedServices();
         // await seedAttendedLocations();
         // await seedServicesOffered();

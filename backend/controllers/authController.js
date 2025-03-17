@@ -16,7 +16,7 @@ const userSchema = Joi.object({
     password: Joi.string().max(64).optional(),
     birthDate: Joi.date().iso().optional(),
     cpf: Joi.string().length(11).optional(),
-    phone: Joi.string().length(15).optional(),
+    phone: Joi.string().length(11).optional(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
         .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA', 'ADMIN')

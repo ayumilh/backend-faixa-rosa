@@ -15,22 +15,12 @@ model User {
   password          String?     @default("") @db.VarChar(64)
   birthDate         DateTime?   @db.Date
   cpf               String?     @unique @db.VarChar(11)
-  phone             String?     @default("") @db.VarChar(15)
+  phone             String?     @default("") @db.VarChar(11)
   userType          UserType    @default(CONTRATANTE)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
-  companyName       String?
-  companyAddress    String?
-  companyCity       String?
-  companyState      String?
-  companyBio        String?
-  basePoints        Int         @default(0)
   planId            Int?
-  points            Int         @default(0)
   profileVisibility Boolean     @default(true)
-  rank              Int?
-  temporaryPoints   Int         @default(0)
-  totalPoints       Int         @default(0)
   companion         Companion?
   Contractor        Contractor?
   conveniosCriados  Convenio[]
@@ -52,7 +42,7 @@ model Document {
 }
 
 model PlanType {
-  id                Int         @id @default(autoincrement())
+  id                Int         @id
   name              String      @unique
   size              String
   isOnline          Boolean     @default(true)
@@ -60,8 +50,6 @@ model PlanType {
   accessMetrics     Boolean     @default(false)
   accessConvenio    Boolean     @default(false)
   points            Int         @default(0)
-  cityChangeAllowed Boolean     @default(true)
-  cityChangeFee     Float
   isDarkMode        Boolean     @default(false)
   duration          Int?
   companions        Companion[]
@@ -69,13 +57,12 @@ model PlanType {
 }
 
 model ExtraPlan {
-  id               Int                @id @default(autoincrement())
+  id               Int                @id
   name             String             @unique
   description      String
   isTemporary      Boolean            @default(false)
   duration         Int?
   pointsBonus      Int                @default(0)
-  tempPoints       Int                @default(0)
   isEnabled        Boolean            @default(true)
   hasContact       Boolean            @default(false)
   canHideAge       Boolean            @default(false)
@@ -88,17 +75,17 @@ model ExtraPlan {
 }
 
 model Plan {
-  id                Int                @id @default(autoincrement())
+  id                Int                @id
   name              String             @unique
   price             Float
   description       String?
   isBasic           Boolean            @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  planTypeId        Int?
   Companion         Companion[]
   convenios         Convenio[]
   payments          Payment[]
+  planTypeId        Int?
   planType          PlanType?          @relation(fields: [planTypeId], references: [id])
   planSubscriptions PlanSubscription[]
   extraPlans        ExtraPlan[]        @relation("PlanExtraPlans")
@@ -117,6 +104,12 @@ model PlanSubscription {
   companion   Companion  @relation(fields: [companionId], references: [id], map: "CompanionSubscriptions")
   extraPlan   ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
   plan        Plan?      @relation(fields: [planId], references: [id])
+}
+
+model CityChangeConfig {
+  id                Int      @id @default(autoincrement())
+  value             Float    @default(65.0)
+  updatedAt         DateTime @updatedAt
 }
 
 model Contractor {
@@ -190,7 +183,7 @@ model ContactMethodCompanion {
   whatsappMessage  String?   @db.VarChar(255)
   telegramUsername String?   @db.VarChar(32)
   telegramMessage  String?   @db.VarChar(255)
-  phoneNumber      String?   @db.VarChar(15)
+  phoneNumber      String?   @db.VarChar(11)
   companion        Companion @relation(fields: [companionId], references: [id])
 }
 

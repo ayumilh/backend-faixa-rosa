@@ -1,5 +1,5 @@
 const { mercadoPago } = require("../../config/mercadoPago.js");
-const { Preference, Payment } = require("mercadopago"); 
+const { Preference, Payment } = require("mercadopago");
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -8,16 +8,16 @@ const prisma = new PrismaClient();
 exports.createPayment = async (req, res) => {
     try {
         const userId = req.user?.id;
-        const { planId, amount } = req.body;
+        const { product } = req.body;
 
-        if (!userId || !planId || !amount) {
-            return res.status(400).json({ error: 'Usuário, plano e valor são obrigatórios.' });
+        if (!userId || !product ) {
+            return res.status(400).json({ error: 'Todos os dados são obrigatórios.' });
         }
 
-        const user = await prisma.user.findFirst({ where: { id: userId } });
-        if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        const companion = await prisma.companion.findFirst({ where: { userId } });
+        if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
-        const plan = await prisma.plan.findUnique({ where: { id: planId } });
+        const plan = await prisma.plan.findUnique({ where: { id: product } });
         if (!plan) return res.status(404).json({ error: 'Plano não encontrado.' });
 
         // Criar uma instância de pagamento usando a nova SDK do Mercado Pago
@@ -29,31 +29,35 @@ exports.createPayment = async (req, res) => {
                     {
                         title: plan.name,
                         quantity: 1,
-                        unit_price: amount,
+                        unit_price: plan.price,
                         currency_id: "BRL",
                     },
                 ],
-                payer: {
-                    email: "TESTUSER65026117@testuser.com",
-                },
+                payer: { 
+                    email: 'test_user_65026117@testuser.com',
+                 },
                 back_urls: {
-                    success: "https://www.faixarosa.com/sucesso",
-                    failure: "https://www.faixarosa.com/erro",
-                    pending: "https://www.faixarosa.com/pendente",
+                    success: "https://www.faixarosa.com/planos",
+                    failure: "https://www.faixarosa.com/planos",
+                    pending: "https://www.faixarosa.com/planos",
                 },
                 auto_return: "approved",
                 notification_url: "https://www.faixarosa.com/api/payments/webhooks",
-            }
+                // Adicionar explicitamente o Pix como um método permitido
+                payment_methods: {
+                    excluded_payment_methods: [],
+                },
+            },
         });
 
         // Salvar a transação no banco de dados (status "pendente")
         const payment = await prisma.payment.create({
             data: {
                 userId,
-                planId,
-                amount,
+                planId: product,
+                amount: plan.price,
                 status: "pending",
-                transactionId: preferenceResponse.id, // ID da transação gerado pelo Mercado Pago
+                transactionId: preferenceResponse.id,
             },
         });
 

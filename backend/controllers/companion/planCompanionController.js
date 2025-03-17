@@ -5,11 +5,10 @@ const { logActivity } = require("../../utils/activityService");
 // listar planos
 exports.listPlans = async (req, res) => {
     try {
-        // Busca os planos e suas funcionalidades (relacionadas com planType)
         const plans = await prisma.plan.findMany({
             include: {
-                planType: true,  // Incluir as funcionalidades da tabela planType
-                extraPlans: true, // Incluir os planos extras
+                planType: true,
+                extraPlans: true,
             },
         });
         return res.status(200).json(plans);
@@ -18,7 +17,6 @@ exports.listPlans = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao listar planos' });
     }
 };
-
 
 // listar planos disponíveis
 exports.listAvailablePlanTypes = async (req, res) => {
@@ -84,6 +82,7 @@ exports.listUserPlans = async (req, res) => {
 // assinar plano basico
 exports.subscribeToPlan = async (req, res) => {
     const planId = parseInt(req.query.planId);
+    console.log(planId);
     const userId = req.user?.id;
 
     if (!planId || isNaN(planId)) {
@@ -103,6 +102,7 @@ exports.subscribeToPlan = async (req, res) => {
         // Verifica se o plano existe
         const plan = await prisma.plan.findUnique({
             where: { id: planId },
+            include: { planType: true },
         });
 
         if (!plan) {
@@ -134,6 +134,9 @@ exports.subscribeToPlan = async (req, res) => {
                 data: {
                     planId: plan.id,
                     planTypeId: plan.planTypeId || null,
+                    points: {
+                        increment: plan.planType?.points || 0,
+                    },
                 },
             });
 
@@ -174,6 +177,9 @@ exports.subscribeToPlan = async (req, res) => {
             data: {
                 planId: plan.id,
                 planTypeId: plan.planTypeId || null,
+                points: {
+                    increment: plan.planType?.points || 0,
+                },
             },
         });
 
@@ -215,6 +221,8 @@ exports.createUserPlan = async (req, res) => {
             return res.status(403).json({ error: 'Apenas acompanhantes podem criar planos.' });
         }
 
+        let totalPointsToAdd = 0;
+
         // Verifica se a acompanhante já assinou esse plano básico antes
         const previousPlan = await prisma.planSubscription.findFirst({
             where: {
@@ -236,6 +244,8 @@ exports.createUserPlan = async (req, res) => {
                 },
             });
 
+            totalPointsToAdd += planType.points || 0;
+
             await logActivity(companion.id, "Reativação de Plano", `Acompanhante reativou o plano ${planType.name}.`);
         } else {
             // Cria a assinatura do plano básico se nunca foi assinado antes
@@ -248,6 +258,8 @@ exports.createUserPlan = async (req, res) => {
                     endDate: null,
                 },
             });
+
+            totalPointsToAdd += planType.points || 0;
 
             await logActivity(companion.id, "Assinatura de Plano", `Acompanhante assinou o plano ${planType.name}.`);
         }
@@ -294,10 +306,12 @@ exports.createUserPlan = async (req, res) => {
 
                 const reactivatedExtraPlans = await prisma.extraPlan.findMany({
                     where: { id: { in: toReactivate.map(sub => sub.extraPlanId) } },
-                    select: { name: true },
+                    select: { name: true, pointsBonus: true },
                 });
 
                 const reactivatedExtraList = reactivatedExtraPlans.map(plan => plan.name).join(", ");
+
+                totalPointsToAdd += reactivatedExtraPlans.reduce((total, plan) => total + (plan.pointsBonus || 0), 0);
 
                 await logActivity(companion.id, "Reativação de Planos Extras",
                     `Acompanhante reativou os planos extras: ${reactivatedExtraList}.`);
@@ -317,14 +331,26 @@ exports.createUserPlan = async (req, res) => {
 
                 const newExtraPlans = await prisma.extraPlan.findMany({
                     where: { id: { in: newExtras } },
-                    select: { name: true },
+                    select: { name: true, pointsBonus: true },
                 });
 
                 const newExtraList = newExtraPlans.map(plan => plan.name).join(", ");
 
+                totalPointsToAdd += newExtraPlans.reduce((total, plan) => total + (plan.pointsBonus || 0), 0);
+
                 await logActivity(companion.id, "Assinatura de Planos Extras",
                     `Acompanhante adicionou os planos extras: ${newExtraList}.`);
             }
+        }
+
+        // Atualiza os pontos totais do acompanhante
+        if (totalPointsToAdd > 0) {
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: {
+                    points: { increment: totalPointsToAdd }, // Adiciona os pontos bônus totais
+                },
+            });
         }
 
         return res.status(201).json({
@@ -377,7 +403,7 @@ exports.addUserExtras = async (req, res) => {
         // Verifica se todos os planos extras existem
         const extraPlans = await prisma.extraPlan.findMany({
             where: { id: { in: extras } },
-            select: { id: true, name: true },
+            select: { id: true, name: true, pointsBonus: true },
         });
 
         // Verifica se há planos inválidos
@@ -389,6 +415,8 @@ exports.addUserExtras = async (req, res) => {
                 error: `Os seguintes planos extras não são válidos: ${invalidPlans.join(', ')}`,
             });
         }
+
+        let totalPointsToAdd = 0;
 
         // Reativa planos extras já assinados antes
         if (toReactivateIds.length > 0) {
@@ -405,6 +433,11 @@ exports.addUserExtras = async (req, res) => {
                 .filter(plan => toReactivate.some(sub => sub.extraPlanId === plan.id))
                 .map(plan => plan.name)
                 .join(', ');
+
+            // Soma os pontos bônus dos planos reativados
+            totalPointsToAdd += extraPlans
+                .filter(plan => toReactivate.some(sub => sub.extraPlanId === plan.id))
+                .reduce((total, plan) => total + (plan.pointsBonus || 0), 0);
 
             await logActivity(companion.id, "Reativação de Planos Extras",
                 `Acompanhante reativou os planos extras: ${reactivatedPlanNames}.`);
@@ -427,8 +460,23 @@ exports.addUserExtras = async (req, res) => {
                 .map(plan => plan.name)
                 .join(', ');
 
+            // Adiciona os pontos bônus dos novos planos extras
+            totalPointsToAdd += extraPlans
+                .filter(plan => newSubscriptions.includes(plan.id))
+                .reduce((total, plan) => total + (plan.pointsBonus || 0), 0);
+
             await logActivity(companion.id, "Assinatura de Planos Extras",
                 `Acompanhante adicionou os planos extras: ${newPlanNames}.`);
+        }
+
+        // Atualiza os pontos do acompanhante, somando os pontos totais
+        if (totalPointsToAdd > 0) {
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: {
+                    points: { increment: totalPointsToAdd }, // Adiciona os pontos bônus
+                },
+            });
         }
 
         return res.status(200).json({
@@ -484,10 +532,12 @@ exports.disableExtraPlans = async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                pointsBonus: true,
             },
         });
 
         const planNames = extraPlansDetails.map(plan => plan.name).join(', ');
+        const pointsToRemove = extraPlansDetails.reduce((total, plan) => total + (plan.pointsBonus || 0), 0);
 
         // Desativar os planos extras escolhidos (definir `endDate`)
         await prisma.planSubscription.updateMany({
@@ -495,6 +545,16 @@ exports.disableExtraPlans = async (req, res) => {
                 id: { in: activeExtraPlans.map(plan => plan.id) },
             },
             data: { endDate: new Date() },
+        });
+
+        // Atualiza os pontos do acompanhante, removendo os pontos dos planos extras desativados
+        await prisma.companion.update({
+            where: { id: companion.id },
+            data: {
+                points: {
+                    decrement: pointsToRemove, // Subtrai os pontos correspondentes
+                },
+            },
         });
 
         // Loga a atividade com os nomes dos planos extras desativados
@@ -510,7 +570,6 @@ exports.disableExtraPlans = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar a desativação dos planos extras.' });
     }
 };
-
 
 // desativar assinatura
 exports.disablePlan = async (req, res) => {
@@ -538,12 +597,25 @@ exports.disablePlan = async (req, res) => {
         // Valida manualmente o estado ativo
         if (subscription.endDate !== null) return res.status(400).json({ error: "Assinatura já finalizada." });
 
+        // Recupera os pontos do PlanType associado ao plano
+        const plan = await prisma.plan.findUnique({
+            where: { id: subscription.planId },
+            include: { planType: true }, // Inclui o PlanType para acessar os pontos
+        });
+        console.log(plan);
+
+        // Verifica se o Plan e o PlanType existem
+        if (!plan || !plan.planType) {
+            return res.status(404).json({ error: 'Plano ou PlanType não encontrado.' });
+        }
+
         // Finaliza a assinatura principal
         const updatedSubscription = await prisma.planSubscription.update({
             where: { id: subscription.id },
             data: { endDate: new Date() },
         });
 
+        // Finaliza todas as assinaturas extras ativas, caso existam
         await prisma.planSubscription.updateMany({
             where: {
                 companionId: companion.id,
@@ -553,12 +625,15 @@ exports.disablePlan = async (req, res) => {
             data: { endDate: new Date() },
         });
 
-
+        // Atualiza os pontos da acompanhante, removendo os pontos do plano desativado
         await prisma.companion.update({
             where: { id: companion.id },
             data: {
-                planId: null,
-                planTypeId: null,
+                points: {
+                    decrement: plan.planType.points || 0, // Subtrai os pontos do PlanType
+                },
+                planId: null,  // Remove o plano da acompanhante
+                planTypeId: null,  // Remove o tipo de plano da acompanhante
             },
         });
 
