@@ -64,7 +64,7 @@ exports.searchCompanionCity = async (req, res) => {
 
             // Verifica se o acompanhante foi encontrado e possui planos
             if (!companion || !companion.plan) {
-                return res.status(404).json({ error: "Nenhum plano encontrado para o usuário especificado." });
+                return res.status(200).json({ error: "Nenhum plano encontrado para o usuário especificado." });
             }
 
             // Retorna os planos do acompanhante

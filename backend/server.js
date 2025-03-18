@@ -61,6 +61,7 @@ const adminStoryRoutes = require('./routes/admin/adminStoryRoutes');
 const adminFeedPostRoutes = require('./routes/admin/adminFeedPostRoutes');
 const adminDenunciaRoutes = require('./routes/admin/adminDenunciasRoutes');
 const adminUsuarioRoutes = require('./routes/admin/adminUserRoutes');
+const { receiveWebhook } = require('./controllers/companion/paymentCompanionController.js');
 
 
 
@@ -100,6 +101,7 @@ app.use('/api/companions', authenticate,
 app.use('/api/search', searchRoutes);
 
 app.use('/api/payments', authenticate, paymentRoutes);
+app.use('/webhook', receiveWebhook);
 
 app.use('/api/denuncias', authenticate, denunciaRoutes);
 

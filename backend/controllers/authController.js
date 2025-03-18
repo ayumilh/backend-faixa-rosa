@@ -214,21 +214,6 @@ exports.login = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000,
         });
 
-        res.cookie("userInfo", JSON.stringify({
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            userType: user.userType,
-            userName: userName,
-            companion: user.companion,
-        }), {
-            httpOnly: false, // Permitir acesso ao cookie no front-end
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 24 * 60 * 60 * 1000, // 1 dia
-        });
-
 
         console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
 
