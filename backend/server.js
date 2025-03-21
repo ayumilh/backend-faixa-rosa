@@ -101,7 +101,7 @@ app.use('/api/companions', authenticate,
 app.use('/api/search', searchRoutes);
 
 app.use('/api/payments', authenticate, paymentRoutes);
-app.use('/webhook', receiveWebhook);
+app.post('/webhook', receiveWebhook);
 
 app.use('/api/denuncias', authenticate, denunciaRoutes);
 

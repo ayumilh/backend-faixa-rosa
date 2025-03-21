@@ -42,18 +42,18 @@ model Document {
 }
 
 model PlanType {
-  id                Int         @id
-  name              String      @unique
-  size              String
-  isOnline          Boolean     @default(true)
-  accessDashboard   Boolean     @default(false)
-  accessMetrics     Boolean     @default(false)
-  accessConvenio    Boolean     @default(false)
-  points            Int         @default(0)
-  isDarkMode        Boolean     @default(false)
-  duration          Int?
-  companions        Companion[]
-  plans             Plan[]
+  id              Int         @id
+  name            String      @unique
+  size            String
+  isOnline        Boolean     @default(true)
+  accessDashboard Boolean     @default(false)
+  accessMetrics   Boolean     @default(false)
+  accessConvenio  Boolean     @default(false)
+  points          Int         @default(0)
+  isDarkMode      Boolean     @default(false)
+  duration        Int?
+  companions      Companion[]
+  plans           Plan[]
 }
 
 model ExtraPlan {
@@ -72,6 +72,7 @@ model ExtraPlan {
   PlanSubscription PlanSubscription[]
   companions       Companion[]        @relation("CompanionExtraPlans")
   plans            Plan[]             @relation("PlanExtraPlans")
+  Payment Payment[] @relation("PaymentExtraPlans")
 }
 
 model Plan {
@@ -104,12 +105,16 @@ model PlanSubscription {
   companion   Companion  @relation(fields: [companionId], references: [id], map: "CompanionSubscriptions")
   extraPlan   ExtraPlan? @relation(fields: [extraPlanId], references: [id], map: "PlanSubscription_extraPlanId_fkey")
   plan        Plan?      @relation(fields: [planId], references: [id])
+
+  Payment Payment[]
+
+  @@unique([planId, extraPlanId])
 }
 
 model CityChangeConfig {
-  id                Int      @id @default(autoincrement())
-  value             Float    @default(65.0)
-  updatedAt         DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  value     Float    @default(65.0)
+  updatedAt DateTime @updatedAt
 }
 
 model Contractor {
@@ -418,16 +423,21 @@ model Media {
 }
 
 model Payment {
-  id            Int      @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   userId        Int
-  planId        Int
+  planId        Int?
+  extraPlanId   Int?
+  paymentMethod String     @default("default_method")
   amount        Float
   status        String
   transactionId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  plan          Plan     @relation(fields: [planId], references: [id])
-  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  plan          Plan?       @relation(fields: [planId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
+
+  planSubscription PlanSubscription? @relation(fields: [planId, extraPlanId], references: [planId, extraPlanId])
+  ExtraPlan ExtraPlan[] @relation("PaymentExtraPlans")
 }
 
 enum UserType {

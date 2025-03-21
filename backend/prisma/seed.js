@@ -505,7 +505,7 @@ async function runAllSeeds() {
     try {
         // await seedPlan();
         // await seedPlanTypes();
-        await seedPlansAndExtras();
+        // await seedPlansAndExtras();
         // await seedTimedServices();
         // await seedAttendedLocations();
         // await seedServicesOffered();

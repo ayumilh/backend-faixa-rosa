@@ -1,6 +1,9 @@
 const { mercadoPago } = require("../../config/mercadoPago.js");
 const { Preference, Payment } = require("mercadopago");
 const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const prisma = new PrismaClient();
 
@@ -10,11 +13,8 @@ function generateIdempotencyKey() {
 }
 
 // Criar um pagamento
-exports.createPayment = async (req, res) => {
+exports.createPayment = async (userId, product, payment_method_id, extras = [], totalAmount = 0) => {
     try {
-        const userId = req.user?.id;
-        const { product, payment_method_id } = req.body;
-
         if (!userId || !product || !payment_method_id) {
             return res.status(400).json({ error: 'Todos os dados são obrigatórios.' });
         }
@@ -23,6 +23,8 @@ exports.createPayment = async (req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
         const plan = await prisma.plan.findUnique({ where: { id: product } });
+        const extraPlans = await prisma.extraPlan.findMany({ where: { id: { in: extras } } });
+
         if (!plan) return res.status(404).json({ error: 'Plano não encontrado.' });
 
         // Garantir que o email do usuário seja utilizado para o pagador
@@ -32,100 +34,259 @@ exports.createPayment = async (req, res) => {
         // Criar uma instância de pagamento usando a configuração do Mercado Pago
         const payment = new Payment(mercadoPago);  // Usa a configuração importada diretamente
 
+        let description = plan ? plan.name : ''; // Nome do plano principal, se houver
+
+        let paymentResponse;
+
+        // Verifica se existe plano extra e adiciona description
+        if (extraPlans.length > 0) {
+            const extraPlanDescriptions = extraPlans.map(extra => extra.name).join(', ');
+            description += ` | Extras: ${extraPlanDescriptions}`;
+        }
+
         // Criação do pagamento com a SDK do Mercado Pago
-        const paymentResponse = await payment.create({
+        paymentResponse = await payment.create({
             body: {
-                transaction_amount: plan.price,  // O valor da transação (preço do plano)
-                description: plan.name,  // Descrição do plano
+                transaction_amount: totalAmount,  // O valor total da transação (preço do plano + extras)
+                description: description,  // Descrição do plano principal + extras
                 payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'pix', etc.)
                 payer: {
                     email: payerEmail,  // E-mail do pagador
                     identification: {
                         type: 'CPF',  // Tipo de identificação (ex: 'CPF', 'CNPJ')
-                        number: '58962188856'  // Número do CPF do pagador
-                    }
+                        number: '58962188856',  // Número do CPF do pagador
+                    },
                 },
-                notification_url: 'https://www.faixarosa.com/api/payments/webhook',
+                notification_url: 'https://2c1f-2804-1b1-fd80-11d4-4cae-6b0c-7fa8-a2f8.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
             },
-            requestOptions: { idempotencyKey: generateIdempotencyKey() }  // Valor único para idempotência
+            requestOptions: { idempotencyKey: generateIdempotencyKey() },  // Valor único para idempotência
         });
 
-        console.log(' Pagamento criado:', paymentResponse);
+        console.log('Resposta do pagamento:', paymentResponse);
 
         // Converte o transactionId para string antes de salvar no banco
         const transactionId = paymentResponse.id.toString();  // Garante que seja uma string
 
-        // Salvar a transação no banco de dados (status "pendente")
+        // Criação do pagamento para o plano principal
         const savedPayment = await prisma.payment.create({
             data: {
                 userId,
-                planId: product,
-                amount: plan.price,
+                planId: plan.id, // Plano principal
+                amount: plan.price,  // Usa o valor total passado
+                paymentMethod: payment_method_id,
                 status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
                 transactionId: transactionId,  // Salva como string
             },
         });
 
-        console.log('💾 Pagamento salvo:', savedPayment);
+        // Agora, adiciona os planos extras (se houver) com o mesmo transactionId
+        if (extraPlans && extraPlans.length > 0) {
+            for (const extra of extraPlans) {
+                // Buscar o valor do plano extra na tabela `plan`
+                const extraPlan = await prisma.plan.findUnique({ where: { id: extra.id } });
 
-        // Retornar a URL de pagamento, ticket_url e o ID do pagamento
-        return res.status(200).json({
-            init_point: paymentResponse.init_point,  // A URL para o pagamento
-            ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
-            paymentId: savedPayment.id
-        });
-    } catch (error) {
-        console.error('Erro ao criar pagamento:', error);
-        return res.status(500).json({ error: 'Erro ao criar pagamento.' });
-    }
-};
-
-
-// Função que processa o webhook
-exports.receiveWebhook = async (req, res) => {
-    try {
-        const { action, data, live_mode, id } = req.body;
-
-        // Verifique se a ação é 'payment.updated' (evento do Mercado Pago indicando atualização de pagamento)
-        if (action === 'payment.updated') {
-            const paymentId = data.id;  // ID do pagamento (transação)
-            console.log(`Pagamento atualizado recebido, ID: ${paymentId}`);
-
-            // Consultar o status atual do pagamento usando a API do Mercado Pago
-            const paymentResponse = await mercadoPago.payment.get(paymentId);
-
-            // O status do pagamento
-            const paymentStatus = paymentResponse.body.status;
-
-            // Verifique se o pagamento foi encontrado no banco
-            const paymentToUpdate = await prisma.payment.findUnique({
-                where: { transactionId: paymentId.toString() },
-            });
-
-            // Se encontrar o pagamento no banco, atualiza o status
-            if (paymentToUpdate) {
-                const updatedPayment = await prisma.payment.update({
-                    where: { transactionId: paymentId.toString() },
-                    data: {
-                        status: paymentStatus,  // Atualiza o status no banco de dados
-                    },
-                });
-
-                console.log(`Pagamento atualizado no banco: ${updatedPayment.id} - Status: ${updatedPayment.status}`);
-                return res.status(200).json({ received: true });
-            } else {
-                console.log(`Pagamento não encontrado para o ID: ${paymentId}`);
-                return res.status(404).json({ error: 'Pagamento não encontrado' });
+                if (extraPlan && extraPlan.price) {
+                    await prisma.payment.create({
+                        data: {
+                            userId,
+                            extraPlanId: extraPlan.id,  // Agora estamos salvando o extraPlanId ao invés de planId
+                            amount: extraPlan.price,  // O valor do plano extra, retirado da tabela `plan`
+                            paymentMethod: payment_method_id,
+                            status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
+                            transactionId: transactionId,  // Mesmo transactionId para todos os planos extras
+                        },
+                    });
+                } else {
+                    return res.status(400).json({ error: `O plano extra ${extra.name} não tem valor definido na tabela de planos.` });
+                }
             }
         }
 
-        // Caso o evento não seja 'payment.updated', retorna erro
-        return res.status(400).json({ error: 'Evento não suportado' });
+        // Retornar a URL de pagamento, ticket_url e o ID do pagamento
+        return {
+            ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
+            transactionId: savedPayment.transactionId,
+            qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,
+            qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,
+        }
     } catch (error) {
-        console.error('Erro ao processar webhook:', error);
-        return res.status(500).json({ error: 'Erro ao processar webhook' });
+        console.error('Erro ao criar pagamento:', error);
+        return { error: 'Erro ao criar pagamento.' };
     }
 };
+
+exports.receiveWebhook = async (req, res) => {
+    try {
+        const { action, data } = req.body;
+        console.log('Webhook recebido:', req.body);
+
+        // Verificar se a ação é "payment.updated" ou "payment.created"
+        if (action !== 'payment.updated' && action !== 'payment.created') {
+            return res.status(400).json({ error: 'Ação do webhook não é "payment.updated" nem "payment.created".' });
+        }
+
+        const transactionId = data.id;  // ID do pagamento recebido no webhook
+
+        // Encontrar todos os pagamentos com o mesmo transactionId
+        const payments = await prisma.payment.findMany({
+            where: { transactionId: transactionId.toString() }
+        });
+
+        // Se nenhum pagamento for encontrado
+        if (!payments || payments.length === 0) {
+            return res.status(404).json({ error: 'Pagamento(s) não encontrado(s).' });
+        }
+
+        // Lógica para "payment.updated"
+        if (action === 'payment.updated') {
+            // Verificar se há pagamentos encontrados
+            if (payments && payments.length > 0) {
+                // Itera sobre todos os pagamentos encontrados
+                for (const payment of payments) {
+                    // Atualiza o status de cada pagamento
+                    const updatedPayment = await prisma.payment.update({
+                        where: { id: payment.id },  // Identifica o pagamento pelo seu ID
+                        data: {
+                            status: 'approved',  // Altere para o status desejado, por exemplo, "approved"
+                            updatedAt: new Date(),  // Atualiza o timestamp de atualização
+                        },
+                    });
+
+                    // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
+                    if (updatedPayment.planId) {
+                        const plan = await prisma.plan.findUnique({
+                            where: { id: updatedPayment.planId },
+                            include: { planType: true },
+                        });
+
+                        if (!plan) {
+                            return res.status(404).json({ error: 'Plano principal não encontrado.' });
+                        }
+
+                        // Atualizar a assinatura do plano principal
+                        const companionSubscription = await prisma.planSubscription.findFirst({
+                            where: { planId: updatedPayment.planId, companionId: updatedPayment.userId, endDate: null },
+                        });
+
+                        if (companionSubscription) {
+                            // Se já existir uma assinatura ativa, não cria uma nova, apenas reativa
+                            await prisma.planSubscription.update({
+                                where: { id: companionSubscription.id },
+                                data: {
+                                    startDate: new Date(), // Atualiza a data de início
+                                    endDate: null, // Reativa a assinatura
+                                    updatedAt: new Date(), // Atualiza o timestamp
+                                },
+                                include: { plan: true },
+                            });
+                        } else {
+                            // Se não houver uma assinatura ativa, cria uma nova
+                            await prisma.planSubscription.create({
+                                data: {
+                                    companionId: updatedPayment.userId,
+                                    planId: updatedPayment.planId,
+                                    startDate: new Date(),
+                                    endDate: null,
+                                },
+                                include: { plan: true },
+                            });
+                        }
+
+                        // Atualizar os pontos da acompanhante com base no plano
+                        await prisma.companion.update({
+                            where: { userId: updatedPayment.userId },
+                            data: {
+                                planId: updatedPayment.planId,
+                                planTypeId: plan.planTypeId || null,
+                                points: {
+                                    increment: plan.planType?.points || 0,  // Incrementa os pontos com base no plano
+                                },
+                            },
+                        });
+                    }
+
+                    // Agora, adicionar os planos extras (se houver) com o mesmo transactionId
+                    if (payment.extraPlanId) {
+                        const extraPlans = await prisma.extraPlan.findMany({
+                            where: { id: { in: [payment.extraPlanId] } },  // Buscando planos extras
+                            include: {
+                                plans: {  // Incluindo a relação com 'plans' para acessar o 'planType'
+                                    include: { 
+                                        planType: true  // Incluindo 'planType' para acessar os pontos
+                                    }
+                                }
+                            }
+                        });
+
+                        for (const extraPlan of extraPlans) {
+                            // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
+                            await prisma.planSubscription.create({
+                                data: {
+                                    companionId: payment.userId,
+                                    extraPlanId: extraPlan.id,  // Usando o campo 'extraPlanId' para associar o plano extra
+                                    startDate: new Date(),
+                                    isExtra: true,  // Indica que é um plano extra
+                                    endDate: null,
+                                },
+                            });
+
+                            // Atualizar os pontos da acompanhante com base no plano extra
+                            await prisma.companion.update({
+                                where: { userId: payment.userId },
+                                data: {
+                                    points: {
+                                        increment: extraPlan?.pointsBonus || 0,  // Incrementa os pontos com base no plano extra
+                                    },
+                                },
+                            });
+                        }
+                    }
+                }
+            } else {
+                return res.status(404).json({ error: 'Nenhum pagamento encontrado para este transactionId.' });
+            }
+
+            return res.status(200).json({ message: 'Status de pagamento atualizado para "aprovado".' });
+        }
+
+        // Lógica para "payment.created"
+        if (action === 'payment.created') {
+            console.log('Pagamento criado. Aguardando confirmação...');
+            return res.status(200).json({ message: 'Pagamento criado, aguardando atualização de status.' });
+        }
+
+    } catch (error) {
+        console.error('Erro ao processar o webhook:', error);
+        return res.status(500).json({ error: 'Erro ao processar o webhook.' });
+    }
+};
+
+
+exports.getPaymentStatus = async (req, res) => {
+    const userId = req.user.id;
+    const transactionId = req.params.transactionId;
+    
+    try {
+        // Busca todos os pagamentos associados ao userId
+        const payments = await prisma.payment.findMany({
+            where: { userId, transactionId },  // Ajuste para buscar pelo userId
+        });
+        
+
+        // Se nenhum pagamento for encontrado, retorna um erro
+        if (payments.length === 0) {
+            return res.status(404).json({ error: 'Nenhum pagamento encontrado para este usuário.' });
+        }
+
+        // Se os pagamentos forem encontrados, retorna os status dos pagamentos
+        return res.status(200).json({ payments: payments.map(payment => ({ transactionId: payment.transactionId, status: payment.status })) });
+
+    } catch (error) {
+        console.error('Erro ao verificar o status do pagamento:', error);
+        return res.status(500).json({ error: 'Erro ao verificar o status do pagamento.' });
+    }
+};
+
 
 
 // Listar pagamentos de um usuário
