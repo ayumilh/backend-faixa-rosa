@@ -283,10 +283,6 @@ exports.searchCompanionProfile = async (req, res) => {
                 return res.status(404).json({ message: 'Acompanhante não encontrada' });
             }
 
-            if (!companion.user || !companion.user.birthDate) {
-                return res.status(400).json({ message: 'Data de nascimento não encontrada para a acompanhante' });
-            }
-
             // Calcular a idade corretamente
             const birthDate = new Date(companion.user.birthDate);
             const age = calculateAge(birthDate);
