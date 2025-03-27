@@ -213,6 +213,14 @@ exports.receiveWebhook = async (req, res) => {
                     }
 
                     // Agora, adicionar os planos extras (se houver) com o mesmo transactionId
+                    // Verificar se o companionId existe
+                    const companion = await prisma.companion.findUnique({
+                        where: { userId: updatedPayment.userId }
+                    });
+
+                    if (!companion) {
+                        return res.status(400).json({ error: 'Acompanhante não encontrado.' });
+                    }
                     // Verificar se há planos extras
                     if (payment.extraPlanId) {
                         // Caso haja múltiplos planos extras (payment.extraPlanId pode ser um array), tratamos como tal
