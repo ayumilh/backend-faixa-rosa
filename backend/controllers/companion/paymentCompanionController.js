@@ -211,19 +211,18 @@ exports.receiveWebhook = async (req, res) => {
                             },
                         });
                     }
-
-                    // Agora, adicionar os planos extras (se houver) com o mesmo transactionId
                     // Verificar se o companionId existe
                     const companion = await prisma.companion.findUnique({
                         where: { userId: updatedPayment.userId }
                     });
+                    console.log('Companion encontrado:', companion);
 
                     if (!companion) {
                         return res.status(400).json({ error: 'Acompanhante não encontrado.' });
                     }
+
                     // Verificar se há planos extras
                     if (payment.extraPlanId) {
-                        // Caso haja múltiplos planos extras (payment.extraPlanId pode ser um array), tratamos como tal
                         const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
                         console.log('IDs dos planos extras:', extraPlanIds);
 
@@ -232,14 +231,26 @@ exports.receiveWebhook = async (req, res) => {
                             const extraPlan = await prisma.extraPlan.findUnique({
                                 where: { id: extraPlanId }
                             });
-
                             console.log('Plano extra encontrado:', extraPlan);
 
                             if (!extraPlan) {
                                 return res.status(400).json({ error: `Plano extra com ID ${extraPlanId} não encontrado.` });
                             }
 
-                            // Criar ou atualizar a assinatura para o plano extra
+                            // Verificar se a assinatura já existe para a combinação de companionId e extraPlanId
+                            const existingSubscription = await prisma.planSubscription.findFirst({
+                                where: {
+                                    companionId: updatedPayment.userId,
+                                    extraPlanId: extraPlan.id,
+                                }
+                            });
+                            console.log('Assinatura existente:', existingSubscription);
+
+                            if (existingSubscription) {
+                                return res.status(400).json({ error: 'Assinatura já existente para este plano extra.' });
+                            }
+
+                            // Criar a assinatura para o plano extra
                             await prisma.planSubscription.create({
                                 data: {
                                     companionId: updatedPayment.userId,
@@ -249,6 +260,7 @@ exports.receiveWebhook = async (req, res) => {
                                     endDate: null,
                                 },
                             });
+                            console.log('Assinatura criada para o plano extra:', extraPlan.id);
 
                             // Atualizar os pontos da acompanhante com base no plano extra
                             await prisma.companion.update({
@@ -261,6 +273,7 @@ exports.receiveWebhook = async (req, res) => {
                             });
                         }
                     }
+
                 }
             } else {
                 return res.status(404).json({ error: 'Nenhum pagamento encontrado para este transactionId.' });
