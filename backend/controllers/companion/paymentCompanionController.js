@@ -211,27 +211,17 @@ exports.receiveWebhook = async (req, res) => {
                             },
                         });
                     }
-                    // Verificar se o companionId existe
-                    const companion = await prisma.companion.findUnique({
-                        where: { userId: updatedPayment.userId }
-                    });
-                    console.log('Companion encontrado:', companion);
 
-                    if (!companion) {
-                        return res.status(400).json({ error: 'Acompanhante não encontrado.' });
-                    }
 
                     // Verificar se há planos extras
                     if (payment.extraPlanId) {
                         const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
-                        console.log('IDs dos planos extras:', extraPlanIds);
 
                         for (const extraPlanId of extraPlanIds) {
                             // Verificar se o plano extra existe
                             const extraPlan = await prisma.extraPlan.findUnique({
                                 where: { id: extraPlanId }
                             });
-                            console.log('Plano extra encontrado:', extraPlan);
 
                             if (!extraPlan) {
                                 return res.status(400).json({ error: `Plano extra com ID ${extraPlanId} não encontrado.` });
@@ -244,7 +234,6 @@ exports.receiveWebhook = async (req, res) => {
                                     extraPlanId: extraPlan.id,
                                 }
                             });
-                            console.log('Assinatura existente:', existingSubscription);
 
                             if (existingSubscription) {
                                 return res.status(400).json({ error: 'Assinatura já existente para este plano extra.' });
@@ -254,6 +243,7 @@ exports.receiveWebhook = async (req, res) => {
                             await prisma.planSubscription.create({
                                 data: {
                                     companionId: updatedPayment.userId,
+                                    planId: null,  // Não é um plano principal
                                     extraPlanId: extraPlan.id,
                                     startDate: new Date(),
                                     isExtra: true,
