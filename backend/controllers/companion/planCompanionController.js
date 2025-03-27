@@ -464,10 +464,11 @@ exports.subscribeToPlan = async (req, res) => {
 //     }
 // };
 
+
 exports.createUserPlan = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { planTypeId, extras, payment_method_id } = req.body;
+        const { planTypeId, extras = [], payment_method_id } = req.body;
 
         // Verifica se o tipo de plano existe
         const planType = await prisma.planType.findUnique({
@@ -481,12 +482,19 @@ exports.createUserPlan = async (req, res) => {
         // Busca a acompanhante vinculada ao usuário
         const companion = await prisma.companion.findUnique({
             where: { userId },
-            select: { id: true },
+            select: { id: true, planTypeId: true },
         });
+        console.log(companion);
 
         if (!companion) {
             return res.status(403).json({ error: 'Apenas acompanhantes podem criar planos.' });
         }
+
+        // Verifica se a acompanhante já tem um plano principal (planId) ativo
+        if (companion.planTypeId) {
+            return res.status(200).json({ message: 'Acompanhante já possui um plano ativo.' });
+        }
+
 
         // Verifica se a acompanhante já tem o plano principal (planId) assinado
         const existingPlanSubscription = await prisma.planSubscription.findFirst({
@@ -515,8 +523,15 @@ exports.createUserPlan = async (req, res) => {
         });
 
         if (existingExtraSubscriptions.length > 0) {
-            return res.status(200).json({
-                message: 'Acompanhante já tem planos extras assinados.',
+            const extraPlanNames = await prisma.extraPlan.findMany({
+                where: {
+                    id: { in: existingExtraSubscriptions.map(plan => plan.extraPlanId) },
+                },
+                select: { name: true }
+            });
+
+            return res.status(400).json({
+                error: `Acompanhante já possui os seguintes planos extras ativos: ${extraPlanNames.map(plan => plan.name).join(', ')}`,
             });
         }
 
@@ -531,7 +546,6 @@ exports.createUserPlan = async (req, res) => {
                 ],
             },
         });
-        console.log(pendingPayments);
 
         if (pendingPayments.length > 0) {
             // Deleta todos os pagamentos pendentes encontrados
@@ -571,7 +585,6 @@ exports.createUserPlan = async (req, res) => {
 
         // Criação do pagamento para o plano principal e extras
         const paymentResult = await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
-        console.log(paymentResult);
 
         // Se o pagamento não for aprovado, não criamos os planos
         if (!paymentResult || paymentResult.status !== 'approved') {
@@ -580,6 +593,7 @@ exports.createUserPlan = async (req, res) => {
                 ticketUrl: paymentResult.ticket_url,
                 transactionId: paymentResult.transactionId,
                 qr_code: paymentResult.qr_code,
+                qr_code_base64: paymentResult.qr_code_base64,
             });
         }
 
@@ -603,7 +617,7 @@ exports.createUserPlan = async (req, res) => {
                 where: { id: previousPlan.id },
                 data: {
                     startDate: new Date(),
-                    endDate: null, // Reativa
+                    endDate: null,
                     updatedAt: new Date(),
                 },
             });
@@ -700,6 +714,7 @@ exports.createUserPlan = async (req, res) => {
             ticketUrl: paymentResult.ticket_url,
             paymentId: paymentResult.paymentId,
             qr_code: paymentResult.qr_code,
+            qr_code_base64: paymentResult.qr_code_base64,
         });
 
     } catch (error) {
@@ -708,12 +723,11 @@ exports.createUserPlan = async (req, res) => {
     }
 };
 
-
 // adicionar planos extras, se ja tem plano basico
 exports.addUserExtras = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { extras } = req.body;
+        const { extras, payment_method_id } = req.body;
 
         const companion = await prisma.companion.findUnique({
             where: { userId },
@@ -722,12 +736,30 @@ exports.addUserExtras = async (req, res) => {
 
         if (!companion) return res.status(403).json({ error: 'Apenas acompanhantes podem adicionar planos extras.' });
 
+        // Ajuste para buscar os planos extras
+        const plan = await prisma.plan.findMany({
+            where: {
+                id: { in: extras },  // Verifica se o plano extra está presente no array extras
+            },
+            select: {
+                id: true,
+                name: true,
+                price: true,
+            }
+        });
+
+        // Verifique se algum plano extra foi encontrado
+        if (plan.length === 0) {
+            return res.status(400).json({ error: 'Nenhum plano extra válido encontrado.' });
+        }
+
         // Busca os planos extras que já estão ativos
         const existingExtraPlans = await prisma.planSubscription.findMany({
             where: {
                 companionId: companion.id,
                 isExtra: true,
                 extraPlanId: { in: extras },
+                endDate: null, // Apenas planos extras ativos
             },
             select: {
                 id: true,
@@ -738,6 +770,21 @@ exports.addUserExtras = async (req, res) => {
 
         // Se já assinou antes, filtra os que precisam ser reativados
         const toReactivate = existingExtraPlans.filter(plan => plan.endDate !== null);
+        
+        if (existingExtraPlans.length > 0) {
+            // Busca os nomes dos planos extras reativados
+            const extraPlanNames = await prisma.extraPlan.findMany({
+                where: {
+                    id: { in: existingExtraPlans.map(plan => plan.extraPlanId) },
+                },
+                select: { name: true }
+            });
+
+            return res.status(400).json({
+                error: `Acompanhante já possui os seguintes planos extras ativos: ${extraPlanNames.map(plan => plan.name).join(', ')}`,
+            });
+        }
+
         const toReactivateIds = toReactivate.map(plan => plan.id);
 
         // Filtra os novos planos extras que ainda não foram assinados
@@ -757,6 +804,55 @@ exports.addUserExtras = async (req, res) => {
         if (invalidPlans.length > 0) {
             return res.status(400).json({
                 error: `Os seguintes planos extras não são válidos: ${invalidPlans.join(', ')}`,
+            });
+        }
+
+        // Verifica se já existe um pagamento pendente para o plano principal
+        const pendingPayments = await prisma.payment.findMany({
+            where: {
+                userId,
+                status: 'pending',
+                extraPlanId: { in: extras },
+            },
+        });
+
+        if (pendingPayments.length > 0) {
+            // Deleta todos os pagamentos pendentes encontrados
+            for (const pendingPayment of pendingPayments) {
+                await prisma.payment.delete({
+                    where: { id: pendingPayment.id },
+                });
+            }
+        }
+
+        // Verifica os planos extras na tabela Plan (não extraPlan)
+        const extraPlansVerify = extras && extras.length > 0 ? await prisma.plan.findMany({
+            where: {
+                id: { in: extras }
+            }
+        }) : [];
+
+        // Calcula o valor total (plano principal + extras)
+        let totalAmount = 0;
+        let description = '';
+
+        if (extraPlansVerify.length > 0) {
+            const extraTotalAmount = extraPlansVerify.reduce((total, extra) => total + extra.price, 0).toFixed(2);
+            totalAmount += parseFloat(extraTotalAmount);; // Soma o preço dos planos extras
+            description += `Extras: ${extraPlansVerify.map(extra => extra.name).join(', ')}`;
+        }
+
+        // Criação do pagamento para o plano principal e extras
+        const paymentResult = await createPayment(userId, null, payment_method_id, extras, totalAmount);
+
+        // Se o pagamento não for aprovado, não criamos os planos
+        if (!paymentResult || paymentResult.status !== 'approved') {
+            return res.status(200).json({
+                message: 'Pagamento não aprovado.',
+                ticketUrl: paymentResult.ticket_url,
+                transactionId: paymentResult.transactionId,
+                qr_code: paymentResult.qr_code,
+                qr_code_base64: paymentResult.qr_code_base64,
             });
         }
 
@@ -834,7 +930,6 @@ exports.addUserExtras = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao adicionar planos extras.' });
     }
 };
-
 
 // desativar planos extras
 exports.disableExtraPlans = async (req, res) => {
@@ -935,8 +1030,10 @@ exports.disablePlan = async (req, res) => {
                 companionId: companion.id,
                 isExtra: false,
                 endDate: null,
+                planId: { not: null }, // Verifica se o plano não é nulo
             },
         });
+        console.log(subscription);
 
         if (!subscription) return res.status(404).json({ error: 'Assinatura não encontrada ou já finalizada.' });
 

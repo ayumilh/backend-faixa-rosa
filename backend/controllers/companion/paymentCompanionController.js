@@ -13,19 +13,24 @@ function generateIdempotencyKey() {
 }
 
 // Criar um pagamento
-exports.createPayment = async (userId, product, payment_method_id, extras = [], totalAmount = 0) => {
+exports.createPayment = async (userId, product = null, payment_method_id, extras = [], totalAmount = 0) => {
     try {
-        if (!userId || !product || !payment_method_id) {
-            return res.status(400).json({ error: 'Todos os dados são obrigatórios.' });
+        if (!userId || !payment_method_id) {
+            return { error: 'Usuario ou metodo de pagamento não encontrado.' };
         }
 
         const user = await prisma.user.findFirst({ where: { id: userId } });
-        if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        if (!user) return { error: 'Usuário não encontrado.' }
 
-        const plan = await prisma.plan.findUnique({ where: { id: product } });
+        let plan;
+        if (product) {
+            // Busca o plano usando o ID numérico
+            plan = await prisma.plan.findUnique({ where: { id: product } });
+        }
+
         const extraPlans = await prisma.extraPlan.findMany({ where: { id: { in: extras } } });
 
-        if (!plan) return res.status(404).json({ error: 'Plano não encontrado.' });
+        if (!extraPlans) return { error: 'Plano não encontrado.' }
 
         // Garantir que o email do usuário seja utilizado para o pagador
         const payerEmail = user.email;
@@ -57,27 +62,29 @@ exports.createPayment = async (userId, product, payment_method_id, extras = [], 
                         number: '58962188856',  // Número do CPF do pagador
                     },
                 },
-                notification_url: 'https://2c1f-2804-1b1-fd80-11d4-4cae-6b0c-7fa8-a2f8.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
+                notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
             },
             requestOptions: { idempotencyKey: generateIdempotencyKey() },  // Valor único para idempotência
         });
 
-        console.log('Resposta do pagamento:', paymentResponse);
 
         // Converte o transactionId para string antes de salvar no banco
         const transactionId = paymentResponse.id.toString();  // Garante que seja uma string
 
-        // Criação do pagamento para o plano principal
-        const savedPayment = await prisma.payment.create({
-            data: {
-                userId,
-                planId: plan.id, // Plano principal
-                amount: plan.price,  // Usa o valor total passado
-                paymentMethod: payment_method_id,
-                status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
-                transactionId: transactionId,  // Salva como string
-            },
-        });
+        let savedPayment;
+        if (product) {
+            // Criação do pagamento para o plano principal
+            savedPayment = await prisma.payment.create({
+                data: {
+                    userId,
+                    planId: plan.id, // Plano principal
+                    amount: plan.price,  // Usa o valor total passado
+                    paymentMethod: payment_method_id,
+                    status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
+                    transactionId: transactionId,  // Salva como string
+                },
+            });
+        }
 
         // Agora, adiciona os planos extras (se houver) com o mesmo transactionId
         if (extraPlans && extraPlans.length > 0) {
@@ -97,7 +104,7 @@ exports.createPayment = async (userId, product, payment_method_id, extras = [], 
                         },
                     });
                 } else {
-                    return res.status(400).json({ error: `O plano extra ${extra.name} não tem valor definido na tabela de planos.` });
+                    return { error: `O plano extra ${extra.name} não tem valor definido na tabela de planos.` };
                 }
             }
         }
@@ -105,7 +112,7 @@ exports.createPayment = async (userId, product, payment_method_id, extras = [], 
         // Retornar a URL de pagamento, ticket_url e o ID do pagamento
         return {
             ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
-            transactionId: savedPayment.transactionId,
+            transactionId: transactionId,
             qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,
             qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,
         }
@@ -211,7 +218,7 @@ exports.receiveWebhook = async (req, res) => {
                             where: { id: { in: [payment.extraPlanId] } },  // Buscando planos extras
                             include: {
                                 plans: {  // Incluindo a relação com 'plans' para acessar o 'planType'
-                                    include: { 
+                                    include: {
                                         planType: true  // Incluindo 'planType' para acessar os pontos
                                     }
                                 }
@@ -265,22 +272,29 @@ exports.receiveWebhook = async (req, res) => {
 exports.getPaymentStatus = async (req, res) => {
     const userId = req.user.id;
     const transactionId = req.params.transactionId;
-    
+
     try {
         // Busca todos os pagamentos associados ao userId
         const payments = await prisma.payment.findMany({
             where: { userId, transactionId },  // Ajuste para buscar pelo userId
         });
-        
+        console.log('Pagamentos encontrados:', payments);
 
         // Se nenhum pagamento for encontrado, retorna um erro
         if (payments.length === 0) {
             return res.status(404).json({ error: 'Nenhum pagamento encontrado para este usuário.' });
         }
 
-        // Se os pagamentos forem encontrados, retorna os status dos pagamentos
-        return res.status(200).json({ payments: payments.map(payment => ({ transactionId: payment.transactionId, status: payment.status })) });
+        // Verifica o status do pagamento
+        const paymentStatus = payments[0].status; // Assumindo que o status está no campo 'status'
 
+        if (paymentStatus === 'approved') {
+            return res.status(200).json({ status: 'Pagamento aprovado!', paymentStatus });
+        } else if (paymentStatus === 'pending') {
+            return res.status(200).json({ status: 'Pagamento pendente!', paymentStatus });
+        } else if (paymentStatus === 'refused') {
+            return res.status(200).json({ status: 'Pagamento recusado!', paymentStatus });
+        }
     } catch (error) {
         console.error('Erro ao verificar o status do pagamento:', error);
         return res.status(500).json({ error: 'Erro ao verificar o status do pagamento.' });

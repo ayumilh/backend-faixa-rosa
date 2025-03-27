@@ -146,7 +146,10 @@ exports.login = async (req, res) => {
             },
         });
 
+
         if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        } else {
             if (googleLogin) {
                 // Cria um novo usuário se o login for pelo Google e o usuário não existir
                 user = await prisma.user.create({
@@ -160,8 +163,6 @@ exports.login = async (req, res) => {
                         userType: 'CONTRATANTE', // Tipo de usuário padrão
                     },
                 });
-            } else {
-                return res.status(404).json({ error: 'Usuário não encontrado' });
             }
         }
 
@@ -188,20 +189,20 @@ exports.login = async (req, res) => {
             });
             userName = companion?.userName;
         }
-        
+
         if (user.userType !== 'ADMIN' && !userName) {
             return res.status(400).json({ error: 'userName é necessário para este tipo de usuário.' });
         }
-        
+
 
         const token = jwt.sign(
-            { 
-                id: user.id, 
-                email: user.email, 
-                userType: user.userType, 
-                firstName: user.firstName, 
-                lastName: user.lastName, 
-                userName 
+            {
+                id: user.id,
+                email: user.email,
+                userType: user.userType,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                userName
             },
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
