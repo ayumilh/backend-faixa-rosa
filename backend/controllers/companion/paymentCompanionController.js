@@ -195,6 +195,7 @@ exports.receiveWebhook = async (req, res) => {
                                     planId: updatedPayment.planId,
                                     startDate: new Date(),
                                     endDate: null,
+                                    planSubscriptionId: uuidv4(),
                                 },
                                 include: { plan: true },
                             });
