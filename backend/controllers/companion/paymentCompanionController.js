@@ -2,6 +2,7 @@ const { mercadoPago } = require("../../config/mercadoPago.js");
 const { Preference, Payment } = require("mercadopago");
 const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -212,7 +213,6 @@ exports.receiveWebhook = async (req, res) => {
                         });
                     }
 
-
                     // Verificar se há planos extras
                     if (payment.extraPlanId) {
                         const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
@@ -248,6 +248,7 @@ exports.receiveWebhook = async (req, res) => {
                                     startDate: new Date(),
                                     isExtra: true,
                                     endDate: null,
+                                    planSubscriptionId: uuidv4(),
                                 },
                             });
                             console.log('Assinatura criada para o plano extra:', extraPlan.id);
