@@ -232,7 +232,7 @@ exports.receiveWebhook = async (req, res) => {
                             // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
                             await prisma.planSubscription.create({
                                 data: {
-                                    companionId: payment.userId,
+                                    companionId: updatedPayment.userId,
                                     extraPlanId: extraPlan.id,  // Usando o campo 'extraPlanId' para associar o plano extra
                                     startDate: new Date(),
                                     isExtra: true,  // Indica que é um plano extra
