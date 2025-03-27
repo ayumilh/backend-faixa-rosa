@@ -225,11 +225,12 @@ exports.receiveWebhook = async (req, res) => {
                             }
                         });
 
+                        console.log('Planos extras encontrados:', extraPlans);
+                        console.log('Pagamento atualizado:', updatedPayment);
+                        console.log('UserId:', updatedPayment.userId);
+
                         for (const extraPlan of extraPlans) {
                             // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
-                            console.log('Plano extra encontrado:', extraPlan);
-                            console.log('Pagamento atualizado:', updatedPayment);
-                            console.log('USERID:', updatedPayment.userId);
                             await prisma.planSubscription.create({
                                 data: {
                                     companionId: updatedPayment.userId,
