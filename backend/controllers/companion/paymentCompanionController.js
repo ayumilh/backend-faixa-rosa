@@ -139,8 +139,6 @@ exports.receiveWebhook = async (req, res) => {
             where: { transactionId: transactionId.toString() }
         });
 
-        console.log('Pagamentos encontrados:', payments);
-
         // Se nenhum pagamento for encontrado
         if (!payments || payments.length === 0) {
             return res.status(404).json({ error: 'Pagamento(s) não encontrado(s).' });
@@ -160,7 +158,6 @@ exports.receiveWebhook = async (req, res) => {
                             updatedAt: new Date(),  // Atualiza o timestamp de atualização
                         },
                     });
-                    console.log('Pagamento atualizado:', updatedPayment);
 
                     // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
                     if (updatedPayment.planId) {
@@ -230,6 +227,9 @@ exports.receiveWebhook = async (req, res) => {
 
                         for (const extraPlan of extraPlans) {
                             // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
+                            console.log('Plano extra encontrado:', extraPlan);
+                            console.log('Pagamento atualizado:', updatedPayment);
+                            console.log('USERID:', updatedPayment.userId);
                             await prisma.planSubscription.create({
                                 data: {
                                     companionId: updatedPayment.userId,
