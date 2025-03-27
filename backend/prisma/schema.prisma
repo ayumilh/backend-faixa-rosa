@@ -96,7 +96,7 @@ model PlanSubscription {
   id                 Int        @id @default(autoincrement())
   companionId        Int
   planId             Int?
-  planSubscriptionId String        @unique
+  planSubscriptionId String     @unique
   startDate          DateTime   @default(now())
   endDate            DateTime?
   createdAt          DateTime   @default(now())
@@ -108,8 +108,6 @@ model PlanSubscription {
   plan               Plan?      @relation(fields: [planId], references: [id])
 
   Payment Payment[]
-
-  // @@unique([planId, extraPlanId]) removido pois estava causando erro na criação de plano extra no webhook
 }
 
 model CityChangeConfig {
@@ -432,7 +430,7 @@ model Payment {
   amount             Float
   status             String
   transactionId      String?
-  planSubscriptionId String?
+  planSubscriptionId String? @unique
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   plan               Plan?    @relation(fields: [planId], references: [id])
