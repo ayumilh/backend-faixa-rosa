@@ -213,49 +213,41 @@ exports.receiveWebhook = async (req, res) => {
                     }
 
                     // Agora, adicionar os planos extras (se houver) com o mesmo transactionId
+                    // Verificar se há planos extras
                     if (payment.extraPlanId) {
-                        const extraPlans = await prisma.extraPlan.findMany({
-                            where: { id: { in: [payment.extraPlanId] } },  // Buscando planos extras
-                            include: {
-                                plans: {  // Incluindo a relação com 'plans' para acessar o 'planType'
-                                    include: {
-                                        planType: true  // Incluindo 'planType' para acessar os pontos
-                                    }
-                                }
-                            }
-                        });
+                        // Caso haja múltiplos planos extras (payment.extraPlanId pode ser um array), tratamos como tal
+                        const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
+                        console.log('IDs dos planos extras:', extraPlanIds);
 
-                        console.log('Planos extras encontrados:', extraPlans);
-                        console.log('Pagamento atualizado:', updatedPayment);
-                        console.log('UserId:', updatedPayment.userId);
-
-                        for (const extraPlan of extraPlans) {
-                            // Verifica se o plano extra existe
-                            const extraPlanExists = await prisma.extraPlan.findUnique({
-                                where: { id: extraPlan.id },
+                        for (const extraPlanId of extraPlanIds) {
+                            // Verificar se o plano extra existe
+                            const extraPlan = await prisma.extraPlan.findUnique({
+                                where: { id: extraPlanId }
                             });
 
-                            if (!extraPlanExists) {
-                                return res.status(400).json({ error: 'Plano extra não encontrado.' });
+                            console.log('Plano extra encontrado:', extraPlan);
+
+                            if (!extraPlan) {
+                                return res.status(400).json({ error: `Plano extra com ID ${extraPlanId} não encontrado.` });
                             }
 
-                            // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
+                            // Criar ou atualizar a assinatura para o plano extra
                             await prisma.planSubscription.create({
                                 data: {
                                     companionId: updatedPayment.userId,
-                                    extraPlanId: extraPlan.id,  // Usando o campo 'extraPlanId' para associar o plano extra
+                                    extraPlanId: extraPlan.id,
                                     startDate: new Date(),
-                                    isExtra: true,  // Indica que é um plano extra
+                                    isExtra: true,
                                     endDate: null,
                                 },
                             });
 
                             // Atualizar os pontos da acompanhante com base no plano extra
                             await prisma.companion.update({
-                                where: { userId: payment.userId },
+                                where: { userId: updatedPayment.userId },
                                 data: {
                                     points: {
-                                        increment: extraPlan?.pointsBonus || 0,  // Incrementa os pontos com base no plano extra
+                                        increment: extraPlan?.pointsBonus || 0,
                                     },
                                 },
                             });
