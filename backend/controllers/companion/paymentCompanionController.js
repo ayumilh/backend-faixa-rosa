@@ -230,6 +230,15 @@ exports.receiveWebhook = async (req, res) => {
                         console.log('UserId:', updatedPayment.userId);
 
                         for (const extraPlan of extraPlans) {
+                            // Verifica se o plano extra existe
+                            const extraPlanExists = await prisma.extraPlan.findUnique({
+                                where: { id: extraPlan.id },
+                            });
+
+                            if (!extraPlanExists) {
+                                return res.status(400).json({ error: 'Plano extra não encontrado.' });
+                            }
+
                             // Para cada plano extra, você pode criar ou atualizar a assinatura da acompanhante
                             await prisma.planSubscription.create({
                                 data: {
