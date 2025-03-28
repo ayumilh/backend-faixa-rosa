@@ -161,15 +161,6 @@ exports.receiveWebhook = async (req, res) => {
                     },
                 });
 
-                // Verifique se o companionId existe antes de associar
-                const companionExists = await prisma.companion.findUnique({
-                    where: { userId: updatedPayment.userId },
-                });
-
-                if (!companionExists) {
-                    return res.status(400).json({ error: 'Acompanhante não encontrado.' });
-                }
-
                 // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
                 if (updatedPayment.planId) {
                     const plan = await prisma.plan.findUnique({
@@ -189,10 +180,19 @@ exports.receiveWebhook = async (req, res) => {
                     let planSubscriptionId;
 
                     if (!companionSubscription) {
+                        // Verifique se o companionId existe antes de associar
+                        const companionExists = await prisma.companion.findUnique({
+                            where: { userId: updatedPayment.userId },
+                        });
+                        console.log('Companion Exists:', companionExists);
+
+                        if (!companionExists) {
+                            return res.status(400).json({ error: 'Acompanhante não encontrado.' });
+                        }
                         // Se não houver uma assinatura ativa, cria uma nova
                         const newPlanSubscription = await prisma.planSubscription.create({
                             data: {
-                                companionId: updatedPayment.userId,
+                                companionId: companionExists.userId,
                                 planId: updatedPayment.planId,
                                 startDate: new Date(),
                                 endDate: null,
