@@ -192,7 +192,7 @@ exports.receiveWebhook = async (req, res) => {
                         // Se não houver uma assinatura ativa, cria uma nova
                         const newPlanSubscription = await prisma.planSubscription.create({
                             data: {
-                                companionId: companionExists.userId,
+                                companionId: companionExists.id,
                                 planId: updatedPayment.planId,
                                 startDate: new Date(),
                                 endDate: null,
