@@ -484,7 +484,6 @@ exports.createUserPlan = async (req, res) => {
             where: { userId },
             select: { id: true, planTypeId: true },
         });
-        console.log(companion);
 
         if (!companion) {
             return res.status(403).json({ error: 'Apenas acompanhantes podem criar planos.' });
@@ -582,8 +581,10 @@ exports.createUserPlan = async (req, res) => {
             totalAmount += extraTotalAmount; // Soma o preço dos planos extras
             description += ` | Extras: ${extraPlans.map(extra => extra.name).join(', ')}`;
         }
+        totalAmount = parseFloat(totalAmount.toFixed(2));
 
         // Criação do pagamento para o plano principal e extras
+        console.log(totalAmount)
         const paymentResult = await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
 
         // Se o pagamento não for aprovado, não criamos os planos
