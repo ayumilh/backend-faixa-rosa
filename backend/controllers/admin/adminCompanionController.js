@@ -6,7 +6,7 @@ exports.listAcompanhantes = async (req, res) => {
     try {
         const acompanhantes = await prisma.companion.findMany({
             include: {
-                user: { 
+                user: {
                     select: {
                         firstName: true,
                         lastName: true,
@@ -37,9 +37,12 @@ exports.listAcompanhantes = async (req, res) => {
             if (companion.documents.length > 0) {
                 const allApproved = companion.documents.every(doc => doc.documentStatus === 'APPROVED');
                 const hasPending = companion.documents.some(doc => doc.documentStatus === 'PENDING');
+                const hasInAnalysis = companion.documents.some(doc => doc.documentStatus === 'IN_ANALYSIS');
 
                 if (allApproved) {
                     documentStatus = 'APPROVED';
+                } else if (hasInAnalysis) {
+                    documentStatus = 'IN_ANALYSIS';  // Se algum documento estiver em análise
                 } else if (hasPending) {
                     documentStatus = 'PENDING';
                 } else {
@@ -104,7 +107,7 @@ exports.approveAcompanhantes = async (req, res) => {
 // Rejeitar perfil de acompanhantes
 exports.rejectAcompanhantes = async (req, res) => {
     const { id } = req.params;
-    
+
     const companionId = parseInt(id);
     if (isNaN(companionId)) {
         return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });
@@ -129,7 +132,7 @@ exports.rejectAcompanhantes = async (req, res) => {
 // Suspender perfil de acompanhantes
 exports.suspendAcompanhantes = async (req, res) => {
     const { id } = req.params;
-    
+
     const companionId = parseInt(id);
     if (isNaN(companionId)) {
         return res.status(400).json({ error: 'ID inválido. Deve ser um número.' });

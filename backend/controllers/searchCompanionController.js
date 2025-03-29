@@ -129,6 +129,7 @@ exports.searchCompanionCity = async (req, res) => {
                 points: true,
                 lastOnline: true,
                 profileStatus: true,
+                documentStatus: true,
                 atendimentos: true,
                 profileImage: true,
                 bannerImage: true,

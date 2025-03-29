@@ -6,7 +6,7 @@ const { logActivity } = require("../../utils/activityService");
 exports.uploadDocument = async (req, res) => {
     try {
         const userId = req.user?.id;
-        const { type } = req.body;
+        const type = "RG"
 
         const companion = await prisma.companion.findUnique({ where: { userId } });
 
@@ -23,7 +23,7 @@ exports.uploadDocument = async (req, res) => {
             await logActivity(companion.id, "Envio de Documento",
                 `Acompanhante tentou enviar o documento tipo ${type}, mas já foi enviado anteriormente.`
             );
-            return res.status(200).json({ error: `O documento ${type} já foi enviado.` })
+            return res.status(200).json({ message: `O documento ${type} já foi enviado.` })
         };
 
         if (!req.files || !req.files.fileFront || !req.files.fileBack) {
@@ -39,8 +39,14 @@ exports.uploadDocument = async (req, res) => {
                 type,
                 fileFront: fileFrontUrl,
                 fileBack: fileBackUrl,
+                documentStatus: "IN_ANALYSIS",
                 updatedAt: new Date(),
             },
+        });
+
+        await prisma.companion.update({
+            where: { id: companionId },
+            data: { documentStatus: "IN_ANALYSIS" },
         });
 
         // Registra no log que o documento foi enviado

@@ -211,14 +211,16 @@ exports.getCompanionMedia = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
 
-        // Verificar se os documentos foram aprovados
-        const documentsValidated = companion.documents.every(doc => doc.documentStatus === 'APPROVED');
+        const documentStatuses = companion.documents.map(doc => doc.documentStatus);
+
+        const documentStatus = documentStatuses.length > 0 ? documentStatuses[0] : "PENDING";
+
 
         // Coletar as URLs das imagens e indicar se os documentos estão validados
         const media = {
             profileImage: companion.profileImage, // URL da imagem de perfil
             bannerImage: companion.bannerImage,   // URL da imagem de banner
-            documentsValidated: documentsValidated, // True se todos os documentos estiverem aprovados
+            documentsValidated: documentStatus, // True se todos os documentos estiverem aprovados
         };
 
         return res.status(200).json({ media });

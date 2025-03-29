@@ -470,6 +470,7 @@ exports.createUserPlan = async (req, res) => {
         const userId = req.user.id;
         const { planTypeId, extras = [], payment_method_id } = req.body;
 
+        
         // Verifica se o tipo de plano existe
         const planType = await prisma.planType.findUnique({
             where: { id: planTypeId },
@@ -1074,7 +1075,7 @@ exports.disablePlan = async (req, res) => {
             where: { id: companion.id },
             data: {
                 points: {
-                    decrement: plan.planType.points || 0, // Subtrai os pontos do PlanType
+                    decrement: 0, // Subtrai os pontos do PlanType
                 },
                 planId: null,  // Remove o plano da acompanhante
                 planTypeId: null,  // Remove o tipo de plano da acompanhante
