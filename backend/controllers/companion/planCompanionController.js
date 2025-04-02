@@ -468,8 +468,9 @@ exports.subscribeToPlan = async (req, res) => {
 exports.createUserPlan = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { planTypeId, extras = [], payment_method_id } = req.body;
+        const { planTypeId, extras = [], payment_method_id, token = null } = req.body;
 
+        console.log('TOKEN DO CARTÂO:', token);
         
         // Verifica se o tipo de plano existe
         const planType = await prisma.planType.findUnique({

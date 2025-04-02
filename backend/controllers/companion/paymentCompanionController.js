@@ -1,9 +1,8 @@
 const { mercadoPago } = require("../../config/mercadoPago.js");
 const { Preference, Payment } = require("mercadopago");
 const { PrismaClient } = require('@prisma/client');
-const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv');
+
 dotenv.config();
 
 const prisma = new PrismaClient();
@@ -13,8 +12,37 @@ function generateIdempotencyKey() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 15);
 }
 
+exports.createCardToken = async (req, res) => {
+    const { cardNumber, cardExpirationMonth, cardExpirationYear, cardholderName, securityCode } = req.body;
+
+    // Verificar se todos os dados necessários estão presentes
+    if (!cardNumber || !cardExpirationMonth || !cardExpirationYear || !cardholderName || !securityCode) {
+        return res.status(400).json({ error: 'Todos os dados do cartão são necessários.' });
+    }
+
+    // Dados do cartão para criar o token
+    const cardData = {
+        cardNumber: cardNumber, // Número do cartão
+        cardExpirationMonth: cardExpirationMonth, // Mês de validade
+        cardExpirationYear: cardExpirationYear, // Ano de validade
+        cardholderName: cardholderName, // Nome do titular
+        securityCode: securityCode, // Código de segurança (CVV)
+    };
+
+    try {
+        // Criando o token do cartão
+        const cardTokenResponse = await mercadoPago.cardTokens.create(cardData);
+
+        // Retornar o token do cartão gerado
+        return res.status(200).json({ token: cardTokenResponse.body.id });
+    } catch (error) {
+        console.error('Erro ao criar o token do cartão:', error);
+        return res.status(500).json({ error: 'Erro ao processar o pagamento.' });
+    }
+};
+
 // Criar um pagamento
-exports.createPayment = async (userId, product = null, payment_method_id, extras = [], totalAmount = 0) => {
+exports.createPayment = async (userId, product = null, payment_method_id, extras = [], totalAmount = 0, cardToken = '') => {
     try {
         if (!userId || !payment_method_id) {
             return { error: 'Usuario ou metodo de pagamento não encontrado.' };
@@ -30,7 +58,6 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
         }
 
         const extraPlans = await prisma.extraPlan.findMany({ where: { id: { in: extras } } });
-
         if (!extraPlans) return { error: 'Plano não encontrado.' }
 
         // Garantir que o email do usuário seja utilizado para o pagador
@@ -50,23 +77,62 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
             description += ` | Extras: ${extraPlanDescriptions}`;
         }
 
-        // Criação do pagamento com a SDK do Mercado Pago
-        paymentResponse = await payment.create({
-            body: {
-                transaction_amount: totalAmount,  // O valor total da transação (preço do plano + extras)
-                description: description,  // Descrição do plano principal + extras
-                payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'pix', etc.)
-                payer: {
-                    email: payerEmail,  // E-mail do pagador
-                    identification: {
-                        type: 'CPF',  // Tipo de identificação (ex: 'CPF', 'CNPJ')
-                        number: '58962188856',  // Número do CPF do pagador
+        // TESTE DE CARTÃO OU PIX
+        if (payment_method_id === 'card') {
+            paymentResponse = await payment.create({
+                body: {
+                    transaction_amount: totalAmount,  // O valor total da transação
+                    description: description,  // Descrição do plano principal + extras
+                    payment_method_id: payment_method_id,  // O ID do método de pagamento (cartão de crédito)
+                    payer: {
+                        email: payerEmail,
+                        identification: {
+                            type: 'CPF',
+                            number: payerCpf,
+                        },
                     },
+                    token: cardToken,  // Token do cartão de crédito
+                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
                 },
-                notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
-            },
-            requestOptions: { idempotencyKey: generateIdempotencyKey() },  // Valor único para idempotência
-        });
+                requestOptions: { idempotencyKey: generateIdempotencyKey() },
+            });
+        } else if (payment_method_id === 'pix') {
+            paymentResponse = await payment.create({
+                body: {
+                    transaction_amount: totalAmount,  // O valor total da transação
+                    description: description,  // Descrição do plano principal + extras
+                    payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'pix', etc.)
+                    payer: {
+                        email: payerEmail,
+                        identification: {
+                            type: 'CPF',
+                            number: payerCpf,
+                        },
+                    },
+                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+                },
+                requestOptions: { idempotencyKey: generateIdempotencyKey() },
+            });
+        }
+        console.log('Payment Response:', paymentResponse);
+
+        // // Criação do pagamento com a SDK do Mercado Pago
+        // paymentResponse = await payment.create({
+        //     body: {
+        //         transaction_amount: totalAmount,  // O valor total da transação (preço do plano + extras)
+        //         description: description,  // Descrição do plano principal + extras
+        //         payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'pix', etc.)
+        //         payer: {
+        //             email: payerEmail,  // E-mail do pagador
+        //             identification: {
+        //                 type: 'CPF',  // Tipo de identificação (ex: 'CPF', 'CNPJ')
+        //                 number: '58962188856',  // Número do CPF do pagador
+        //             },
+        //         },
+        //         notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+        //     },
+        //     requestOptions: { idempotencyKey: generateIdempotencyKey() },  // Valor único para idempotência
+        // });
 
 
         // Converte o transactionId para string antes de salvar no banco
@@ -114,11 +180,18 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
         }
 
         // Retornar a URL de pagamento, ticket_url e o ID do pagamento
-        return {
-            ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
-            transactionId: transactionId,
-            qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,
-            qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,
+        if (payment_method_id === 'pix') {
+            return {
+                ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
+                transactionId: transactionId,
+                qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,
+                qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,
+            };
+        } else {
+            return {
+                paymentUrl: paymentResponse.init_point,  // URL do pagamento para cartão de crédito
+                transactionId: transactionId,
+            };
         }
     } catch (error) {
         console.error('Erro ao criar pagamento:', error);
