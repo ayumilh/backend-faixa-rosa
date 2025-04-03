@@ -72,6 +72,7 @@ const paymentRoutes = require('./routes/companion/paymentCompanionRoutes.js');
 const denunciaRoutes = require('./routes/denunciarRoutes.js');
 const feedPostRoutes = require('./routes/companion/feedPostCompanionRoutes.js');
 const storyRoutes = require('./routes/companion/storyCompanionRoutes.js');
+const followRoutes = require('./routes/companion/followRoutes.js');
 
 
 // Rotas privadas
@@ -95,7 +96,8 @@ app.use('/api/plans', plansRoutes);
 app.use('/api/companions', authenticate, 
   companionRoutes,
   storyRoutes,
-  feedPostRoutes
+  feedPostRoutes,
+  followRoutes
 );
 
 app.use('/api/search', searchRoutes);

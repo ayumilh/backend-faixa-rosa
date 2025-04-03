@@ -114,7 +114,7 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             number: identificationNumber,  // Número do CPF ou CNPJ do pagador
                         },
                     },
-                    notification_url: 'https://55c0-2804-1b1-fd80-c09-3024-359-5d6a-a476.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
+                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
                 },
                 requestOptions: { idempotencyKey: generateIdempotencyKey() },
             });

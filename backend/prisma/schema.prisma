@@ -134,6 +134,8 @@ model Contractor {
   user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasContractor")
   denunciasFeitas    Denuncia[] @relation("DenunciasFeitasContractor")
+
+  Follow Follow[] @relation("Following")
 }
 
 model Companion {
@@ -183,7 +185,26 @@ model Companion {
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
   ActivityLog             ActivityLog[]
   atendimentos            Atendimento[]
+
+  Follow Follow[] @relation("Followers")
 }
+
+model Follow {
+  id            Int         @id @default(autoincrement())
+  followerId    Int
+  followingId   Int
+  createdAt     DateTime    @default(now())
+
+  // Relacionamento com o Contractor (quem está seguindo)
+  follower      Contractor  @relation("Following", fields: [followerId], references: [id])
+
+  // Relacionamento com o Companion (quem é seguido)
+  following     Companion   @relation("Followers", fields: [followingId], references: [id])
+
+  // Garantir que um Contractor não possa seguir mais de uma vez o mesmo Companion
+  @@unique([followerId, followingId])
+}
+ 
 
 model ContactMethodCompanion {
   id               Int       @id @default(autoincrement())
