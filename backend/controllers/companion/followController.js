@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Função para seguir um Companion por um Contractor
-exports.followCompanion(contractorId, companionId) => {
+exports.followCompanion = async (contractorId, companionId) => {
     // Verificar se o Contractor já está seguindo o Companion
     const existingFollow = await prisma.follow.findFirst({
         where: {
@@ -13,7 +13,7 @@ exports.followCompanion(contractorId, companionId) => {
 
     if (existingFollow) {
         // Caso já esteja seguindo, não cria um novo relacionamento
-        return "Você já está seguindo essa acompanhante.";
+        return { message: "Você já está seguindo essa acompanhante." };
     }
 
     // Caso contrário, cria o novo relacionamento de seguir
@@ -25,11 +25,10 @@ exports.followCompanion(contractorId, companionId) => {
     });
 
     return follow;
-}
-
+};
 
 // Função para deixar de seguir um Companion
-async function unfollowCompanion(contractorId, companionId) {
+exports.unfollowCompanion = async (contractorId, companionId) => {
     // Remover o relacionamento de seguir
     const unfollow = await prisma.follow.deleteMany({
         where: {
@@ -38,11 +37,15 @@ async function unfollowCompanion(contractorId, companionId) {
         },
     });
 
-    return unfollow;
-}
+    if (unfollow.count === 0) {
+        return { message: "Você não segue essa acompanhante." };
+    }
+
+    return { message: "Você deixou de seguir a acompanhante." };
+};
 
 // Função para listar os companions que um Contractor está seguindo
-async function getFollowingOfContractor(contractorId) {
+exports.getFollowingOfContractor = async (contractorId) => {
     const following = await prisma.follow.findMany({
         where: {
             followerId: contractorId, // Busca os companions que o contractor está seguindo
@@ -53,4 +56,18 @@ async function getFollowingOfContractor(contractorId) {
     });
 
     return following.map(follow => follow.following); // Retorna os Companions seguidos
-}
+};
+
+// Função para listar os seguidores de um Companion
+exports.getFollowersOfCompanion = async (companionId) => {
+    const followers = await prisma.follow.findMany({
+        where: {
+            followingId: companionId, // Busca os contractors que seguem esse companion
+        },
+        include: {
+            follower: true, // Inclui os dados do Contractor
+        },
+    });
+
+    return followers.map(follow => follow.follower); // Retorna os Contractors que seguem o Companion
+};
