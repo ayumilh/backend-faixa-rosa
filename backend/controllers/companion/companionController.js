@@ -480,6 +480,8 @@ exports.updateCompanionContact = async (req, res) => {
         telegramUsername,
         telegramMessage,
         phoneNumber,
+        whatsappCountryCode,
+        phoneCountryCode,
     } = req.body;
 
     try {
@@ -498,9 +500,11 @@ exports.updateCompanionContact = async (req, res) => {
                 companionId: companion.id,
                 whatsappNumber,
                 whatsappMessage,
+                whatsappCountryCode,
                 telegramUsername,
                 telegramMessage,
-                phoneNumber
+                phoneNumber,
+                phoneCountryCode,
             },
         });
 
@@ -543,7 +547,9 @@ exports.getCompanionContact = async (req, res) => {
                 whatsappMessage: contact.whatsappMessage || null,
                 telegramUsername: contact.telegramUsername || null,
                 telegramMessage: contact.telegramMessage || null,
-                phoneNumber: contact.phoneNumber || null
+                phoneNumber: contact.phoneNumber || null,
+                phoneCountryCode: contact.phoneCountryCode || null,
+                whatsappCountryCode: contact.whatsappCountryCode || null
             }
         });
 

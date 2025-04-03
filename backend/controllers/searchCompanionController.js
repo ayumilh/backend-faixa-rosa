@@ -268,6 +268,16 @@ exports.searchCompanionProfile = async (req, res) => {
                             location: true, // Inclui os dados da tabela Location
                         }
                     },
+                    contactMethods: { // Incluir os métodos de contato
+                        select: {
+                            id: true,
+                            whatsappNumber: true,
+                            whatsappMessage: true,
+                            telegramUsername: true,
+                            telegramMessage: true,
+                            phoneNumber: true
+                        }
+                    },
                     weeklySchedules: {
                         select: {
                             id: true,
