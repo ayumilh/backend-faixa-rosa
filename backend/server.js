@@ -102,10 +102,6 @@ app.use('/api/search', searchRoutes);
 
 app.use('/api/payments', authenticate, paymentRoutes);
 app.post('/webhook', receiveWebhook);
-const processPaymentRoutes = require('./routes/testRoute.js'); // Importa o arquivo de rota
-
-app.use('/api/mp', processPaymentRoutes); // Usa as rotas do arquivo test.js para a rota 'api/process_payment'
-
 
 app.post('/api/denuncias', authenticate, denunciaRoutes);
 

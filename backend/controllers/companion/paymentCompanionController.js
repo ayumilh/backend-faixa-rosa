@@ -48,6 +48,8 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
             return { error: 'Usuario ou metodo de pagamento não encontrado.' };
         }
 
+        console.log('Dados do pagamento:', { userId, product, payment_method_id, totalAmount, cardToken });
+
         const user = await prisma.user.findFirst({ where: { id: userId } });
         if (!user) return { error: 'Usuário não encontrado.' }
 
@@ -78,25 +80,7 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
         }
 
         // TESTE DE CARTÃO OU PIX
-        if (payment_method_id === 'card') {
-            paymentResponse = await payment.create({
-                body: {
-                    transaction_amount: totalAmount,  // O valor total da transação
-                    description: description,  // Descrição do plano principal + extras
-                    payment_method_id: payment_method_id,  // O ID do método de pagamento (cartão de crédito)
-                    payer: {
-                        email: payerEmail,
-                        identification: {
-                            type: 'CPF',
-                            number: payerCpf,
-                        },
-                    },
-                    token: cardToken,  // Token do cartão de crédito
-                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
-                },
-                requestOptions: { idempotencyKey: generateIdempotencyKey() },
-            });
-        } else if (payment_method_id === 'pix') {
+        if (payment_method_id === 'pix') {
             paymentResponse = await payment.create({
                 body: {
                     transaction_amount: totalAmount,  // O valor total da transação
@@ -109,6 +93,26 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             number: payerCpf,
                         },
                     },
+                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+                },
+                requestOptions: { idempotencyKey: generateIdempotencyKey() },
+            });
+        } else {
+            // Se não for PIX, considera como pagamento com cartão
+            paymentResponse = await payment.create({
+                body: {
+                    transaction_amount: totalAmount,  // O valor total da transação
+                    description: description,  // Descrição do plano principal + extras
+                    payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'master', etc.)
+                    payer: {
+                        email: payerEmail,
+                        identification: {
+                            type: 'CPF',
+                            number: payerCpf,
+                        },
+                    },
+                    token: cardToken,  // Token do cartão de crédito
+                    installments: 1,
                     notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
                 },
                 requestOptions: { idempotencyKey: generateIdempotencyKey() },
@@ -148,7 +152,7 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                     planId: plan.id, // Plano principal
                     amount: plan.price,  // Usa o valor total passado
                     paymentMethod: payment_method_id,
-                    status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
+                    status: 'pending',  // Status do pagamento retornado pela API do Mercado Pago
                     transactionId: transactionId,  // Salva como string
                 },
             });
@@ -168,7 +172,7 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             extraPlanId: extraPlan.id,  // Agora estamos salvando o extraPlanId ao invés de planId
                             amount: extraPlan.price,  // O valor do plano extra, retirado da tabela `plan`
                             paymentMethod: payment_method_id,
-                            status: paymentResponse.status,  // Status do pagamento retornado pela API do Mercado Pago
+                            status: 'pending',  // Status do pagamento retornado pela API do Mercado Pago
                             transactionId: transactionId,
                         },
                     });
@@ -180,19 +184,18 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
         }
 
         // Retornar a URL de pagamento, ticket_url e o ID do pagamento
+        // Se for PIX, retornar o QR code
         if (payment_method_id === 'pix') {
             return {
-                ticket_url: paymentResponse.point_of_interaction.transaction_data.ticket_url,  // URL do ticket
                 transactionId: transactionId,
-                qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,
-                qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,
-            };
-        } else {
-            return {
-                paymentUrl: paymentResponse.init_point,  // URL do pagamento para cartão de crédito
-                transactionId: transactionId,
+                qr_code: paymentResponse.point_of_interaction.transaction_data.qr_code,  // QR code para pagamento via PIX
+                qr_code_base64: paymentResponse.point_of_interaction.transaction_data.qr_code_base64,  // QR code base64
             };
         }
+
+        return {
+            transactionId: transactionId,
+        };
     } catch (error) {
         console.error('Erro ao criar pagamento:', error);
         return { error: 'Erro ao criar pagamento.' };
@@ -413,15 +416,20 @@ exports.receiveWebhook = async (req, res) => {
     }
 };
 
-
 exports.getPaymentStatus = async (req, res) => {
     const userId = req.user.id;
     const transactionId = req.params.transactionId;
 
     try {
-        // Busca todos os pagamentos associados ao userId
+        // Busca todos os pagamentos associados ao userId e transactionId
         const payments = await prisma.payment.findMany({
-            where: { userId, transactionId },  // Ajuste para buscar pelo userId
+            where: {
+                userId,
+                transactionId
+            },
+            include: {
+                plan: true,  // Inclui os dados do plano principal
+            }
         });
 
         // Se nenhum pagamento for encontrado, retorna um erro
@@ -429,22 +437,53 @@ exports.getPaymentStatus = async (req, res) => {
             return res.status(404).json({ error: 'Nenhum pagamento encontrado para este usuário.' });
         }
 
-        // Verifica o status do pagamento
-        const paymentStatus = payments[0].status; // Assumindo que o status está no campo 'status'
+        const payment = payments[0];
 
-        if (paymentStatus === 'approved') {
-            return res.status(200).json({ status: 'Pagamento aprovado!', paymentStatus });
-        } else if (paymentStatus === 'pending') {
-            return res.status(200).json({ status: 'Pagamento pendente!', paymentStatus });
-        } else if (paymentStatus === 'refused') {
-            return res.status(200).json({ status: 'Pagamento recusado!', paymentStatus });
-        }
+        // Verifica o status do pagamento
+        const paymentStatus = payment.status;
+
+        // Busca o nome do plano básico e seu preço
+        const basicPlan = payment.plan ? payment.plan.name : null;
+        const basicPlanPrice = payment.plan ? payment.plan.price : 0; // Preço do plano básico
+
+        // Coleta todos os extraPlanIds encontrados nos pagamentos
+        const extraPlanIds = payments
+            .filter(payment => payment.extraPlanId)  // Filtra pagamentos com extraPlanId
+            .map(payment => payment.extraPlanId);  // Coleta todos os extraPlanIds
+
+        // Busca os planos extras associados aos extraPlanIds
+        const extraPlans = extraPlanIds.length > 0 ? await prisma.plan.findMany({
+            where: {
+                id: { in: extraPlanIds }  // Filtra pelos extraPlanIds encontrados
+            },
+            select: {
+                name: true,   // Nome do plano extra
+                price: true   // Preço do plano extra
+            }
+        }) : [];
+
+        // Calcula o preço total somando o preço do plano básico com os preços dos planos extras
+        const totalAmount = basicPlanPrice + extraPlans.reduce((total, plan) => total + plan.price, 0);
+
+        // Retorna os dados do pagamento, planos e preço
+        const response = {
+            status: paymentStatus === 'approved' ? 'Pagamento aprovado!' :
+                paymentStatus === 'pending' ? 'Pagamento pendente!' :
+                    'Pagamento recusado!',
+            paymentStatus,
+            transactionId: payment.transactionId,
+            paymentAmount: totalAmount, // Preço total do pagamento
+            basicPlan,
+            basicPlanPrice, // Inclui o preço do plano básico
+            extraPlans,  // Inclui os planos extras com seus preços
+        };
+
+        return res.status(200).json(response);
     } catch (error) {
         console.error('Erro ao verificar o status do pagamento:', error);
         return res.status(500).json({ error: 'Erro ao verificar o status do pagamento.' });
     }
 };
-
 
 
 // Listar pagamentos de um usuário

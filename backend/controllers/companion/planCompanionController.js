@@ -468,10 +468,10 @@ exports.subscribeToPlan = async (req, res) => {
 exports.createUserPlan = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { planTypeId, extras = [], payment_method_id, token = null } = req.body;
+        const { planTypeId, extras = [], payment_method_id = null, cardToken = null } = req.body;
 
-        console.log('TOKEN DO CARTÂO:', token);
-        
+        console.log('TOKEN DO CARTÂO:', cardToken);
+
         // Verifica se o tipo de plano existe
         const planType = await prisma.planType.findUnique({
             where: { id: planTypeId },
@@ -586,17 +586,28 @@ exports.createUserPlan = async (req, res) => {
         totalAmount = parseFloat(totalAmount.toFixed(2));
 
         // Criação do pagamento para o plano principal e extras
-        console.log(totalAmount)
-        const paymentResult = await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
+        const paymentResult = cardToken
+            ? await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount, cardToken)
+            : await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
+
+        console.log("RESULTADO DO PAGAMENTO:", paymentResult);
 
         // Se o pagamento não for aprovado, não criamos os planos
         if (!paymentResult || paymentResult.status !== 'approved') {
+            // Se o método de pagamento for PIX, retornamos todos os detalhes (ticket_url, qr_code, etc.)
+            if (payment_method_id === 'pix') {
+                return res.status(200).json({
+                    message: 'Pagamento não aprovado.',
+                    transactionId: paymentResult.transactionId,  // ID da transação
+                    qr_code: paymentResult.qr_code,  // QR code do pagamento via PIX
+                    qr_code_base64: paymentResult.qr_code_base64,  // QR code base64 para gerar 
+                });
+            }
+
+            // Se for cartão de crédito, apenas o transactionId é retornado
             return res.status(200).json({
-                message: 'Pagamento não aprovado.',
-                ticketUrl: paymentResult.ticket_url,
+                message: 'Pagamento feito por cartão de crédito.',
                 transactionId: paymentResult.transactionId,
-                qr_code: paymentResult.qr_code,
-                qr_code_base64: paymentResult.qr_code_base64,
             });
         }
 
@@ -730,7 +741,7 @@ exports.createUserPlan = async (req, res) => {
 exports.addUserExtras = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { extras, payment_method_id } = req.body;
+        const { extras, payment_method_id, cardToken = null } = req.body;
 
         const companion = await prisma.companion.findUnique({
             where: { userId },
@@ -773,7 +784,7 @@ exports.addUserExtras = async (req, res) => {
 
         // Se já assinou antes, filtra os que precisam ser reativados
         const toReactivate = existingExtraPlans.filter(plan => plan.endDate !== null);
-        
+
         if (existingExtraPlans.length > 0) {
             // Busca os nomes dos planos extras reativados
             const extraPlanNames = await prisma.extraPlan.findMany({
@@ -846,16 +857,27 @@ exports.addUserExtras = async (req, res) => {
         }
 
         // Criação do pagamento para o plano principal e extras
-        const paymentResult = await createPayment(userId, null, payment_method_id, extras, totalAmount);
+        const paymentResult = cardToken
+            ? await createPayment(userId, null, payment_method_id, extras, totalAmount, cardToken)
+            : await createPayment(userId, null, payment_method_id, extras, totalAmount);
+
+        console.log("RESULTADO DO PAGAMENTO:", paymentResult);
 
         // Se o pagamento não for aprovado, não criamos os planos
         if (!paymentResult || paymentResult.status !== 'approved') {
+            if (payment_method_id === 'pix') {
+                return res.status(200).json({
+                    message: 'Pagamento não aprovado.',
+                    transactionId: paymentResult.transactionId,
+                    qr_code: paymentResult.qr_code,  // QR code do pagamento via PIX
+                    qr_code_base64: paymentResult.qr_code_base64,  // QR code base64 para gerar 
+                });
+            }
+
+            // Se for cartão de crédito, apenas o transactionId é retornado
             return res.status(200).json({
-                message: 'Pagamento não aprovado.',
-                ticketUrl: paymentResult.ticket_url,
+                message: 'Pagamento feito por cartão de crédito.',
                 transactionId: paymentResult.transactionId,
-                qr_code: paymentResult.qr_code,
-                qr_code_base64: paymentResult.qr_code_base64,
             });
         }
 
