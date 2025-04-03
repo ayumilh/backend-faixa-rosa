@@ -741,7 +741,7 @@ exports.createUserPlan = async (req, res) => {
 exports.addUserExtras = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { extras, payment_method_id, cardToken = null } = req.body;
+        const { extras, payment_method_id, cardToken = null, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
 
         const companion = await prisma.companion.findUnique({
             where: { userId },
@@ -858,7 +858,7 @@ exports.addUserExtras = async (req, res) => {
 
         // Criação do pagamento para o plano principal e extras
         const paymentResult = cardToken
-            ? await createPayment(userId, null, payment_method_id, extras, totalAmount, cardToken)
+            ? await createPayment(userId, null, payment_method_id, extras, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType)
             : await createPayment(userId, null, payment_method_id, extras, totalAmount);
 
         console.log("RESULTADO DO PAGAMENTO:", paymentResult);

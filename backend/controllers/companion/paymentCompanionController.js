@@ -42,13 +42,13 @@ exports.createCardToken = async (req, res) => {
 };
 
 // Criar um pagamento
-exports.createPayment = async (userId, product = null, payment_method_id, extras = [], totalAmount = 0, cardToken = '') => {
+exports.createPayment = async (userId, product = null, payment_method_id, extras = [], totalAmount = 0, cardToken = '', issuer_id, installments, email, identificationNumber, identificationType) => {
     try {
         if (!userId || !payment_method_id) {
             return { error: 'Usuario ou metodo de pagamento não encontrado.' };
         }
 
-        console.log('Dados do pagamento:', { userId, product, payment_method_id, totalAmount, cardToken });
+        console.log('Dados do pagamento:', { userId, product, payment_method_id, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType });
 
         const user = await prisma.user.findFirst({ where: { id: userId } });
         if (!user) return { error: 'Usuário não encontrado.' }
@@ -102,18 +102,19 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
             paymentResponse = await payment.create({
                 body: {
                     transaction_amount: totalAmount,  // O valor total da transação
+                    token: cardToken,  // Token do cartão de crédito
                     description: description,  // Descrição do plano principal + extras
                     payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'master', etc.)
+                    installments: parseInt(installments, 10), // Converte para um inteiro
+                    issuer_id: issuer_id,  // ID do emissor do cartão
                     payer: {
-                        email: payerEmail,
+                        email: email,
                         identification: {
-                            type: 'CPF',
-                            number: payerCpf,
+                            type: identificationType,
+                            number: identificationNumber,  // Número do CPF ou CNPJ do pagador
                         },
                     },
-                    token: cardToken,  // Token do cartão de crédito
-                    installments: 1,
-                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+                    notification_url: 'https://55c0-2804-1b1-fd80-c09-3024-359-5d6a-a476.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
                 },
                 requestOptions: { idempotencyKey: generateIdempotencyKey() },
             });
