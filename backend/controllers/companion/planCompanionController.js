@@ -468,9 +468,9 @@ exports.subscribeToPlan = async (req, res) => {
 exports.createUserPlan = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { planTypeId, extras = [], payment_method_id = null, cardToken = null } = req.body;
+        const { planTypeId, extras = [], payment_method_id = null, cardToken = null, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
 
-        console.log('TOKEN DO CARTÂO:', cardToken);
+        console.log("Dados recebidos:", req.body);
 
         // Verifica se o tipo de plano existe
         const planType = await prisma.planType.findUnique({
@@ -587,7 +587,7 @@ exports.createUserPlan = async (req, res) => {
 
         // Criação do pagamento para o plano principal e extras
         const paymentResult = cardToken
-            ? await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount, cardToken)
+            ? await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType)
             : await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
 
         console.log("RESULTADO DO PAGAMENTO:", paymentResult);
