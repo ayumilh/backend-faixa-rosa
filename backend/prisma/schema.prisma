@@ -445,6 +445,7 @@ model Media {
   companionId Int?
   url         String
   mediaType   MediaType
+  status      String     @default("pending")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   companion   Companion? @relation(fields: [companionId], references: [id])

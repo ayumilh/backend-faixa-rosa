@@ -243,24 +243,24 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
 
         // Esquema Joi para validar apenas os campos enviados (todos opcionais)
         const schema = Joi.object({
-            description: Joi.string().allow(null, ""),
-            gender: Joi.string().allow(null, ""),
-            genitalia: Joi.string().allow(null, ""),
-            weight: Joi.number().precision(2).positive().allow(null, 0),
-            height: Joi.number().integer().positive().allow(null, 0),
-            ethnicity: Joi.string().allow(null, ""),
-            eyeColor: Joi.string().allow(null, ""),
-            hairStyle: Joi.string().allow(null, ""),
-            hairLength: Joi.string().allow(null, ""),
-            shoeSize: Joi.string().allow(null, ""),
-            hasSilicone: Joi.boolean().truthy("true").falsy("false").default(false),
-            hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false),
-            hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false),
-            smoker: Joi.boolean().truthy("true").falsy("false").default(false),
-            hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false),
-            atendimentos: Joi.array().items(Joi.string().valid('HOMENS', 'MULHERES', 'CASAIS', 'DEFICIENTES_FISICOS')).allow(null),
-            userName: Joi.string().allow(null, "").optional(),
-            canHideAge: Joi.boolean().optional(),
+            description: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            gender: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            genitalia: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            weight: Joi.number().precision(2).positive().allow(null, 0).optional(),  // Tornando opcional
+            height: Joi.number().integer().positive().allow(null, 0).optional(),  // Tornando opcional
+            ethnicity: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            eyeColor: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            hairStyle: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            hairLength: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            shoeSize: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            hasSilicone: Joi.boolean().truthy("true").falsy("false").default(false).optional(),  // Tornando opcional
+            hasTattoos: Joi.boolean().truthy("true").falsy("false").default(false).optional(),  // Tornando opcional
+            hasPiercings: Joi.boolean().truthy("true").falsy("false").default(false).optional(),  // Tornando opcional
+            smoker: Joi.boolean().truthy("true").falsy("false").default(false).optional(),  // Tornando opcional
+            hasComparisonMedia: Joi.boolean().truthy("true").falsy("false").default(false).optional(),  // Tornando opcional
+            atendimentos: Joi.array().items(Joi.string().valid('HOMENS', 'MULHERES', 'CASAIS', 'DEFICIENTES_FISICOS')).allow(null).optional(),  // Tornando opcional
+            userName: Joi.string().allow(null, "").optional(),  // Tornando opcional
+            canHideAge: Joi.boolean().optional(),  // Tornando opcional
         });
 
         const { error, value } = schema.validate(data, { convert: true });
@@ -336,6 +336,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                         data: {
                             companionId: companion.id,
                             url: videoUrl,
+                            status: "IN_ANALYSIS",
                             mediaType: "VIDEO",
                         },
                     });
@@ -350,6 +351,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                     data: {
                         companionId: companion.id,
                         url: videoUrl,
+                        status: "IN_ANALYSIS",
                         mediaType: "VIDEO",
                     },
                 });
@@ -413,6 +415,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                 data: {
                     description: data.description ?? companion.description,
                     atendimentos: data.atendimentos ?? companion.atendimentos,
+                    profileStatus: "IN_ANALYSIS",
                     userName: data.userName ?? companion.userName,
                 },
             });

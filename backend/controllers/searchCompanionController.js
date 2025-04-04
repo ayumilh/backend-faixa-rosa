@@ -59,6 +59,9 @@ exports.searchCompanionCity = async (req, res) => {
                             },
                         },
                     },
+                    timedServiceCompanion: {
+                        include: { TimedService: true }
+                    },
                 },
             });
 
@@ -67,10 +70,32 @@ exports.searchCompanionCity = async (req, res) => {
                 return res.status(200).json({ error: "Nenhum plano encontrado para o usuário especificado." });
             }
 
+            // Busca TODOS os horários disponíveis na tabela TimedService
+            const allTimedServices = await prisma.timedService.findMany();
+
+            // Mapeia os horários que a acompanhante já oferece
+            const companionTimedServicesMap = new Map(
+                companion.timedServiceCompanion.map(ts => [ts.timedServiceId, ts])
+            );
+
+            const timedServices = allTimedServices.map(timedService => {
+                const companionService = companionTimedServicesMap.get(timedService.id);
+    
+                return {
+                    id: timedService.id,
+                    name: timedService.name,
+                    description: timedService.description,
+                    defaultPrice: timedService.defaultPrice ?? null,
+                    isOffered: companionService ? companionService.isOffered : false, // Agora só será true se realmente estiver no banco
+                    price: companionService?.price ?? null
+                };
+            });
+
             // Retorna os planos do acompanhante
             return res.status(200).json({
                 plan: companion.plan,
                 subscriptions: companion.subscriptions,
+                timedServices
             });
         }
 
@@ -188,6 +213,9 @@ exports.searchCompanionCity = async (req, res) => {
                         },
                     },
                 },
+                timedServiceCompanion: {
+                    include: { TimedService: true }
+                },
             },
         });
 
@@ -206,6 +234,33 @@ exports.searchCompanionCity = async (req, res) => {
             return res.status(200).json(acompanhantesComIdade || []);
         }
 
+        // Incluindo os timedServices no retorno de cada acompanhante
+        const acompanhantesComTimedServices = await Promise.all(acompanhantesComIdade.map(async (acompanhante) => {
+            // Recuperar os timedServices do acompanhante
+            const allTimedServices = await prisma.timedService.findMany();
+            const companionTimedServicesMap = new Map(
+                acompanhante.timedServiceCompanion.map(ts => [ts.timedServiceId, ts])
+            );
+
+            const timedServices = allTimedServices.map(timedService => {
+                const companionService = companionTimedServicesMap.get(timedService.id);
+        
+                return {
+                    id: timedService.id,
+                    name: timedService.name,
+                    description: timedService.description,
+                    defaultPrice: timedService.defaultPrice ?? null,
+                    isOffered: companionService ? companionService.isOffered : false,
+                    price: companionService?.price ?? null
+                };
+            });
+
+            return {
+                ...acompanhante,
+                timedServices // Adicionando os timedServices ao acompanhante
+            };
+        }));
+        
         return res.status(200).json(acompanhantesComIdade);
     } catch (error) {
         console.error("Erro ao buscar acompanhantes:", error);

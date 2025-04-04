@@ -62,6 +62,7 @@ const adminFeedPostRoutes = require('./routes/admin/adminFeedPostRoutes');
 const adminDenunciaRoutes = require('./routes/admin/adminDenunciasRoutes');
 const adminUsuarioRoutes = require('./routes/admin/adminUserRoutes');
 const { receiveWebhook } = require('./controllers/companion/paymentCompanionController.js');
+const adminMediaRoutes = require('./routes/admin/adminMediaRoutes.js');
 
 
 
@@ -84,7 +85,8 @@ app.use('/api/admin', authenticate, verifyAdmin,
   adminDenunciaRoutes,
   adminStoryRoutes,
   adminFeedPostRoutes,
-  adminPagamentoRoutes
+  adminPagamentoRoutes,
+  adminMediaRoutes
 );
 
 app.use('/api/users', authenticate, 

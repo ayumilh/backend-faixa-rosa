@@ -27,8 +27,22 @@ exports.listAcompanhantes = async (req, res) => {
                         updatedAt: true,
                     },
                 },
+                media: {  // Verificando se existe vídeo de comparação
+                    where: {
+                        mediaType: 'VIDEO', // Verificando tipo de mídia
+                    },
+                    select: {
+                        id: true,   // Verifica se existe um vídeo
+                        status: true, // Retorna o status do vídeo
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'asc'
             },
         });
+
+        console.log(acompanhantes); // Log para verificar os dados retornados
 
         // Processa o status do documento para cada acompanhante com base na tabela Document
         const formattedAcompanhantes = acompanhantes.map((companion) => {
@@ -50,6 +64,11 @@ exports.listAcompanhantes = async (req, res) => {
                 }
             }
 
+
+            // Verifica se o acompanhante tem vídeo de comparação
+            const hasComparisonVideo = companion.media.length > 0 ? true : false;
+            const videoStatus = hasComparisonVideo ? companion.media[0].status : 'Nenhum vídeo enviado';
+
             return {
                 id: companion.id,
                 name: `${companion.user.firstName} ${companion.user.lastName}`,
@@ -64,6 +83,7 @@ exports.listAcompanhantes = async (req, res) => {
                     price: companion.plan.price,
                 } : null,
                 userName: companion.userName, // Agora acessando 'userName' do modelo 'User'
+                media: videoStatus
             };
         });
 
@@ -97,6 +117,10 @@ exports.approveAcompanhantes = async (req, res) => {
             where: { id: companionId },
             data: { profileStatus: 'ACTIVE' },
         });
+        await prisma.media.updateMany({
+            where: { companionId: companionId },
+            data: { status: 'APPROVED' },
+        });
         return res.status(200).json({ message: 'acompanhantes aprovado com sucesso.' });
     } catch (error) {
         console.error(error);
@@ -122,6 +146,10 @@ exports.rejectAcompanhantes = async (req, res) => {
             where: { id: companionId },
             data: { profileStatus: 'REJECTED' },
         });
+        await prisma.media.updateMany({
+            where: { companionId: companionId },
+            data: { status: 'REJECTED' },
+        });
         return res.status(200).json({ message: 'acompanhantes rejeitado com sucesso.' });
     } catch (error) {
         console.error(error);
@@ -146,6 +174,10 @@ exports.suspendAcompanhantes = async (req, res) => {
         await prisma.companion.update({
             where: { id: companionId },
             data: { profileStatus: 'SUSPENDED' },
+        });
+        await prisma.media.updateMany({
+            where: { companionId: companionId },
+            data: { status: 'SUSPENDED' },
         });
         return res.status(200).json({ message: 'acompanhantes suspenso com sucesso.' });
     } catch (error) {
