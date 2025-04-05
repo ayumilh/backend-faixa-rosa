@@ -117,10 +117,6 @@ exports.approveAcompanhantes = async (req, res) => {
             where: { id: companionId },
             data: { profileStatus: 'ACTIVE' },
         });
-        await prisma.media.updateMany({
-            where: { companionId: companionId },
-            data: { status: 'APPROVED' },
-        });
         return res.status(200).json({ message: 'acompanhantes aprovado com sucesso.' });
     } catch (error) {
         console.error(error);
