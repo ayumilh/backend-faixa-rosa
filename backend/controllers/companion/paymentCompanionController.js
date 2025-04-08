@@ -93,7 +93,7 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             number: payerCpf,
                         },
                     },
-                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+                    notification_url: 'https://c9e2-2804-14c-22-a510-50bd-7db-255b-711b.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
                 },
                 requestOptions: { idempotencyKey: generateIdempotencyKey() },
             });
@@ -114,31 +114,17 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             number: identificationNumber,  // Número do CPF ou CNPJ do pagador
                         },
                     },
-                    notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
+                    notification_url: 'https://c9e2-2804-14c-22-a510-50bd-7db-255b-711b.ngrok-free.app/webhook',  // URL para receber notificações de status do pagamento
                 },
                 requestOptions: { idempotencyKey: generateIdempotencyKey() },
             });
         }
         console.log('Payment Response:', paymentResponse);
 
-        // // Criação do pagamento com a SDK do Mercado Pago
-        // paymentResponse = await payment.create({
-        //     body: {
-        //         transaction_amount: totalAmount,  // O valor total da transação (preço do plano + extras)
-        //         description: description,  // Descrição do plano principal + extras
-        //         payment_method_id: payment_method_id,  // O ID do método de pagamento (ex: 'visa', 'pix', etc.)
-        //         payer: {
-        //             email: payerEmail,  // E-mail do pagador
-        //             identification: {
-        //                 type: 'CPF',  // Tipo de identificação (ex: 'CPF', 'CNPJ')
-        //                 number: '58962188856',  // Número do CPF do pagador
-        //             },
-        //         },
-        //         notification_url: 'https://www.faixarosa.com/webhook',  // URL para receber notificações de status do pagamento
-        //     },
-        //     requestOptions: { idempotencyKey: generateIdempotencyKey() },  // Valor único para idempotência
-        // });
-
+        let paymentMethod = paymentResponse.payment_method.type;
+        if (paymentMethod === 'bank_transfer') {
+            paymentMethod = 'pix'; // Altera para 'pix' caso seja 'bank_transfer'
+        }
 
         // Converte o transactionId para string antes de salvar no banco
         const transactionId = paymentResponse.id.toString();  // Garante que seja uma string
@@ -151,10 +137,13 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                 data: {
                     userId,
                     planId: plan.id, // Plano principal
-                    amount: plan.price,  // Usa o valor total passado
-                    paymentMethod: payment_method_id,
-                    status: 'pending',  // Status do pagamento retornado pela API do Mercado Pago
-                    transactionId: transactionId,  // Salva como string
+                    amount: plan.price,
+                    paymentMethod: paymentMethod,
+                    status: 'pending',
+                    transactionId: transactionId,
+                    cardToken: payment_method_id !== 'pix' ? cardToken : null,
+                    issuer_id: payment_method_id !== 'pix' ? issuer_id : null,
+                    paymentMethodId: payment_method_id !== 'pix' ? payment_method_id : null,
                 },
             });
             console.log('Pagamento criado para o plano principal:', savedPayment);
@@ -172,9 +161,12 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
                             userId,
                             extraPlanId: extraPlan.id,  // Agora estamos salvando o extraPlanId ao invés de planId
                             amount: extraPlan.price,  // O valor do plano extra, retirado da tabela `plan`
-                            paymentMethod: payment_method_id,
+                            paymentMethod: paymentMethod,
                             status: 'pending',  // Status do pagamento retornado pela API do Mercado Pago
                             transactionId: transactionId,
+                            cardToken: payment_method_id !== 'pix' ? cardToken : null,
+                            issuer_id: payment_method_id !== 'pix' ? issuer_id : null,
+                            paymentMethodId: payment_method_id !== 'pix' ? payment_method_id : null,
                         },
                     });
                     console.log('Pagamento criado para o plano extra:', extraPlan.id);
@@ -184,7 +176,6 @@ exports.createPayment = async (userId, product = null, payment_method_id, extras
             }
         }
 
-        // Retornar a URL de pagamento, ticket_url e o ID do pagamento
         // Se for PIX, retornar o QR code
         if (payment_method_id === 'pix') {
             return {
@@ -274,6 +265,7 @@ exports.receiveWebhook = async (req, res) => {
                                 startDate: new Date(),
                                 endDate: null,
                                 planSubscriptionId: payments.id,
+                                paymentMethod: updatedPayment.paymentMethod,
                             },
                             include: { plan: true },
                         });
@@ -287,6 +279,9 @@ exports.receiveWebhook = async (req, res) => {
                                 startDate: new Date(), // Atualiza a data de início
                                 endDate: null, // Reativa a assinatura
                                 updatedAt: new Date(),
+                                subscriptionStatus: 'ACTIVE',
+                                nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                                paymentMethod: updatedPayment.paymentMethod,
                             },
                             include: { plan: true },
                         });
@@ -353,7 +348,6 @@ exports.receiveWebhook = async (req, res) => {
                         const companionExists = await prisma.companion.findUnique({
                             where: { userId: updatedPayment.userId },
                         });
-                        console.log('Companion Exists:', companionExists);
 
                         if (!companionExists) {
                             return res.status(400).json({ error: 'Acompanhante não encontrado.' });
@@ -368,8 +362,10 @@ exports.receiveWebhook = async (req, res) => {
                                 startDate: new Date(),
                                 isExtra: true,
                                 endDate: null,
+                                paymentMethod: updatedPayment.paymentMethod,
                             },
                         });
+                        console.log('Nova assinatura criada para o plano extra:', newExtraPlanSubscription.id);
 
                         // Atualiza o payment com o id da nova planSubscription do plano extra
                         await prisma.payment.update({

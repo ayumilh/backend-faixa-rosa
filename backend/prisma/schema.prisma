@@ -101,8 +101,6 @@ model PlanSubscription {
   nextPaymentDate    DateTime   @default(now())
   subscriptionStatus String     @default("ACTIVE") // Status da assinatura
   paymentMethod      String     @default("default_method") // Método de pagamento
-  transactionId      String?    @default("") // ID da transação
-  cardToken          String?    @default("") // Token do cartão de crédito
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   isExtra            Boolean    @default(false)
@@ -190,35 +188,33 @@ model Companion {
 }
 
 model Follow {
-  id            Int         @id @default(autoincrement())
-  followerId    Int
-  followingId   Int
-  createdAt     DateTime    @default(now())
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
 
   // Relacionamento com o Contractor (quem está seguindo)
-  follower      Contractor  @relation("Following", fields: [followerId], references: [id])
+  follower Contractor @relation("Following", fields: [followerId], references: [id])
 
   // Relacionamento com o Companion (quem é seguido)
-  following     Companion   @relation("Followers", fields: [followingId], references: [id])
+  following Companion @relation("Followers", fields: [followingId], references: [id])
 
   // Garantir que um Contractor não possa seguir mais de uma vez o mesmo Companion
   @@unique([followerId, followingId])
 }
- 
 
 model ContactMethodCompanion {
-  id                Int       @id @default(autoincrement())
-  companionId       Int
-  whatsappNumber    String?   @db.VarChar(15)
-  whatsappCountryCode String? @db.VarChar(5) // Novo campo para código do país do WhatsApp
-  whatsappMessage   String?   @db.VarChar(255)
-  telegramUsername  String?   @db.VarChar(32)
-  telegramMessage   String?   @db.VarChar(255)
-  phoneNumber       String?   @db.VarChar(15)
-  phoneCountryCode  String?   @db.VarChar(5) // Novo campo para código do país do telefone
-  companion         Companion @relation(fields: [companionId], references: [id])
+  id                  Int       @id @default(autoincrement())
+  companionId         Int
+  whatsappNumber      String?   @db.VarChar(15)
+  whatsappCountryCode String?   @db.VarChar(5) // Novo campo para código do país do WhatsApp
+  whatsappMessage     String?   @db.VarChar(255)
+  telegramUsername    String?   @db.VarChar(32)
+  telegramMessage     String?   @db.VarChar(255)
+  phoneNumber         String?   @db.VarChar(15)
+  phoneCountryCode    String?   @db.VarChar(5) // Novo campo para código do país do telefone
+  companion           Companion @relation(fields: [companionId], references: [id])
 }
-
 
 model TimedServiceCompanion {
   id             Int           @id @default(autoincrement())
@@ -457,16 +453,19 @@ model Payment {
   planId             Int?
   extraPlanId        Int?
   paymentMethod      String            @default("default_method")
+  paymentMethodId    String?           @default("default_method_id")
   amount             Float
   status             String
   transactionId      String?
+  cardToken          String?
+  issuer_id          String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   plan               Plan?             @relation(fields: [planId], references: [id])
+  planSubscriptionId Int?
   user               User              @relation(fields: [userId], references: [id])
   ExtraPlan          ExtraPlan[]       @relation("PaymentExtraPlans")
   PlanSubscription   PlanSubscription? @relation(fields: [planSubscriptionId], references: [id])
-  planSubscriptionId Int?
 }
 
 enum UserType {

@@ -194,9 +194,6 @@ exports.updateProfileAndBanner = async (req, res) => {
         return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
     }
 };
-
-
-
 exports.getCompanionMedia = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -206,6 +203,9 @@ exports.getCompanionMedia = async (req, res) => {
             where: { userId },
             include: {
                 documents: true,
+                subscriptions: {
+                    select: { startDate: true }
+                },
             },
         });
 
@@ -221,6 +221,7 @@ exports.getCompanionMedia = async (req, res) => {
             profileImage: companion.profileImage, // URL da imagem de perfil
             bannerImage: companion.bannerImage,   // URL da imagem de banner
             documentsValidated: documentStatus, // True se todos os documentos estiverem aprovados
+            startDate: companion.subscriptions.length > 0 ? companion.subscriptions[0].startDate : null
         };
 
         return res.status(200).json({ media });
@@ -432,8 +433,6 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-
-
 exports.getCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -463,7 +462,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
             description: companion.description, // Description vem da tabela `companion`
             characteristics: companion.PhysicalCharacteristics || null, // Garante que os dados vêm corretamente
             video: companion.media.length > 0 ? companion.media[0] : null,
-            atendimentos: companion.atendimentos,
+            atendimentos: companion.atendimentos
         };
 
         return res.status(200).json(response);
