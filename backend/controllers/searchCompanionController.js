@@ -34,6 +34,18 @@ exports.searchCompanionCity = async (req, res) => {
                             },
                         },
                     },
+                    carrouselImages: {
+                        select: {
+                            id: true,
+                            imageUrl: true,
+                            order: true,
+                            createdAt: true,
+                            updatedAt: true,
+                        },
+                        orderBy: {
+                            order: "asc",
+                        },
+                    },
                     subscriptions: {
                         select: {
                             id: true,
@@ -80,7 +92,7 @@ exports.searchCompanionCity = async (req, res) => {
 
             const timedServices = allTimedServices.map(timedService => {
                 const companionService = companionTimedServicesMap.get(timedService.id);
-    
+
                 return {
                     id: timedService.id,
                     name: timedService.name,
@@ -95,7 +107,8 @@ exports.searchCompanionCity = async (req, res) => {
             return res.status(200).json({
                 plan: companion.plan,
                 subscriptions: companion.subscriptions,
-                timedServices
+                timedServices,
+                carrouselImages: companion.carrouselImages
             });
         }
 
@@ -164,6 +177,18 @@ exports.searchCompanionCity = async (req, res) => {
                         email: true,
                         phone: true,
                         birthDate: true,
+                    },
+                },
+                carrouselImages: {
+                    select: {
+                        id: true,
+                        imageUrl: true,
+                        order: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                    orderBy: {
+                        order: "asc",
                     },
                 },
                 media: {
@@ -244,7 +269,7 @@ exports.searchCompanionCity = async (req, res) => {
 
             const timedServices = allTimedServices.map(timedService => {
                 const companionService = companionTimedServicesMap.get(timedService.id);
-        
+
                 return {
                     id: timedService.id,
                     name: timedService.name,
@@ -260,14 +285,13 @@ exports.searchCompanionCity = async (req, res) => {
                 timedServices // Adicionando os timedServices ao acompanhante
             };
         }));
-        
-        return res.status(200).json(acompanhantesComIdade);
+
+        return res.status(200).json(acompanhantesComTimedServices);
     } catch (error) {
         console.error("Erro ao buscar acompanhantes:", error);
         return res.status(500).json({ error: "Erro interno do servidor" });
     }
 };
-
 
 exports.searchCompanionProfile = async (req, res) => {
     const { userName } = req.query;
@@ -291,10 +315,10 @@ exports.searchCompanionProfile = async (req, res) => {
                     points: true,
                     plan: true,
                     planType: true,
-                    media: true,
                     profileImage: true,
                     bannerImage: true,
                     atendimentos: true,
+                    createdAt: true,
                     user: {
                         select: {
                             email: true,
@@ -348,6 +372,31 @@ exports.searchCompanionProfile = async (req, res) => {
             if (!companion) {
                 return res.status(404).json({ message: 'Acompanhante não encontrada' });
             }
+
+            const formatDate = (date) =>
+                new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(date));
+
+            companion.createdAtFormatted = formatDate(companion.createdAt);
+
+            // Buscar e contar total de postagens (imagem ou vídeo) da acompanhante
+            const [mediaCount, carrouselCount, feedCount] = await Promise.all([
+                prisma.media.count({ where: { companionId: companion.id } }),
+                prisma.carrouselImage.count({ where: { companionId: companion.id } }),
+                prisma.feedPost.count({ where: { companionId: companion.id } }),
+            ]);
+
+            const totalReviews = await prisma.review.count({
+                where: {
+                    companionId: companion.id,
+                },
+            });
+
+            // Soma total de todas as postagens
+            const totalPosts = mediaCount + carrouselCount + feedCount;
+
+            // Inclui no objeto de resposta
+            companion.totalPosts = totalPosts;
+            companion.totalReviews = totalReviews;
 
             // Calcular a idade corretamente
             const birthDate = new Date(companion.user.birthDate);

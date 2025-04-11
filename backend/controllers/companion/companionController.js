@@ -206,22 +206,46 @@ exports.getCompanionMedia = async (req, res) => {
                 subscriptions: {
                     select: { startDate: true }
                 },
+                carrouselImages: {
+                    orderBy: {
+                        order: 'asc'
+                    },
+                    select: {
+                        imageUrl: true,
+                        order: true
+                    }
+                }
             },
         });
 
         if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
 
+    // Buscar o plano associado ao companion
+    const plan = await prisma.plan.findUnique({
+        where: { id: companion.planId },
+        select: { name: true }
+      });
+  
+      const planName = plan ? plan.name : null;
+
         const documentStatuses = companion.documents.map(doc => doc.documentStatus);
 
         const documentStatus = documentStatuses.length > 0 ? documentStatuses[0] : "PENDING";
 
+        // Formata as imagens do carrossel
+        const carouselImages = companion.carrouselImages.map(img => ({
+            imageUrl: img.imageUrl,
+            order: img.order
+        }));
 
         // Coletar as URLs das imagens e indicar se os documentos estão validados
         const media = {
             profileImage: companion.profileImage, // URL da imagem de perfil
             bannerImage: companion.bannerImage,   // URL da imagem de banner
             documentsValidated: documentStatus, // True se todos os documentos estiverem aprovados
-            startDate: companion.subscriptions.length > 0 ? companion.subscriptions[0].startDate : null
+            startDate: companion.subscriptions.length > 0 ? companion.subscriptions[0].startDate : null,
+            carrouselImages: carouselImages, // Imagens do carrossel
+            planName
         };
 
         return res.status(200).json({ media });
@@ -1279,7 +1303,7 @@ async function changeCityForCompanion(req, res) {
         });
 
         // Logar a atividade
-        await logActivity(companion.id, "Troca de Cidade", `Acompanhante trocou para a cidade: ${newCity}.`);  
+        await logActivity(companion.id, "Troca de Cidade", `Acompanhante trocou para a cidade: ${newCity}.`);
 
         return res.status(200).json({
             message: `Cidade trocada com sucesso para ${newCity}. Taxa cobrada: R$ ${cityChangeFee}`,

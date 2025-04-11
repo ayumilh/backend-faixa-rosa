@@ -1,4 +1,4 @@
-const { S3Client  } = require("@aws-sdk/client-s3");
+const { S3Client } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 require("dotenv").config();
@@ -138,11 +138,37 @@ const uploadProfileAndBanner = multer({
     },
 });
 
+// Middleware para upload de imagens para o carrossel
+const uploadCarrouselImage = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read", // Permite acesso público ao arquivo
+        contentType: multerS3.AUTO_CONTENT_TYPE, // Define automaticamente o tipo do arquivo
+        key: function (req, file, cb) {
+            const folder = "companions/carrousel/images"; // Pasta onde as imagens de carrossel serão armazenadas
+            const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName);
+        },
+    }),
+    limits: { fileSize: 100 * 1024 * 1024 }, // Limite de 100MB para imagens
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas arquivos de imagem são permitidos!"), false);
+        }
+    },
+});
+
 // Middleware para upload de imagens de perfil e banner
 exports.uploadProfileAndBanner = uploadProfileAndBanner.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "bannerImage", maxCount: 1 },
 ]);
+
+// Middleware para upload de imagens do carrossel
+exports.uploadCarrouselImages = uploadCarrouselImage.array("carrouselImages", 5);
 
 
 // Middleware para upload de vídeos de comparação
