@@ -82,6 +82,26 @@ exports.searchCompanionCity = async (req, res) => {
                 return res.status(200).json({ error: "Nenhum plano encontrado para o usuário especificado." });
             }
 
+            // Buscar e contar total de postagens (imagem ou vídeo) da acompanhante
+            const [mediaCount, carrouselCount, feedCount] = await Promise.all([
+                prisma.media.count({ where: { companionId: companion.id } }),
+                prisma.carrouselImage.count({ where: { companionId: companion.id } }),
+                prisma.feedPost.count({ where: { companionId: companion.id } }),
+            ]);
+
+            const totalReviews = await prisma.review.count({
+                where: {
+                    companionId: companion.id,
+                },
+            });
+
+            // Soma total de todas as postagens
+            const totalPosts = mediaCount + carrouselCount + feedCount;
+
+            // Inclui no objeto de resposta
+            companion.totalPosts = totalPosts;
+            companion.totalReviews = totalReviews;
+
             // Busca TODOS os horários disponíveis na tabela TimedService
             const allTimedServices = await prisma.timedService.findMany();
 
@@ -108,7 +128,9 @@ exports.searchCompanionCity = async (req, res) => {
                 plan: companion.plan,
                 subscriptions: companion.subscriptions,
                 timedServices,
-                carrouselImages: companion.carrouselImages
+                carrouselImages: companion.carrouselImages,
+                totalPosts: companion.totalPosts,
+                totalReviews: companion.totalReviews,
             });
         }
 
@@ -150,11 +172,27 @@ exports.searchCompanionCity = async (req, res) => {
             };
         }
 
+        const prioridadePlanos = {
+            "Plano Rubi": 5,
+            "Plano Safira": 4,
+            "Plano Pink": 3,
+            "Plano Vip": 2,
+            "Plano Nitro": 1,
+            "Contato": 0,
+            "Oculto": 0,
+            "Reviews Públicos": 0,
+            "DarkMode": 0,
+            null: 0,
+        };
+
         // Buscando acompanhantes na cidade e estado especificados
         const acompanhantes = await prisma.companion.findMany({
             where: {
                 ...filters,
                 ...extraPlanFilters,
+            },
+            orderBy: {
+                points: "desc",
             },
             select: {
                 id: true,
@@ -244,6 +282,13 @@ exports.searchCompanionCity = async (req, res) => {
             },
         });
 
+        acompanhantes.sort((a, b) => {
+            if (a.points !== b.points) return 0; // já está em ordem de pontos
+            const planoA = prioridadePlanos[a.plan?.name ?? null] || 0;
+            const planoB = prioridadePlanos[b.plan?.name ?? null] || 0;
+            return planoB - planoA;
+        });
+
         // Calculando a idade com base na data de nascimento
         const acompanhantesComIdade = acompanhantes.map(companion => {
             const birthDate = new Date(companion.user.birthDate);
@@ -280,9 +325,21 @@ exports.searchCompanionCity = async (req, res) => {
                 };
             });
 
+            // Calcular total de posts e reviews
+            const [mediaCount, carrouselCount, feedCount, totalReviews] = await Promise.all([
+                prisma.media.count({ where: { companionId: acompanhante.id } }),
+                prisma.carrouselImage.count({ where: { companionId: acompanhante.id } }),
+                prisma.feedPost.count({ where: { companionId: acompanhante.id } }),
+                prisma.review.count({ where: { companionId: acompanhante.id } }),
+            ]);
+
+            const totalPosts = mediaCount + carrouselCount + feedCount;
+
             return {
                 ...acompanhante,
-                timedServices // Adicionando os timedServices ao acompanhante
+                timedServices,
+                totalPosts,
+                totalReviews,
             };
         }));
 
