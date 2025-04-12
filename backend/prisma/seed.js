@@ -211,7 +211,7 @@ async function seedPlansAndExtras() {
         {
             id: 10, // Definir ID manualmente
             name: 'DarkMode',
-            price: 314.91,
+            price: 97.90,
             description: 'Anúncio em posição de destaque (Por uma hora). Todos os benefícios de outros planos (Por uma hora).',
             extraDetails: {
                 pointsBonus: 2000,

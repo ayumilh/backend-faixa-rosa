@@ -1,3 +1,5 @@
+const { mercadoPago } = require("../../config/mercadoPago.js");
+const { Customer } = require("mercadopago");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { logActivity } = require("../../utils/activityService");
@@ -587,7 +589,7 @@ exports.createUserPlan = async (req, res) => {
 
         // Criação do pagamento para o plano principal e extras
         const paymentResult = cardToken
-            ? await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType)
+            ? await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount, cardId, issuer_id, installments, email, identificationNumber, identificationType)
             : await createPayment(userId, planTypeId, payment_method_id, extras, totalAmount);
 
         console.log("RESULTADO DO PAGAMENTO:", paymentResult);
@@ -741,7 +743,7 @@ exports.createUserPlan = async (req, res) => {
 exports.addUserExtras = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { extras, payment_method_id, cardToken = null, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
+        const { extras, payment_method_id, cardToken, cardId, fromSavedCard, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
 
         const companion = await prisma.companion.findUnique({
             where: { userId },
@@ -749,6 +751,9 @@ exports.addUserExtras = async (req, res) => {
         });
 
         if (!companion) return res.status(403).json({ error: 'Apenas acompanhantes podem adicionar planos extras.' });
+
+        const user = await prisma.user.findFirst({ where: { id: userId } });
+        if (!user) return { error: 'Usuário não encontrado.' }
 
         // Ajuste para buscar os planos extras
         const plan = await prisma.plan.findMany({
@@ -856,31 +861,95 @@ exports.addUserExtras = async (req, res) => {
             description += `Extras: ${extraPlansVerify.map(extra => extra.name).join(', ')}`;
         }
 
-        // Criação do pagamento para o plano principal e extras
-        const paymentResult = cardToken
-            ? await createPayment(userId, null, payment_method_id, extras, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType)
-            : await createPayment(userId, null, payment_method_id, extras, totalAmount);
+        let customer_id = null;
+        let paymentResult = null;
+
+        if (cardToken) {
+            // 1. Verifica se o cliente já existe pelo e-mail
+            const searchRes = await fetch(`https://api.mercadopago.com/v1/customers/search?email=${user.email}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const searchData = await searchRes.json();
+
+            // 2. Verifica se existe cliente válido (com identificação preenchida)
+            const validCustomer = searchData.results.find(c =>
+                c.identification?.type === "CPF" &&
+                c.identification?.number
+            );
+
+            if (validCustomer) {
+                customer_id = validCustomer.id;
+            } else {
+                const customerClient = new Customer(mercadoPago);
+                const customerRes = await customerClient.create({
+                    body: {
+                        email: user.email,
+                        first_name: user.firstName,
+                        last_name: user.lastName,
+                        identification: {
+                            type: identificationType,
+                            number: identificationNumber
+                        }
+                    }
+                });
+
+                if (!customerRes?.id) {
+                    return res.status(400).json({ error: "Erro ao criar cliente." });
+                }
+
+                customer_id = customerRes.id;
+            }
+
+            paymentResult = await createPayment(
+                userId,
+                null,
+                payment_method_id,
+                extras,
+                totalAmount,
+                cardToken,
+                customer_id,
+                issuer_id,
+                installments,
+                email,
+                identificationNumber,
+                identificationType,
+                fromSavedCard,
+                cardId
+            )
+
+        } else {
+            paymentResult = await createPayment(
+                userId,
+                null,
+                payment_method_id,
+                extras,
+                totalAmount
+            );
+        }
 
         console.log("RESULTADO DO PAGAMENTO:", paymentResult);
 
         // Se o pagamento não for aprovado, não criamos os planos
-        if (!paymentResult || paymentResult.status !== 'approved') {
-            if (payment_method_id === 'pix') {
-                return res.status(200).json({
-                    message: 'Pagamento não aprovado.',
-                    transactionId: paymentResult.transactionId,
-                    qr_code: paymentResult.qr_code,  // QR code do pagamento via PIX
-                    qr_code_base64: paymentResult.qr_code_base64,  // QR code base64 para gerar 
-                });
-            }
-
-            // Se for cartão de crédito, apenas o transactionId é retornado
+        if (payment_method_id === 'pix') {
             return res.status(200).json({
-                message: 'Pagamento feito por cartão de crédito.',
+                message: 'Pagamento via PIX gerado com sucesso.',
                 transactionId: paymentResult.transactionId,
+                qr_code: paymentResult.qr_code,
+                qr_code_base64: paymentResult.qr_code_base64,
             });
         }
 
+        if (payment_method_id !== 'pix') {
+            return res.status(200).json({
+                message: 'Pagamento via cartão efetuado.',
+                subscriptionId: paymentResult.subscriptionId,
+            });
+        }
         let totalPointsToAdd = 0;
 
         // Reativa planos extras já assinados antes

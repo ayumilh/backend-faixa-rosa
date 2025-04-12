@@ -450,13 +450,13 @@ model Media {
 }
 
 model CarrouselImage {
-  id            Int        @id @default(autoincrement())
-  companionId   Int
-  imageUrl      String
-  order         Int        @default(0)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  companion     Companion  @relation(fields: [companionId], references: [id])
+  id          Int       @id @default(autoincrement())
+  companionId Int
+  imageUrl    String
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  companion   Companion @relation(fields: [companionId], references: [id])
 
   @@unique([companionId, order])
 }
@@ -470,8 +470,10 @@ model Payment {
   paymentMethodId    String?           @default("default_method_id")
   amount             Float
   status             String
+  preapprovalId      String?
   transactionId      String?
-  cardToken          String?
+  customerId         String?
+  cardId             String?
   issuer_id          String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
