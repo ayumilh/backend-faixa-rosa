@@ -212,7 +212,6 @@ model ContactMethodCompanion {
   whatsappCountryCode String?   @db.VarChar(5) // Novo campo para código do país do WhatsApp
   whatsappMessage     String?   @db.VarChar(255)
   telegramUsername    String?   @db.VarChar(32)
-  telegramMessage     String?   @db.VarChar(255)
   phoneNumber         String?   @db.VarChar(15)
   phoneCountryCode    String?   @db.VarChar(5) // Novo campo para código do país do telefone
   companion           Companion @relation(fields: [companionId], references: [id])

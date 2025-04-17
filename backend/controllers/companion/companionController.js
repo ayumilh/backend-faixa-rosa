@@ -504,7 +504,6 @@ exports.updateCompanionContact = async (req, res) => {
         whatsappNumber,
         whatsappMessage,
         telegramUsername,
-        telegramMessage,
         phoneNumber,
         whatsappCountryCode,
         phoneCountryCode,
@@ -528,7 +527,6 @@ exports.updateCompanionContact = async (req, res) => {
                 whatsappMessage,
                 whatsappCountryCode,
                 telegramUsername,
-                telegramMessage,
                 phoneNumber,
                 phoneCountryCode,
             },
@@ -572,7 +570,6 @@ exports.getCompanionContact = async (req, res) => {
                 whatsappNumber: contact.whatsappNumber || null,
                 whatsappMessage: contact.whatsappMessage || null,
                 telegramUsername: contact.telegramUsername || null,
-                telegramMessage: contact.telegramMessage || null,
                 phoneNumber: contact.phoneNumber || null,
                 phoneCountryCode: contact.phoneCountryCode || null,
                 whatsappCountryCode: contact.whatsappCountryCode || null

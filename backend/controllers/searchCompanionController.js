@@ -410,7 +410,6 @@ exports.searchCompanionProfile = async (req, res) => {
                             whatsappNumber: true,
                             whatsappMessage: true,
                             telegramUsername: true,
-                            telegramMessage: true,
                             phoneNumber: true
                         }
                     },
