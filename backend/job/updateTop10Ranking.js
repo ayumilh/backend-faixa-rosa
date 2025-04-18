@@ -37,17 +37,28 @@ async function updateTop10Ranking() {
     // Limpar Top10 antigo
     await prisma.top10.deleteMany();
 
+    // Resetar todos os companions (remover referência antiga)
+    await prisma.companion.updateMany({
+      data: { top10Id: null }
+    });
+
     // Inserir novo Top10
     for (let i = 0; i < ranked.length; i++) {
-      await prisma.top10.create({
+      const top10 = await prisma.top10.create({
         data: {
           rank: i + 1,
           points: ranked[i].points,
           userId: ranked[i].userId,
         },
       });
-    }
 
+      await prisma.companion.update({
+        where: { userId: ranked[i].userId },
+        data: {
+          top10Id: top10.id,
+        },
+      });
+    }
     console.log("✅ Top 10 atualizado com sucesso.");
   } catch (error) {
     console.error("❌ Erro ao atualizar o Top 10:", error);

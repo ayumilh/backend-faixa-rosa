@@ -160,7 +160,6 @@ model Companion {
   ageCategories           AgeCategoryCompanion[]
   plan                    Plan?                        @relation(fields: [planId], references: [id])
   planType                PlanType?                    @relation(fields: [planTypeId], references: [id])
-  top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
   user                    User                         @relation(fields: [userId], references: [id])
   contactMethods          ContactMethodCompanion[]
   denunciasRecebidas      Denuncia[]                   @relation("DenunciasRecebidasCompanion")
@@ -183,6 +182,7 @@ model Companion {
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
   ActivityLog             ActivityLog[]
   atendimentos            Atendimento[]
+  top10   Top10? @relation("Top10Companions", fields: [top10Id], references: [id])
 
   Follow Follow[] @relation("Followers")
 

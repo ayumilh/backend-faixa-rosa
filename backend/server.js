@@ -51,6 +51,9 @@ const searchRoutes = require('./routes/searchCompanionRoute.js');
 
 app.use('/api/user', authRoutes);
 
+const top10Routes = require('./routes/top10Routes.js');
+
+app.use('/api/companions/top10', top10Routes);
 
 // ADMIN ROUTES
 const adminRoutes = require('./routes/admin/adminCompanionRoutes.js');

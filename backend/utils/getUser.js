@@ -19,7 +19,15 @@ const getUserIdBd = async (req, res) => {
         if (tipoPerfil === "CONTRATANTE") {
             includeObj.Contractor = true;
         } else if (tipoPerfil === "ACOMPANHANTE") {
-            includeObj.companion = true;
+            includeObj.companion = {
+                include: {
+                  top10: {
+                    select: {
+                      rank: true,
+                    },
+                  },
+                },
+              };              
         } else {
             return res.status(400).json({ message: 'Tipo de perfil não especificado ou inválido.' });
         }
@@ -39,12 +47,14 @@ const getUserIdBd = async (req, res) => {
             delete user.Contractor.userName;
         } else if (tipoPerfil === "ACOMPANHANTE" && user.companion?.userName) {
             userName = user.companion.userName;
+            ranking = user.companion.top10?.rank || null;
             delete user.companion.userName;
         }
 
         const cleanUser = {
             ...user,
             userName,
+            ...(ranking !== null && { ranking }), 
         };
 
         // Retorna também o tipo
