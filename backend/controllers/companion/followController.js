@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../prisma/client');
 
 // Função para seguir um Companion por um Contractor
 exports.followCompanion = async (contractorId, companionId) => {

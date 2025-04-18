@@ -1,5 +1,4 @@
-const { PrismaClient, LocationType } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../prisma/client');
 const Joi = require('joi');
 const { DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { logActivity } = require("../../utils/activityService");

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../prisma/client');
 
 // Criar um novo plano    ---- criar o planType (tabela de funcionalidades) do plano e criar const de atualizar funcionalidades ao plano
 exports.createPlan = async (req, res) => {

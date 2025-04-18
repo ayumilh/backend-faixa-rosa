@@ -1,8 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prisma/client');
 const cron = require('node-cron');
 const { createPayment } = require('../controllers/companion/paymentCompanionController');
 
-const prisma = new PrismaClient();
 
 // Função para renovar as assinaturas pagas por cartão de crédito
 async function renewExpiredSubscriptions() {

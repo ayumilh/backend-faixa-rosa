@@ -111,6 +111,9 @@ app.post('/webhook', receiveWebhook);
 
 app.post('/api/denuncias', authenticate, denunciaRoutes);
 
+// ⏰ Inicia os crons agendados 
+require('./job/index.js');
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor rodando na porta ${PORT}`);

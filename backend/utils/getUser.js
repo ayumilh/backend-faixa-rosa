@@ -1,7 +1,6 @@
+const prisma = require('../prisma/client');
 const dotenv = require('dotenv');
 dotenv.config();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 
 const getUserIdBd = async (req, res) => {
     try {

@@ -1,10 +1,10 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
-const { PrismaClient } = require('@prisma/client');
 const { calculateAge } = require('../utils/helpers');
 
-const prisma = new PrismaClient();
+const prisma = require('../prisma/client');
+
 
 const JWT_SECRET = process.env.JWT_SECRET
 

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../prisma/client');
 const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { wasabiS3, bucketName } = require("../../config/wasabi.js");
 

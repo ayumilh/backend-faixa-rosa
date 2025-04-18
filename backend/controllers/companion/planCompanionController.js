@@ -1,7 +1,6 @@
+const prisma = require('../../prisma/client');
 const { mercadoPago } = require("../../config/mercadoPago.js");
 const { Customer } = require("mercadopago");
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 const { logActivity } = require("../../utils/activityService");
 const { createPayment } = require('./paymentCompanionController');
 

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../prisma/client');
 const { uploadDocuments } = require("../../config/wasabi");
 const { logActivity } = require("../../utils/activityService"); 
 

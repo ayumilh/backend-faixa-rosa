@@ -1,11 +1,12 @@
+const prisma = require('../../prisma/client');
+
 const { mercadoPago } = require("../../config/mercadoPago.js");
 const { Preference, Payment, CustomerCard, Preapproval } = require("mercadopago");
-const { PrismaClient } = require('@prisma/client');
-const dotenv = require('dotenv');
 
+const dotenv = require('dotenv');
 dotenv.config();
 
-const prisma = new PrismaClient();
+
 
 // Função para gerar idempotencyKey
 function generateIdempotencyKey() {
