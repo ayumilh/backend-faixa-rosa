@@ -4,9 +4,6 @@ dotenv.config();
 
 const getUserIdBd = async (req, res) => {
     try {
-        console.log('getUserIdBd');
-        console.log('req.user', req.user);
-        console.log('req.query', req.query);
         const userid = req.user.id;
         const tipoPerfil = req.query.tipoPerfil;
 
@@ -37,11 +34,12 @@ const getUserIdBd = async (req, res) => {
             include: includeObj,
         });
 
-        console.log('user', user);
 
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
 
         let userName = "";
+        let ranking = null;
+
         if (tipoPerfil === "CONTRATANTE" && user.Contractor?.userName) {
             userName = user.Contractor.userName;
             delete user.Contractor.userName;

@@ -73,6 +73,16 @@ exports.searchCompanionCity = async (req, res) => {
                     timedServiceCompanion: {
                         include: { TimedService: true }
                     },
+                    contactMethods: {
+                        select: {
+                            whatsappNumber: true,
+                            whatsappCountryCode: true,
+                            whatsappMessage: true,
+                            telegramUsername: true,
+                            phoneNumber: true,
+                            phoneCountryCode: true
+                        }
+                    },
                 },
             });
 
@@ -130,6 +140,7 @@ exports.searchCompanionCity = async (req, res) => {
                 carrouselImages: companion.carrouselImages,
                 totalPosts: companion.totalPosts,
                 totalReviews: companion.totalReviews,
+                contact: companion.contactMethods?.[0] || null,
             });
         }
 
@@ -278,6 +289,17 @@ exports.searchCompanionCity = async (req, res) => {
                 timedServiceCompanion: {
                     include: { TimedService: true }
                 },
+                contactMethods: {
+                    select: {
+                        whatsappNumber: true,
+                        whatsappCountryCode: true,
+                        whatsappMessage: true,
+                        telegramUsername: true,
+                        phoneNumber: true,
+                        phoneCountryCode: true
+                    }
+                }
+
             },
         });
 
@@ -338,7 +360,7 @@ exports.searchCompanionCity = async (req, res) => {
                 ...acompanhante,
                 timedServices,
                 totalPosts,
-                totalReviews,
+                totalReviews
             };
         }));
 
