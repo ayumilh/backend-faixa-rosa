@@ -741,7 +741,7 @@ exports.createUserPlan = async (req, res) => {
 // adicionar planos extras, se ja tem plano basico
 exports.addUserExtras = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = 12;
         const { extras, payment_method_id, cardToken, cardId, fromSavedCard, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
 
         const companion = await prisma.companion.findUnique({

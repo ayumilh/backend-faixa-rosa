@@ -144,12 +144,12 @@ exports.createPayment = async (
                     payment_method: payment_method_id,
                 },
             });
-        
+
             if (!cardResponse?.body?.id) {
                 console.error("Erro ao salvar cartão:", cardResponse);
                 return { error: "Erro ao salvar cartão." };
             }
-        
+
             savedCardId = cardResponse.body.id;
             console.log("✅ Cartão salvo com sucesso:", savedCardId);
         }
@@ -319,7 +319,7 @@ exports.receiveWebhook = async (req, res) => {
         });
 
         if (status !== 'approved') {
-            console.warn(`[WEBHOOK] Pagamento ${id} com status "${status}" (${status_detail}) - NÃO será processado.`);
+            console.warn(`[WEBHOOK] Pagamento ${id} com status "${status}" - NÃO será processado.`);
 
             // Atualiza o status no banco
             await prisma.payment.updateMany({
@@ -330,170 +330,185 @@ exports.receiveWebhook = async (req, res) => {
                 },
             });
 
-            // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
-            if (updatedPayment.planId) {
-                const plan = await prisma.plan.findUnique({
-                    where: { id: updatedPayment.planId },
-                    include: { planType: true },
-                });
+            // Buscar todos os pagamentos para processar
+            const payments = await prisma.payment.findMany({
+                where: { transactionId: id.toString() }
+            });
 
-                if (!plan) {
-                    return res.status(404).json({ error: 'Plano principal não encontrado.' });
-                }
-
-                // Atualizar a assinatura do plano principal
-                const companionSubscription = await prisma.planSubscription.findFirst({
-                    where: { planId: updatedPayment.planId, companionId: updatedPayment.userId, endDate: null },
-                });
-
-                let planSubscriptionId;
-
-                if (!companionSubscription) {
-                    // Verifique se o companionId existe antes de associar
-                    const companionExists = await prisma.companion.findUnique({
-                        where: { userId: updatedPayment.userId },
-                    });
-                    console.log('Companion Exists:', companionExists);
-
-                    if (!companionExists) {
-                        return res.status(400).json({ error: 'Acompanhante não encontrado.' });
-                    }
-                    // Se não houver uma assinatura ativa, cria uma nova
-                    const newPlanSubscription = await prisma.planSubscription.create({
-                        data: {
-                            companionId: companionExists.id,
-                            planId: updatedPayment.planId,
-                            startDate: new Date(),
-                            endDate: null,
-                            planSubscriptionId: payments.id,
-                            paymentMethod: updatedPayment.paymentMethod,
-                        },
-                        include: { plan: true },
-                    });
-
-                    planSubscriptionId = newPlanSubscription.id;
-                } else {
-                    // Se já existir uma assinatura ativa, não cria uma nova, apenas reativa
-                    const updatedPlanSubscription = await prisma.planSubscription.update({
-                        where: { id: companionSubscription.id },
-                        data: {
-                            startDate: new Date(), // Atualiza a data de início
-                            endDate: null, // Reativa a assinatura
-                            updatedAt: new Date(),
-                            subscriptionStatus: 'ACTIVE',
-                            nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-                            paymentMethod: updatedPayment.paymentMethod,
-                        },
-                        include: { plan: true },
-                    });
-
-                    planSubscriptionId = updatedPlanSubscription.id;
-                }
-
-                // atualiza o payment com o id da nova planSubscription
-                await prisma.payment.update({
-                    where: { id: updatedPayment.id },
-                    data: {
-                        planSubscriptionId: planSubscriptionId,  // Atualiza o planSubscriptionId do pagamento
-                    },
-                });
-
-                await prisma.planSubscription.update({
-                    where: { id: planSubscriptionId },
-                    data: {
-                        planSubscriptionId: updatedPayment.id,  // Atualiza o planSubscriptionId do pagamento
-                    },
-                });
-
-                // Atualizar os pontos da acompanhante com base no plano
-                const create = await prisma.companion.update({
-                    where: { userId: updatedPayment.userId },
-                    data: {
-                        planId: updatedPayment.planId,
-                        planTypeId: plan.planTypeId || null,
-                        points: {
-                            increment: plan.planType?.points || 0,  // Incrementa os pontos com base no plano
-                        },
-                    },
-                });
-                console.log('Assinatura atualizada ou criada para o plano principal:', create.id, create.userId);
+            if (!payments || payments.length === 0) {
+                return res.status(404).json({ error: 'Pagamento(s) não encontrado(s).' });
             }
 
-            // Verificar se há planos extras
-            if (payment.extraPlanId) {
-                const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
 
-                for (const extraPlanId of extraPlanIds) {
-                    // Verificar se o plano extra existe
-                    const extraPlan = await prisma.extraPlan.findUnique({
-                        where: { id: extraPlanId }
+            for (const payment of payments) {
+                // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
+                if (payment.planId) {
+                    const plan = await prisma.plan.findUnique({
+                        where: { id: updatedPayment.planId },
+                        include: { planType: true },
                     });
 
-                    if (!extraPlan) {
-                        return res.status(400).json({ error: `Plano extra com ID ${extraPlanId} não encontrado.` });
+                    if (!plan) {
+                        return res.status(404).json({ error: 'Plano principal não encontrado.' });
                     }
 
-                    // Verificar se a assinatura já existe para a combinação de companionId e extraPlanId
-                    const existingSubscription = await prisma.planSubscription.findFirst({
-                        where: {
-                            companionId: updatedPayment.userId,
-                            extraPlanId: extraPlan.id,
+                    // Atualizar a assinatura do plano principal
+                    const companionSubscription = await prisma.planSubscription.findFirst({
+                        where: { planId: updatedPayment.planId, companionId: updatedPayment.userId, endDate: null },
+                    });
+
+                    let planSubscriptionId;
+
+                    if (!companionSubscription) {
+                        // Verifique se o companionId existe antes de associar
+                        const companionExists = await prisma.companion.findUnique({
+                            where: { userId: updatedPayment.userId },
+                        });
+                        console.log('Companion Exists:', companionExists);
+
+                        if (!companionExists) {
+                            return res.status(400).json({ error: 'Acompanhante não encontrado.' });
                         }
-                    });
+                        // Se não houver uma assinatura ativa, cria uma nova
+                        const newPlanSubscription = await prisma.planSubscription.create({
+                            data: {
+                                companionId: companionExists.id,
+                                planId: updatedPayment.planId,
+                                startDate: new Date(),
+                                endDate: null,
+                                planSubscriptionId: payments.id,
+                                paymentMethod: updatedPayment.paymentMethod,
+                            },
+                            include: { plan: true },
+                        });
 
-                    if (existingSubscription) {
-                        return res.status(400).json({ error: 'Assinatura já existente para este plano extra.' });
+                        planSubscriptionId = newPlanSubscription.id;
+                    } else {
+                        // Se já existir uma assinatura ativa, não cria uma nova, apenas reativa
+                        const updatedPlanSubscription = await prisma.planSubscription.update({
+                            where: { id: companionSubscription.id },
+                            data: {
+                                startDate: new Date(), // Atualiza a data de início
+                                endDate: null, // Reativa a assinatura
+                                updatedAt: new Date(),
+                                subscriptionStatus: 'ACTIVE',
+                                nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                                paymentMethod: updatedPayment.paymentMethod,
+                            },
+                            include: { plan: true },
+                        });
+
+                        planSubscriptionId = updatedPlanSubscription.id;
                     }
 
-                    // Verifique se o companionId existe antes de associar
-                    const companionExists = await prisma.companion.findUnique({
-                        where: { userId: updatedPayment.userId },
-                    });
-
-                    if (!companionExists) {
-                        return res.status(400).json({ error: 'Acompanhante não encontrado.' });
-                    }
-
-                    // Criar a assinatura para o plano extra
-                    const newExtraPlanSubscription = await prisma.planSubscription.create({
-                        data: {
-                            companionId: companionExists.id,
-                            planId: null,  // Não é um plano principal
-                            extraPlanId: extraPlan.id,
-                            startDate: new Date(),
-                            isExtra: true,
-                            endDate: null,
-                            paymentMethod: updatedPayment.paymentMethod,
-                        },
-                    });
-                    console.log('Nova assinatura criada para o plano extra:', newExtraPlanSubscription.id);
-
-                    // Atualiza o payment com o id da nova planSubscription do plano extra
+                    // atualiza o payment com o id da nova planSubscription
                     await prisma.payment.update({
                         where: { id: updatedPayment.id },
                         data: {
-                            planSubscriptionId: newExtraPlanSubscription.id,  // Atualiza o planSubscriptionId do pagamento
+                            planSubscriptionId: planSubscriptionId,  // Atualiza o planSubscriptionId do pagamento
                         },
                     });
+
 
                     await prisma.planSubscription.update({
-                        where: { id: newExtraPlanSubscription.id },
+                        where: { id: planSubscriptionId },
                         data: {
-                            planSubscriptionId: newExtraPlanSubscription.id,  // Atualiza o planSubscriptionId do pagamento
+                            planSubscriptionId: updatedPayment.id,  // Atualiza o planSubscriptionId do pagamento
                         },
                     });
 
-                    console.log('Assinatura criada para o plano extra:', extraPlan.id);
-
-                    // Atualizar os pontos da acompanhante com base no plano extra
-                    await prisma.companion.update({
+                    // Atualizar os pontos da acompanhante com base no plano
+                    const create = await prisma.companion.update({
                         where: { userId: updatedPayment.userId },
                         data: {
+                            planId: updatedPayment.planId,
+                            planTypeId: plan.planTypeId || null,
                             points: {
-                                increment: extraPlan?.pointsBonus || 0,
+                                increment: plan.planType?.points || 0,  // Incrementa os pontos com base no plano
                             },
                         },
                     });
+                    console.log('Assinatura atualizada ou criada para o plano principal:', create.id, create.userId);
+                }
+            }
+
+            // Verificar se há planos extras
+            for (const payment of payments) {
+                if (payment.extraPlanId) {
+                    const extraPlanIds = Array.isArray(payment.extraPlanId) ? payment.extraPlanId : [payment.extraPlanId];
+
+                    for (const extraPlanId of extraPlanIds) {
+                        // Verificar se o plano extra existe
+                        const extraPlan = await prisma.extraPlan.findUnique({
+                            where: { id: extraPlanId }
+                        });
+
+                        if (!extraPlan) {
+                            return res.status(400).json({ error: `Plano extra com ID ${extraPlanId} não encontrado.` });
+                        }
+
+                        // Verificar se a assinatura já existe para a combinação de companionId e extraPlanId
+                        const existingSubscription = await prisma.planSubscription.findFirst({
+                            where: {
+                                companionId: payment.userId,
+                                extraPlanId: extraPlan.id,
+                            }
+                        });
+
+                        if (existingSubscription) {
+                            return res.status(400).json({ error: 'Assinatura já existente para este plano extra.' });
+                        }
+
+                        // Verifique se o companionId existe antes de associar
+                        const companionExists = await prisma.companion.findUnique({
+                            where: { userId: payment.userId },
+                        });
+
+                        if (!companionExists) {
+                            return res.status(400).json({ error: 'Acompanhante não encontrado.' });
+                        }
+
+                        // Criar a assinatura para o plano extra
+                        const newExtraPlanSubscription = await prisma.planSubscription.create({
+                            data: {
+                                companionId: companionExists.id,
+                                planId: null,  // Não é um plano principal
+                                extraPlanId: extraPlan.id,
+                                startDate: new Date(),
+                                isExtra: true,
+                                endDate: null,
+                                paymentMethod: payment.paymentMethod,
+                            },
+                        });
+                        console.log('Nova assinatura criada para o plano extra:', newExtraPlanSubscription.id);
+
+                        // Atualiza o payment com o id da nova planSubscription do plano extra
+                        await prisma.payment.update({
+                            where: { id: payment.id },
+                            data: {
+                                planSubscriptionId: newExtraPlanSubscription.id,  // Atualiza o planSubscriptionId do pagamento
+                            },
+                        });
+
+                        await prisma.planSubscription.update({
+                            where: { id: newExtraPlanSubscription.id },
+                            data: {
+                                planSubscriptionId: newExtraPlanSubscription.id,  // Atualiza o planSubscriptionId do pagamento
+                            },
+                        });
+
+                        console.log('Assinatura criada para o plano extra:', extraPlan.id);
+
+                        // Atualizar os pontos da acompanhante com base no plano extra
+                        await prisma.companion.update({
+                            where: { userId: payment.userId },
+                            data: {
+                                points: {
+                                    increment: extraPlan?.pointsBonus || 0,
+                                },
+                            },
+                        });
+                    }
                 }
             }
 

@@ -44,7 +44,10 @@ app.get('/', (req, res) => {
   res.send('API funcionando!');
 });
 
+const plansRoutes = require('./routes/companion/plansCompanionRoutes.js');
 // USER ROUTES
+app.use('/api/plans', plansRoutes);
+
 const userRoutes = require('./routes/userRoutes.js');
 
 const searchRoutes = require('./routes/searchCompanionRoute.js');
@@ -70,7 +73,7 @@ const adminMediaRoutes = require('./routes/admin/adminMediaRoutes.js');
 
 
 // ACOMPANHANTES ROUTES
-const plansRoutes = require('./routes/companion/plansCompanionRoutes.js');
+
 const companionRoutes = require('./routes/companion/companionRoutes.js');
 const paymentRoutes = require('./routes/companion/paymentCompanionRoutes.js');
 const denunciaRoutes = require('./routes/denunciarRoutes.js');
@@ -97,7 +100,7 @@ app.use('/api/users', authenticate,
   userRoutes
 );
 
-app.use('/api/plans', plansRoutes);
+
 
 app.use('/api/companions', authenticate, 
   companionRoutes,

@@ -12,7 +12,7 @@ router.get('/available-types', authenticate, listAvailablePlanTypes);  // Listar
 router.post('/create-with-extras', authenticate, createUserPlan);      // Criar plano básico com extras
 
 // usuarios ja assinados, mas que querem adicionar extras
-router.post('/user-plans/extras', authenticate, addUserExtras);         // Adicionar extras ao plano
+router.post('/user-plans/extras', addUserExtras);         // Adicionar extras ao plano
 router.get('/user-plans', authenticate, listUserPlans);                // Listar todos planos do usuário
 
 module.exports = router;
