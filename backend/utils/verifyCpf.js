@@ -1,6 +1,8 @@
 const axios = require("axios");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-const validarCpf = async (cpf, data_nascimento) => {
+const verifyCpf = async (cpf, data_nascimento) => {
     const API_URL = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/`;
     const API_KEY = process.env.PUBLIC_HUB_API_KEY;
 
@@ -18,17 +20,17 @@ const validarCpf = async (cpf, data_nascimento) => {
         });
 
         const dados = response.data;
-        console.log("Dados: ", dados);
+        console.log("Dados:", dados);
 
         if (!dados.result || !dados.result.data_nascimento) {
-            return res.status(400).json({ error: "CPF inválido." });
+            return { error: "CPF inválido." };
         }
 
         if (dados.result.data_nascimento !== data_nascimento) {
-            return res.status(400).json({ error: "Data de nascimento inválida." });
+            return { error: "Data de nascimento inválida." };
         }
 
-        // Convertendo a data de nascimento
+        // Convertendo a data para calcular idade
         const nascimentoConvertido = dados.result.data_nascimento.split('/').reverse().join('-');
         const nascimento = new Date(nascimentoConvertido);
         const hoje = new Date();
@@ -39,10 +41,27 @@ const validarCpf = async (cpf, data_nascimento) => {
             (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
 
         if (aniversarioNaoOcorrido) {
-            idade--; // Se o aniversário ainda não ocorreu este ano, diminui a idade
+            idade--;
         }
 
         const maiorDeIdade = idade >= 18;
+
+        // Verifica se CPF já está cadastrado no banco
+        const cpfExistente = await prisma.user.findUnique({
+            where: { cpf },
+            select: { id: true },
+        });
+
+        console.log("CPF existente:", cpfExistente);
+
+        if (cpfExistente) {
+            console.log("CPF já cadastrado:", cpf);
+            return {
+              valid: false,
+              message: "CPF já cadastrado."
+            };
+          }
+          
 
         return {
             nome: dados.result.nome_da_pf,
@@ -50,9 +69,10 @@ const validarCpf = async (cpf, data_nascimento) => {
             data_nascimento: dados.result.data_nascimento,
             maior_de_idade: maiorDeIdade,
         };
-    } catch {
-        return null
+    } catch (err) {
+        console.error("Erro ao consultar API externa:", err);
+        return { error: "Erro ao validar CPF." };
     }
 };
 
-module.exports = { validarCpf };
+module.exports = { verifyCpf };

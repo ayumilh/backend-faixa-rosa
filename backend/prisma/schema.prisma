@@ -15,7 +15,6 @@ model User {
   password          String?     @default("") @db.VarChar(64)
   birthDate         DateTime?   @db.Date
   cpf               String?     @unique @db.VarChar(11)
-  phone             String?     @default("") @db.VarChar(15)
   userType          UserType    @default(CONTRATANTE)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt

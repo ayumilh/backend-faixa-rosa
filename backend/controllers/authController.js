@@ -16,14 +16,13 @@ const userSchema = Joi.object({
     password: Joi.string().max(64).optional(),
     birthDate: Joi.date().iso().optional(),
     cpf: Joi.string().length(11).optional(),
-    phone: Joi.string().length(11).optional(),
     googleLogin: Joi.boolean().optional(),
     userType: Joi.string()
         .valid('CONTRATANTE', 'ACOMPANHANTE', 'ANUNCIANTE', 'EMPRESA', 'ADMIN')
         .required(),
 });
 
-const loginSchema = userSchema.fork(['firstName', 'lastName', 'birthDate', 'cpf', 'phone', 'userType', 'userName'], (schema) => schema.optional());
+const loginSchema = userSchema.fork(['firstName', 'lastName', 'birthDate', 'cpf', 'userType', 'userName'], (schema) => schema.optional());
 
 exports.register = async (req, res) => {
     try {
@@ -33,7 +32,7 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: error.details[0].message });
         }
 
-        const { userName, firstName, lastName, email, password, birthDate, cpf, phone, userType } = value;
+        const { userName, firstName, lastName, email, password, birthDate, cpf, userType } = value;
 
         const formattedBirthDate = birthDate ? new Date(birthDate) : null;
 
@@ -74,7 +73,6 @@ exports.register = async (req, res) => {
                     password: hashedPassword,
                     birthDate: formattedBirthDate ? new Date(birthDate) : null,
                     cpf,
-                    phone,
                     userType,
                 },
             });
@@ -159,7 +157,6 @@ exports.login = async (req, res) => {
                         lastName: '',    // Pode ser vazio ou preenchido posteriormente
                         password: '',    // Pode ser vazio, pois o login é feito pelo Google
                         cpf: null,       // Pode ser vazio ou preenchido posteriormente
-                        phone: '',       // Pode ser vazio ou preenchido posteriormente
                         userType: 'CONTRATANTE', // Tipo de usuário padrão
                     },
                 });
