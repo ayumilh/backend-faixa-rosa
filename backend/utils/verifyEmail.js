@@ -10,7 +10,6 @@ const validarEmail = async (email) => {
       where: { email },
       select: { id: true },
     });
-    console.log("Resultado da verificação do email:", existingUser);
 
     if (existingUser) {
       return { valid: false, message: "Email já está em uso." };

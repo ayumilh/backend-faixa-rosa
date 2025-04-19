@@ -41,8 +41,6 @@ exports.listAcompanhantes = async (req, res) => {
             },
         });
 
-        console.log(acompanhantes); // Log para verificar os dados retornados
-
         // Processa o status do documento para cada acompanhante com base na tabela Document
         const formattedAcompanhantes = acompanhantes.map((companion) => {
             let documentStatus = 'PENDING';

@@ -20,7 +20,6 @@ const verifyCpf = async (cpf, data_nascimento) => {
         });
 
         const dados = response.data;
-        console.log("Dados:", dados);
 
         if (!dados.result || !dados.result.data_nascimento) {
             return { error: "CPF inválido." };
@@ -52,10 +51,7 @@ const verifyCpf = async (cpf, data_nascimento) => {
             select: { id: true },
         });
 
-        console.log("CPF existente:", cpfExistente);
-
         if (cpfExistente) {
-            console.log("CPF já cadastrado:", cpf);
             return {
               valid: false,
               message: "CPF já cadastrado."

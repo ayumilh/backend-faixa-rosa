@@ -25,7 +25,6 @@ exports.approvedMedia = async (req, res) => {
                 companionId: companionId
             },
         });
-        console.log("media", media);
 
         // Se não encontrar mídia ou a mídia já estiver aprovada
         if (!media) {

@@ -18,7 +18,6 @@ exports.verificarUsername = async (req, res) => {
     try {
         const { userName } = req.body;
         const resultado = await validarUsername(userName);
-        console.log("Resultado da verificação do username:", resultado);
         return res.status(200).json(resultado);
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -29,7 +28,6 @@ exports.verificarEmail = async (req, res) => {
     try {
         const { email } = req.body;
         const resultado = await validarEmail(email);
-        console.log("Resultado da verificação do email:", resultado);
         return res.status(200).json(resultado);
     } catch (error) {
         return res.status(500).json({ error: error.message });

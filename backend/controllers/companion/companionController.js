@@ -78,7 +78,6 @@ exports.updateCompanion = async (req, res) => {
 
 const checkFileExists = async (imageKey) => {
     try {
-        console.log(`Verificando a existência do arquivo com a chave: ${imageKey}`);
         const data = await wasabiS3.send(new HeadObjectCommand({
             Bucket: process.env.WASABI_BUCKET, // Nome do seu bucket
             Key: imageKey, // Caminho completo do arquivo dentro do bucket (chave)
@@ -100,19 +99,14 @@ const deleteImageFromWasabi = async (imageUrl) => {
 
     if (imageKey) {
         try {
-            console.log(`Verificando a existência do arquivo ${imageKey} antes de deletá-lo.`);
             // Verificar se o arquivo realmente existe antes de deletar
             const fileExists = await checkFileExists(imageKey);
             if (fileExists) {
-                console.log(`Deletando imagem do bucket ${process.env.WASABI_BUCKET} com chave ${imageKey}`);
                 await wasabiS3.send(new DeleteObjectCommand({
                     Bucket: process.env.WASABI_BUCKET,
                     Key: imageKey,
                 }));
-                console.log(`Imagem removida: ${imageKey}`);
-            } else {
-                console.log(`Arquivo não encontrado, não será deletado: ${imageKey}`);
-            }
+            } 
         } catch (deleteError) {
             console.error("Erro ao deletar imagem:", deleteError);
             throw new Error("Erro ao excluir a imagem.");
@@ -155,7 +149,6 @@ exports.updateProfileAndBanner = async (req, res) => {
 
         // Deletar imagens antigas, se forem diferentes da nova imagem
         if (oldProfileImageUrl && oldProfileImageUrl !== profileImageUrl) {
-            console.log(`Deletando imagem antiga de perfil: ${oldProfileImageUrl}`);
             await deleteImageFromWasabi(oldProfileImageUrl);  // Deletar o arquivo antigo de perfil
             await prisma.companion.update({
                 where: { id: companion.id },

@@ -100,8 +100,6 @@ exports.cleanExpiredStories = async () => {
         await prisma.story.deleteMany({
             where: { expiresAt: { lt: new Date() } }
         });
-
-        console.log('Stories expirados removidos com sucesso.');
     } catch (error) {
         console.error('Erro ao limpar stories expirados:', error);
     }

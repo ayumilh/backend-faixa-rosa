@@ -19,25 +19,12 @@ async function renewExpiredSubscriptions() {
             extraPlan: true,  // Inclui a tabela ExtraPlan (para obter informações de planos extras, se houver)
         },
     });
-    console.log(subscriptionsToRenew)
-    console.log(`Encontradas ${subscriptionsToRenew.length} assinaturas expiradas para renovação`);
 
     // Iterando sobre as assinaturas expiradas e exibindo informações do acompanhante e do plano
     for (const subscription of subscriptionsToRenew) {
         const companion = subscription.companion; // Acompanhante relacionado
         const plan = subscription.plan;           // Plano principal
         const extraPlan = subscription.extraPlan; // Plano extra, se houver
-
-        // Exibe as informações do acompanhante
-        console.log(`Acompanhante: ${companion.name} (${companion.id})`);
-
-        // Verifica se é um plano principal ou extra e exibe as informações correspondentes
-        if (plan) {
-            console.log(`Plano principal: ${plan.name} (ID: ${plan.id})`);
-        }
-        if (extraPlan) {
-            console.log(`Plano extra: ${extraPlan.name} (ID: ${extraPlan.id})`);
-        }
 
         // Buscar o pagamento referente à assinatura
         const payment = await prisma.payment.findFirst({
@@ -49,12 +36,7 @@ async function renewExpiredSubscriptions() {
             },
         });
 
-        console.log(payment)
 
-        if (!payment) {
-            console.log(`Pagamento não encontrado para a assinatura ID ${subscription.id}`);
-            continue;
-        }
 
         // Recupera os dados necessários do pagamento
         const cardToken = payment.cardToken;
@@ -62,12 +44,6 @@ async function renewExpiredSubscriptions() {
         const paymentMethodId = payment.paymentMethodId; // Pode ser 'visa', 'master', etc.
         const email = payment.user.email; // Obtendo o e-mail do usuário
 
-        console.log(`Pagamento encontrado: ${payment.id}`);
-        console.log(`Token do cartão: ${cardToken}`);
-        console.log(`ID do emissor: ${issuer_id}`);
-        console.log(`Método de pagamento: ${paymentMethodId}`);
-        console.log(`E-mail do usuário: ${email}`);
-        console.log(`CPF do usuário: ${payment.user.cpf}`);
 
         // Realiza o pagamento de renovação do plano
         try {
