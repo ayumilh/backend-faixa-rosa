@@ -223,7 +223,6 @@ exports.searchCompanionCity = async (req, res) => {
                     select: {
                         id: true,
                         email: true,
-                        phone: true,
                         birthDate: true,
                     },
                 },
@@ -400,7 +399,6 @@ exports.searchCompanionProfile = async (req, res) => {
                     user: {
                         select: {
                             email: true,
-                            phone: true,
                             birthDate: true,
                         },
                     },
