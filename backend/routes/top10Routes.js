@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma/client');
 
-router.get('/', async (req, res) => {
+router.get('/listar', async (req, res) => {
   try {
     const companions = await prisma.companion.findMany({
       where: {

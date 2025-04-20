@@ -40,9 +40,13 @@ app.options("*", (req, res) => {
 
 // Rotas publicas
 const authRoutes = require('./routes/authRoutes');
+const top10Routes = require('./routes/top10Routes.js');
+
 app.get('/', (req, res) => {
   res.send('API funcionando!');
 });
+
+app.use('/api/companions/top10', top10Routes);
 
 // USER ROUTES
 const userRoutes = require('./routes/userRoutes.js');

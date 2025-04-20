@@ -11,27 +11,29 @@ const getUserIdBd = async (req, res) => {
             return res.status(400).json({ message: 'ID de usuário inválido.' });
         }
 
-        let includeObj = {};
+        let includeObj = null;
 
         if (tipoPerfil === "CONTRATANTE") {
             includeObj.Contractor = true;
         } else if (tipoPerfil === "ACOMPANHANTE") {
             includeObj.companion = {
                 include: {
-                  top10: {
-                    select: {
-                      rank: true,
+                    top10: {
+                        select: {
+                            rank: true,
+                        },
                     },
-                  },
                 },
-              };              
+            };
+        } else if (tipoPerfil === "ADMIN") {
+            includeObj = undefined; // Não inclui nada extra, busca só o user
         } else {
             return res.status(400).json({ message: 'Tipo de perfil não especificado ou inválido.' });
         }
 
         const user = await prisma.user.findUnique({
             where: { id: userid },
-            include: includeObj,
+            ...(includeObj ? { include: includeObj } : {}),
         });
 
 
@@ -52,7 +54,7 @@ const getUserIdBd = async (req, res) => {
         const cleanUser = {
             ...user,
             userName,
-            ...(ranking !== null && { ranking }), 
+            ...(ranking !== null && { ranking }),
         };
 
         // Retorna também o tipo
@@ -63,8 +65,6 @@ const getUserIdBd = async (req, res) => {
         res.status(500).json({ message: 'Erro ao recuperar o usuário do banco de dados.' });
     }
 };
-
-
 
 module.exports = {
     getUserIdBd,

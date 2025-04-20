@@ -8,6 +8,8 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 
 router.post('/userId', verifyToken.userId);
+
+// verify
 router.post('/verify-cpf', verificarCpf);
 router.post('/verify-username', verificarUsername);
 router.post('/verify-email', verificarEmail);
