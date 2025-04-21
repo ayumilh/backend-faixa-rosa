@@ -22,7 +22,11 @@ const userSchema = Joi.object({
         .required(),
 });
 
-const loginSchema = userSchema.fork(['firstName', 'lastName', 'birthDate', 'cpf', 'userType', 'userName'], (schema) => schema.optional());
+const loginSchema = userSchema
+  .fork(['firstName', 'lastName', 'birthDate', 'cpf', 'userType', 'userName'], (schema) => schema.optional())
+  .keys({
+    browser_fingerprint: Joi.string().optional()
+  });
 
 exports.register = async (req, res) => {
     try {
@@ -212,6 +216,17 @@ exports.login = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000,
         });
 
+        if (req.body.browser_fingerprint) {
+            await prisma.consent.updateMany({
+                where: {
+                    browser_fingerprint: req.body.browser_fingerprint,
+                    user_id: null,
+                },
+                data: {
+                    user_id: user.id,
+                },
+            });
+        }
 
         console.log('DADOS ENVIADOS PARA O FRONTEND:', user, token);
 

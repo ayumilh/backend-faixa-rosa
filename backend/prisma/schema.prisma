@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Consent {
+  id                  Int      @id @default(autoincrement())
+  ip_address          String?
+  user_agent          String?
+  consent_datetime    DateTime @default(now())
+  browser_fingerprint String?
+  accepted            Boolean
+  user_id             Int?
+  user                User?    @relation(fields: [user_id], references: [id])
+}
+
 model User {
   id                Int         @id @default(autoincrement())
   firstName         String?     @default("") @db.VarChar(50)
@@ -26,6 +37,8 @@ model User {
   payments          Payment[]
   reviews           Review[]
   Top10             Top10?
+
+  Consent Consent[]
 }
 
 model Document {
@@ -181,7 +194,7 @@ model Companion {
   extraPlans              ExtraPlan[]                  @relation("CompanionExtraPlans")
   ActivityLog             ActivityLog[]
   atendimentos            Atendimento[]
-  top10   Top10? @relation("Top10Companions", fields: [top10Id], references: [id])
+  top10                   Top10?                       @relation("Top10Companions", fields: [top10Id], references: [id])
 
   Follow Follow[] @relation("Followers")
 
