@@ -337,3 +337,55 @@ exports.getActivityLog = async (req, res) => {
         return res.status(500).json({ error: "Erro ao buscar histórico." });
     }
 };
+
+
+exports.adminDeleteCompanionAndUser = async (req, res) => {
+    const adminId = req.user?.id; 
+    const companionId = parseInt(req.params.id);
+  
+    try {
+      const companion = await prisma.companion.findUnique({
+        where: { id: companionId },
+      });
+  
+      if (!companion) {
+        return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+      }
+  
+      const userId = companion.userId;
+  
+      await prisma.$transaction(async (tx) => {
+        // Deleta todas as relações da acompanhante
+        await tx.review.deleteMany({ where: { companionId } });
+        await tx.story.deleteMany({ where: { companionId } });
+        await tx.feedPost.deleteMany({ where: { companionId } });
+        await tx.document.deleteMany({ where: { companionId } });
+        await tx.locationCompanion.deleteMany({ where: { companionId } });
+        await tx.media.deleteMany({ where: { companionId } });
+        await tx.paymentMethodCompanion.deleteMany({ where: { companionId } });
+        await tx.physicalCharacteristics.deleteMany({ where: { companionId } });
+        await tx.planSubscription.deleteMany({ where: { companionId } });
+        await tx.ageCategoryCompanion.deleteMany({ where: { companionId } });
+        await tx.serviceCompanionOffered.deleteMany({ where: { companionId } });
+        await tx.servicosGeraisCompanion.deleteMany({ where: { companionId } });
+        await tx.servicosEspeciaisCompanion.deleteMany({ where: { companionId } });
+        await tx.timedServiceCompanion.deleteMany({ where: { companionId } });
+        await tx.unavailableDates.deleteMany({ where: { companionId } });
+        await tx.weeklySchedule.deleteMany({ where: { companionId } });
+        await tx.activityLog.deleteMany({ where: { companionId } });
+        await tx.carrouselImage.deleteMany({ where: { companionId } });
+        await tx.follow.deleteMany({ where: { followingId: companionId } });
+  
+        // Apaga a acompanhante e o user
+        await tx.companion.delete({ where: { id: companionId } });
+        await tx.user.delete({ where: { id: userId } });
+      });
+  
+      console.log(`Admin ID ${adminId} deletou a acompanhante ID ${companionId} e o usuário ID ${userId}`);
+      res.status(200).json({ message: 'Acompanhante e usuário deletados com sucesso.' });
+  
+    } catch (error) {
+      console.error("Erro ao deletar acompanhante via admin:", error);
+      res.status(500).json({ error: 'Erro ao deletar acompanhante.' });
+    }
+  };

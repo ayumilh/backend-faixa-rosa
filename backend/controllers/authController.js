@@ -5,9 +5,6 @@ const { calculateAge } = require('../utils/helpers');
 
 const prisma = require('../prisma/client');
 
-
-const JWT_SECRET = process.env.JWT_SECRET
-
 const userSchema = Joi.object({
     userName: Joi.string().max(30).required(),
     firstName: Joi.string().max(50).optional(),
@@ -23,24 +20,33 @@ const userSchema = Joi.object({
 });
 
 const loginSchema = userSchema
-  .fork(['firstName', 'lastName', 'birthDate', 'cpf', 'userType', 'userName'], (schema) => schema.optional())
-  .keys({
-    browser_fingerprint: Joi.string().optional()
-  });
+    .fork(['firstName', 'lastName', 'birthDate', 'cpf', 'userType', 'userName'], (schema) => schema.optional())
+    .keys({
+        browser_fingerprint: Joi.string().optional()
+    });
 
 exports.register = async (req, res) => {
     try {
-        const { error, value } = userSchema.validate(req.body);
 
-        if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+        const {
+            userName,
+            firstName = '',
+            lastName = '',
+            email,
+            password,
+            birthDate,
+            cpf,
+            userType
+        } = req.body;
+
+        if (!userName || !email || !userType) {
+            console.warn('⚠️ [REGISTER] Campos obrigatórios faltando.');
+            return res.status(400).json({ error: 'userName, email e userType são obrigatórios.' });
         }
-
-        const { userName, firstName, lastName, email, password, birthDate, cpf, userType } = value;
 
         const formattedBirthDate = birthDate ? new Date(birthDate) : null;
 
-        // Verifica se o email ou CPF já está em uso
+        console.log('🔍 [REGISTER] Verificando usuário existente...');
         const existingUser = await prisma.user.findFirst({
             where: {
                 OR: [
@@ -51,35 +57,35 @@ exports.register = async (req, res) => {
         });
 
         if (existingUser) {
-            // Verificar se o userName já está em uso nas tabelas Contractor ou Companion
-            const existingContractor = await prisma.contractor.findFirst({
-                where: { userName }
-            });
+            console.warn('⚠️ [REGISTER] Email ou CPF já em uso.');
 
-            const existingCompanion = await prisma.companion.findFirst({
-                where: { userName }
-            });
+            const existingContractor = await prisma.contractor.findFirst({ where: { userName } });
+            const existingCompanion = await prisma.companion.findFirst({ where: { userName } });
 
             if (existingContractor || existingCompanion) {
+                console.warn('⚠️ [REGISTER] Nome de usuário já está em uso.');
                 return res.status(400).json({ error: 'Email, CPF ou Nome de Usuário já estão em uso' });
             }
         }
-        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
-        // Criar usuário e perfil de contratante/acompanhante em transação
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+        console.log('🔐 [REGISTER] Senha criptografada');
+
+        console.log('🧩 [REGISTER] Iniciando transação de criação de usuário e perfil...');
         const newUser = await prisma.$transaction(async (prisma) => {
-            // Criar o usuário
             const createdUser = await prisma.user.create({
                 data: {
                     firstName,
                     lastName,
                     email,
                     password: hashedPassword,
-                    birthDate: formattedBirthDate ? new Date(birthDate) : null,
+                    birthDate: formattedBirthDate,
                     cpf,
                     userType,
                 },
             });
+
+            console.log(`✅ [REGISTER] Usuário criado com ID ${createdUser.id}`);
 
             if (userType === 'ACOMPANHANTE') {
                 await prisma.companion.create({
@@ -98,6 +104,7 @@ exports.register = async (req, res) => {
                         updatedAt: new Date(),
                     },
                 });
+                console.log('🧍‍♀️ [REGISTER] Perfil de acompanhante criado');
             } else if (userType === 'CONTRATANTE') {
                 await prisma.contractor.create({
                     data: {
@@ -109,20 +116,29 @@ exports.register = async (req, res) => {
                         documentStatus: 'PENDING',
                     },
                 });
+                console.log('👤 [REGISTER] Perfil de contratante criado');
             }
 
             return createdUser;
         });
 
+        console.log('✅ [REGISTER] Cadastro finalizado com sucesso');
         res.status(201).json({
             message: 'Usuário registrado com sucesso',
-            user: { id: newUser.id, email: newUser.email, userName: newUser.userName }
+            user: {
+                id: newUser.id,
+                email: newUser.email,
+                userName: userName
+            },
         });
+
     } catch (error) {
+        console.error('❌ [REGISTER] Erro durante registro:', error);
+
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'Email ou CPF já está em uso' });
         }
-        console.error('Erro ao registrar usuário:', error);
+
         res.status(500).json({ error: 'Erro ao registrar usuário' });
     }
 };

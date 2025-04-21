@@ -8,7 +8,8 @@ const {
     updatePlan,
     updateExtraPlanForCompanion,
     deleteAcompanhante,
-    getActivityLog
+    getActivityLog,
+    adminDeleteCompanionAndUser
 } = require('../../controllers/admin/adminCompanionController');
 
 
@@ -27,6 +28,8 @@ router.put('/companion/:id/update-plan', updatePlan);
 router.put('/companion/:id/update-extrasPlan', updateExtraPlanForCompanion);
 
 router.get('/companion/:id/activity', getActivityLog);
+
+router.delete('/companion/deletar/:id', adminDeleteCompanionAndUser);
 
 
 module.exports = router;
