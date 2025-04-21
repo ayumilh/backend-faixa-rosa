@@ -27,7 +27,7 @@ const loginSchema = userSchema
 
 exports.register = async (req, res) => {
     try {
-
+        console.log('🔍 [REGISTER] Iniciando registro...', req.body);
         const {
             userName,
             firstName = '',
