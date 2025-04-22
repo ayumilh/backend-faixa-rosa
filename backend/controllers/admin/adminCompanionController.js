@@ -289,41 +289,50 @@ exports.deleteAcompanhante = async (req, res) => {
         const userId = companion.user.id;
 
         await prisma.$transaction(async (tx) => {
-            // Deleta o Top10 relacionado (se houver)
+            // Deleta Top10
             await tx.top10.deleteMany({
                 where: { userId },
             });
-
-            // Remove documentos
+        
+            // Deleta Follows (quem segue a acompanhante)
+            await tx.follow.deleteMany({
+                where: { followingId: companionId },
+            });
+        
+            // Deleta métodos de contato
+            await tx.contactMethodCompanion.deleteMany({
+                where: { companionId },
+            });
+        
+            // Deleta documentos
             await tx.document.deleteMany({
                 where: { companionId },
             });
-
-            // Remove assinaturas
+        
+            // Deleta assinaturas
             await tx.planSubscription.deleteMany({
                 where: { companionId },
             });
-
-            // Remove relações com planos extras
+        
+            // Desvincula planos extras
             await tx.companion.update({
                 where: { id: companionId },
                 data: {
-                    extraPlans: {
-                        set: [], // Desvincula todos os extras
-                    },
+                    extraPlans: { set: [] },
                 },
             });
-
+        
             // Deleta o acompanhante
             await tx.companion.delete({
                 where: { id: companionId },
             });
-
+        
             // Deleta o usuário
             await tx.user.delete({
                 where: { id: userId },
             });
         });
+        
 
         return res.status(200).json({
             message: "Acompanhante e todos os dados associados foram removidos com sucesso.",
