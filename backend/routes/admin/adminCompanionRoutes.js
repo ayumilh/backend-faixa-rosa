@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     listAcompanhantes,
+    detalhesAcompanhante,
     approveAcompanhantes,
     rejectAcompanhantes,
     suspendAcompanhantes,
@@ -9,11 +10,14 @@ const {
     updateExtraPlanForCompanion,
     deleteAcompanhante,
     getActivityLog,
-    adminDeleteCompanionAndUser
+    deleteCompanionAndUser
 } = require('../../controllers/admin/adminCompanionController');
 
 
 router.get('/companion', listAcompanhantes);
+
+router.get('/companion/:id/detalhes', detalhesAcompanhante);
+
 
 // PERFIL DAS ACOMPANHANTES
 router.post('/companion/:id/approve', approveAcompanhantes);
@@ -29,7 +33,7 @@ router.put('/companion/:id/update-extrasPlan', updateExtraPlanForCompanion);
 
 router.get('/companion/:id/activity', getActivityLog);
 
-router.delete('/companion/deletar/:id', adminDeleteCompanionAndUser);
+router.delete('/companion/deletar/:id', deleteCompanionAndUser);
 
 
 module.exports = router;

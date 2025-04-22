@@ -106,7 +106,7 @@ const deleteImageFromWasabi = async (imageUrl) => {
                     Bucket: process.env.WASABI_BUCKET,
                     Key: imageKey,
                 }));
-            } 
+            }
         } catch (deleteError) {
             console.error("Erro ao deletar imagem:", deleteError);
             throw new Error("Erro ao excluir a imagem.");
@@ -212,13 +212,20 @@ exports.getCompanionMedia = async (req, res) => {
 
         if (!companion) return res.status(404).json({ error: "Acompanhante não encontrado." });
 
-    // Buscar o plano associado ao companion
-    const plan = await prisma.plan.findUnique({
-        where: { id: companion.planId },
-        select: { name: true }
-      });
-  
-      const planName = plan ? plan.name : null;
+        let planName = null;
+
+        if (companion.planId) {
+            // Buscar o plano associado ao companion
+            const plan = await prisma.plan.findUnique({
+                where: { id: companion.planId },
+                select: { name: true }
+            });
+            
+            planName = plan ? plan.name : null;
+        } else {
+            console.warn(`⚠️ Acompanhante ID ${companion.id} não possui plano associado.`);
+        }
+
 
         const documentStatuses = companion.documents.map(doc => doc.documentStatus);
 

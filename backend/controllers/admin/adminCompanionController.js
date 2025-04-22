@@ -19,6 +19,31 @@ exports.listAcompanhantes = async (req, res) => {
                         price: true,
                     },
                 },
+                subscriptions: {
+                    select: {
+                        id: true,
+                        extraPlan: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true,
+                                hasContact: true,
+                                canHideAge: true,
+                                hasStories: true,
+                                hasPublicReviews: true,
+                                isEnabled: true,
+                            },
+                        },
+                        endDate: true,
+                    },
+                    where: {
+                        endDate: null, // Garante que planos desativados (com endDate) não apareçam
+                        extraPlan: {
+                            // Usando isNot para garantir que extraPlan não seja null
+                            isNot: null,
+                        },
+                    },
+                },
                 documents: {
                     select: {
                         id: true,
@@ -79,7 +104,8 @@ exports.listAcompanhantes = async (req, res) => {
                     name: companion.plan.name,
                     price: companion.plan.price,
                 } : null,
-                userName: companion.userName, // Agora acessando 'userName' do modelo 'User'
+                subscriptions: companion.subscriptions,
+                userName: companion.userName,
                 media: videoStatus
             };
         });
@@ -92,6 +118,63 @@ exports.listAcompanhantes = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Erro ao listar acompanhantes.', error: error.message });
+    }
+};
+
+exports.detalhesAcompanhante = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const acompanhante = await prisma.companion.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                user: {
+                    include: {
+                        Consent: true,
+                        reviews: true,
+                        payments: true,
+                        Top10: true,
+                    },
+                },
+                plan: { include: { planType: true, extraPlans: true } },
+                planType: true,
+                documents: true,
+                media: true,
+                subscriptions: {
+                    include: {
+                        plan: true,
+                        extraPlan: true,
+                        Payment: true,
+                    },
+                },
+                PhysicalCharacteristics: true,
+                contactMethods: true,
+                feedPosts: true,
+                lugares: { include: { location: true } },
+                denunciasFeitas: true,
+                denunciasRecebidas: true,
+                Story: true,
+                servicesOffered: { include: { service: true } },
+                servicosGerais: true,
+                servicosEspeciais: true,
+                weeklySchedules: true,
+                unavailableDays: true,
+                carrouselImages: true,
+                ActivityLog: true,
+                // atendimentos: true,
+                Follow: true,
+                extraPlans: true,
+            },
+        });
+
+        if (!acompanhante) {
+            return res.status(404).json({ message: 'Acompanhante não encontrada.' });
+        }
+
+        res.status(200).json(acompanhante);
+    } catch (error) {
+        console.error("Erro:", error);
+        res.status(500).json({ message: 'Erro ao buscar detalhes da acompanhante.', error: error.message });
     }
 };
 
@@ -234,8 +317,14 @@ exports.deleteAcompanhante = async (req, res) => {
 
 // Atualizar plano
 exports.updatePlan = async (req, res) => {
+    console.log('Atualizando plano...');
+    console.log(req.body);
     const { id } = req.params;
     const { planId } = req.body; // Novo plano a ser atribuído
+
+    if (!planId || isNaN(planId)) {
+        return res.status(400).json({ message: 'planId inválido ou ausente.' });
+    }
 
     try {
         const companion = await prisma.companion.findUnique({
@@ -251,6 +340,8 @@ exports.updatePlan = async (req, res) => {
             data: { planId: parseInt(planId) },
         });
 
+        console.log('Plano atualizado com sucesso.');
+
         return res.status(200).json({ message: 'Plano atualizado com sucesso.' });
     } catch (error) {
         console.error(error);
@@ -260,53 +351,59 @@ exports.updatePlan = async (req, res) => {
 
 // Atualizar plano extra
 exports.updateExtraPlanForCompanion = async (req, res) => {
-    const { companionId } = req.params; // ID da acompanhante
-    const { extraPlanId, isEnabled, duration, pointsBonus } = req.body; // Novos dados para atualizar o plano extra
+    console.log("Atualizando plano extra...");
+    const { id } = req.params; // ID da acompanhante
+    const { extraPlanId, isChecked } = req.body;
+
+    if (!id || !extraPlanId) {
+        return res.status(400).json({ message: "ID do acompanhante e extraPlanId são obrigatórios." });
+    }
 
     try {
-        // Verifica se a acompanhante existe
-        const companion = await prisma.companion.findUnique({
-            where: { id: parseInt(companionId) },
-            include: { extraPlans: true }, // Inclui os planos extras atuais da acompanhante
-        });
+        const companionId = parseInt(id);
+        const extraId = parseInt(extraPlanId);
 
-        if (!companion) {
-            return res.status(404).json({ message: 'Acompanhante não encontrada.' });
-        }
-
-        // Verifica se o plano extra existe
-        const extraPlan = await prisma.extraPlan.findUnique({
-            where: { id: parseInt(extraPlanId) },
-        });
-
-        if (!extraPlan) {
-            return res.status(404).json({ message: 'Plano extra não encontrado.' });
-        }
-
-        // Atualiza o plano extra da acompanhante
-        const updatedExtraPlan = await prisma.companion.update({
-            where: { id: parseInt(companionId) },
-            data: {
-                extraPlans: {
-                    update: {
-                        where: { id: parseInt(extraPlanId) },
-                        data: {
-                            isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : undefined,
-                            duration: duration !== undefined ? parseInt(duration) : undefined,
-                            pointsBonus: pointsBonus !== undefined ? parseInt(pointsBonus) : undefined,
-                        },
-                    },
-                },
+        // Verifica se a assinatura do plano extra já existe
+        const existingSubscription = await prisma.planSubscription.findFirst({
+            where: {
+                companionId: companionId,
+                extraPlanId: extraId,
+                isExtra: true,
             },
         });
 
-        return res.status(200).json({
-            message: 'Plano extra da acompanhante atualizado com sucesso.',
-            updatedExtraPlan,
-        });
+        if (isChecked) {
+            // Se está marcado e não existe, cria
+            if (!existingSubscription) {
+                await prisma.planSubscription.create({
+                    data: {
+                        companionId: companionId,
+                        extraPlanId: extraId,
+                        isExtra: true,
+                        startDate: new Date(),
+                        subscriptionStatus: "ACTIVE",
+                    },
+                });
+                return res.status(200).json({ message: "Plano extra atribuído com sucesso." });
+            } else {
+                return res.status(200).json({ message: "Plano extra já está atribuído." });
+            }
+        } else {
+            // Se está desmarcado e existe, remove
+            if (existingSubscription) {
+                await prisma.planSubscription.delete({
+                    where: {
+                        id: existingSubscription.id,
+                    },
+                });
+                return res.status(200).json({ message: "Plano extra removido com sucesso." });
+            } else {
+                return res.status(200).json({ message: "Plano extra já estava removido." });
+            }
+        }
     } catch (error) {
-        console.error('Erro ao atualizar plano extra:', error);
-        return res.status(500).json({ message: 'Erro ao atualizar plano extra.', error });
+        console.error("Erro ao atualizar plano extra:", error);
+        return res.status(500).json({ message: "Erro ao atualizar plano extra.", error: error.message });
     }
 };
 
@@ -339,53 +436,53 @@ exports.getActivityLog = async (req, res) => {
 };
 
 
-exports.adminDeleteCompanionAndUser = async (req, res) => {
-    const adminId = req.user?.id; 
+exports.deleteCompanionAndUser = async (req, res) => {
+    const adminId = req.user?.id;
     const companionId = parseInt(req.params.id);
-  
+
     try {
-      const companion = await prisma.companion.findUnique({
-        where: { id: companionId },
-      });
-  
-      if (!companion) {
-        return res.status(404).json({ error: 'Acompanhante não encontrada.' });
-      }
-  
-      const userId = companion.userId;
-  
-      await prisma.$transaction(async (tx) => {
-        // Deleta todas as relações da acompanhante
-        await tx.review.deleteMany({ where: { companionId } });
-        await tx.story.deleteMany({ where: { companionId } });
-        await tx.feedPost.deleteMany({ where: { companionId } });
-        await tx.document.deleteMany({ where: { companionId } });
-        await tx.locationCompanion.deleteMany({ where: { companionId } });
-        await tx.media.deleteMany({ where: { companionId } });
-        await tx.paymentMethodCompanion.deleteMany({ where: { companionId } });
-        await tx.physicalCharacteristics.deleteMany({ where: { companionId } });
-        await tx.planSubscription.deleteMany({ where: { companionId } });
-        await tx.ageCategoryCompanion.deleteMany({ where: { companionId } });
-        await tx.serviceCompanionOffered.deleteMany({ where: { companionId } });
-        await tx.servicosGeraisCompanion.deleteMany({ where: { companionId } });
-        await tx.servicosEspeciaisCompanion.deleteMany({ where: { companionId } });
-        await tx.timedServiceCompanion.deleteMany({ where: { companionId } });
-        await tx.unavailableDates.deleteMany({ where: { companionId } });
-        await tx.weeklySchedule.deleteMany({ where: { companionId } });
-        await tx.activityLog.deleteMany({ where: { companionId } });
-        await tx.carrouselImage.deleteMany({ where: { companionId } });
-        await tx.follow.deleteMany({ where: { followingId: companionId } });
-  
-        // Apaga a acompanhante e o user
-        await tx.companion.delete({ where: { id: companionId } });
-        await tx.user.delete({ where: { id: userId } });
-      });
-  
-      console.log(`Admin ID ${adminId} deletou a acompanhante ID ${companionId} e o usuário ID ${userId}`);
-      res.status(200).json({ message: 'Acompanhante e usuário deletados com sucesso.' });
-  
+        const companion = await prisma.companion.findUnique({
+            where: { id: companionId },
+        });
+
+        if (!companion) {
+            return res.status(404).json({ error: 'Acompanhante não encontrada.' });
+        }
+
+        const userId = companion.userId;
+
+        await prisma.$transaction(async (tx) => {
+            // Deleta todas as relações da acompanhante
+            await tx.review.deleteMany({ where: { companionId } });
+            await tx.story.deleteMany({ where: { companionId } });
+            await tx.feedPost.deleteMany({ where: { companionId } });
+            await tx.document.deleteMany({ where: { companionId } });
+            await tx.locationCompanion.deleteMany({ where: { companionId } });
+            await tx.media.deleteMany({ where: { companionId } });
+            await tx.paymentMethodCompanion.deleteMany({ where: { companionId } });
+            await tx.physicalCharacteristics.deleteMany({ where: { companionId } });
+            await tx.planSubscription.deleteMany({ where: { companionId } });
+            await tx.ageCategoryCompanion.deleteMany({ where: { companionId } });
+            await tx.serviceCompanionOffered.deleteMany({ where: { companionId } });
+            await tx.servicosGeraisCompanion.deleteMany({ where: { companionId } });
+            await tx.servicosEspeciaisCompanion.deleteMany({ where: { companionId } });
+            await tx.timedServiceCompanion.deleteMany({ where: { companionId } });
+            await tx.unavailableDates.deleteMany({ where: { companionId } });
+            await tx.weeklySchedule.deleteMany({ where: { companionId } });
+            await tx.activityLog.deleteMany({ where: { companionId } });
+            await tx.carrouselImage.deleteMany({ where: { companionId } });
+            await tx.follow.deleteMany({ where: { followingId: companionId } });
+
+            // Apaga a acompanhante e o user
+            await tx.companion.delete({ where: { id: companionId } });
+            await tx.user.delete({ where: { id: userId } });
+        });
+
+        console.log(`Admin ID ${adminId} deletou a acompanhante ID ${companionId} e o usuário ID ${userId}`);
+        res.status(200).json({ message: 'Acompanhante e usuário deletados com sucesso.' });
+
     } catch (error) {
-      console.error("Erro ao deletar acompanhante via admin:", error);
-      res.status(500).json({ error: 'Erro ao deletar acompanhante.' });
+        console.error("Erro ao deletar acompanhante via admin:", error);
+        res.status(500).json({ error: 'Erro ao deletar acompanhante.' });
     }
-  };
+};
