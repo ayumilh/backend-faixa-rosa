@@ -4,7 +4,10 @@ const { verificarUsername, verificarCpf, verificarEmail } = require('../controll
 const verifyToken = require('../utils/verifyToken.js');
 const router = express.Router();
 
-router.post('/register', authController.register);
+const { uploadRegister } = require('../config/wasabi.js');
+
+
+router.post('/register', uploadRegister, authController.register);
 router.post('/login', authController.login);
 
 router.post('/userId', verifyToken.userId);

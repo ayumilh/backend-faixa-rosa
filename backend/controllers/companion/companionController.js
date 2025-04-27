@@ -223,7 +223,7 @@ exports.getCompanionMedia = async (req, res) => {
             
             planName = plan ? plan.name : null;
         } else {
-            console.warn(`⚠️ Acompanhante ID ${companion.id} não possui plano associado.`);
+            planName = "Sem plano";
         }
 
 

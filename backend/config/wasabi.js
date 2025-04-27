@@ -161,6 +161,52 @@ const uploadCarrouselImage = multer({
     },
 });
 
+const uploadRegister = multer({
+    storage: multerS3({
+        s3: wasabiS3,
+        bucket: bucketName,
+        acl: "public-read", // Permite acesso público ao arquivo
+        contentType: multerS3.AUTO_CONTENT_TYPE, // Define automaticamente o tipo do arquivo
+        key: function (req, file, cb) {
+            let folder = ''; // Definir a pasta padrão
+
+            // Definir a pasta com base no nome do campo (fieldname)
+            if (file.fieldname === 'fileFront') {
+                folder = 'companions/images/documents'; // Pasta para documento da frente
+            } else if (file.fieldname === 'fileBack') {
+                folder = 'companions/images/documents'; // Pasta para documento de trás
+            } else if (file.fieldname === 'comparisonMedia') {
+                folder = 'companions/comparisonVideos'; // Pasta para vídeo de comparação
+            } else if (file.fieldname === 'profilePic') {
+                folder = 'companions/profile'; // Pasta para foto de perfil
+            }
+
+            // Nome único para o arquivo
+            const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, "_")}`;
+            cb(null, fileName); // Define o nome do arquivo
+        },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 }, // Limite de 10MB para os arquivos
+    fileFilter: (req, file, cb) => {
+        // Apenas imagens são permitidas
+        if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas imagens e vídeos são permitidos!"), false);
+        }
+    },
+}).fields([
+    { name: 'fileFront', maxCount: 1 }, // Documento da frente
+    { name: 'fileBack', maxCount: 1 }, // Documento de trás
+    { name: 'comparisonMedia', maxCount: 1 }, // Vídeo de comparação
+    { name: 'profilePic', maxCount: 1 }, // Foto de perfil
+]);
+
+// Exportando o middleware
+exports.uploadRegister = uploadRegister;
+
+
+
 // Middleware para upload de imagens de perfil e banner
 exports.uploadProfileAndBanner = uploadProfileAndBanner.fields([
     { name: "profileImage", maxCount: 1 },
