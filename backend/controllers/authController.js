@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
+const { logActivity } = require("../utils/activityService"); 
 const { calculateAge } = require('../utils/helpers');
 
 const prisma = require('../prisma/client');
@@ -38,17 +39,6 @@ exports.register = async (req, res) => {
             userType
         } = req.body;
 
-        console.log('Dados do usuário:', {
-            userName,
-            firstName,
-            lastName,
-            email,
-            password,
-            birthDate,
-            cpf,
-            userType
-        });
-
         // Verificando se os campos obrigatórios estão presentes
         if (!userName || !email || !userType) {
             console.log('Erro: userName, email ou userType ausentes');
@@ -57,19 +47,14 @@ exports.register = async (req, res) => {
 
         let formattedBirthDate = null;
         if (birthDate) {
-            // Converte a data 'dd/mm/yyyy' para 'yyyy-mm-dd'
             const dateParts = birthDate.split("/"); // Divide a data em partes
             formattedBirthDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`); // Formato 'yyyy-mm-dd'
-
-            console.log('Data de nascimento formatada:', formattedBirthDate);
 
             // Verifica se a data é válida
             if (isNaN(formattedBirthDate.getTime())) {
                 return res.status(400).json({ error: 'Data de nascimento inválida.' });
             }
         }
-
-        console.log('Data de nascimento formatada:', formattedBirthDate);
 
         // Verificando se o usuário já existe
         const existingUser = await prisma.user.findFirst({
@@ -82,7 +67,6 @@ exports.register = async (req, res) => {
         });
 
         if (existingUser) {
-            console.log('Erro: Usuário com o mesmo email ou CPF já existe');
             const existingContractor = await prisma.contractor.findFirst({ where: { userName } });
             const existingCompanion = await prisma.companion.findFirst({ where: { userName } });
 
@@ -121,8 +105,6 @@ exports.register = async (req, res) => {
                 },
             });
 
-            console.log('Usuário criado com sucesso:', createdUser);
-
             // Se o tipo for CONTRATANTE
             if (userType === "CONTRATANTE") {
                 const age = calculateAge(formattedBirthDate); // Calculando a idade
@@ -141,7 +123,6 @@ exports.register = async (req, res) => {
                     },
                 });
 
-                console.log('Contractor criado com sucesso:', createdContractor);
 
                 // Verificando se arquivos de documentos e foto de perfil foram recebidos
                 let documentFrontUrl = null;
@@ -150,7 +131,6 @@ exports.register = async (req, res) => {
 
                 // Verificando se arquivos de documento foram recebidos
                 if (req.files.fileFront && req.files.fileBack) {
-                    console.log('Gerando URL para documento da frente e de trás');
                     documentFrontUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileFront[0].key}`;
                     documentBackUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileBack[0].key}`;
 
@@ -164,12 +144,20 @@ exports.register = async (req, res) => {
                             documentStatus: "PENDING",
                         }
                     });
-                    console.log('Documentos salvos com sucesso');
+
+
+                    await prisma.contractor.update({
+                        where: { id: createdContractor.id },
+                        data: {
+                            documentStatus: "IN_ANALYSIS",
+                        }
+                    });
+
+                    await logActivity(createdCompanion.id, "Envio de Documento", `Acompanhante enviou documentos. Frente: ${documentFrontUrl}, Verso: ${documentBackUrl}`);
                 }
 
                 // Gerando URL para a foto de perfil
                 if (req.files.profilePic) {
-                    console.log('Gerando URL para a foto de perfil');
                     profilePicUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.profilePic[0].key}`;
 
                     await prisma.contractor.update({
@@ -178,7 +166,6 @@ exports.register = async (req, res) => {
                             profileImage: profilePicUrl,
                         }
                     });
-                    console.log('Foto de perfil salva com sucesso');
                 }
 
                 return createdUser; // Retorna o usuário criado
@@ -201,8 +188,6 @@ exports.register = async (req, res) => {
                     },
                 });
 
-                console.log('Companion criado com sucesso:', createdCompanion);
-
                 // Se arquivos de documentos ou imagens forem enviados, faz o processamento
                 if (req.files) {
                     let documentFrontUrl = null;
@@ -212,7 +197,6 @@ exports.register = async (req, res) => {
 
                     // Verificando se arquivos de documento foram recebidos
                     if (req.files.fileFront && req.files.fileBack) {
-                        console.log('Gerando URL para documento da frente e de trás');
                         documentFrontUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileFront[0].key}`;
                         documentBackUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileBack[0].key}`;
 
@@ -226,12 +210,19 @@ exports.register = async (req, res) => {
                                 documentStatus: "PENDING",
                             }
                         });
-                        console.log('Documentos salvos com sucesso');
+
+                        await prisma.companion.update({
+                            where: { id: createdCompanion.id },
+                            data: {
+                              documentStatus: "IN_ANALYSIS",
+                            }
+                          });
+
+                          await logActivity(createdCompanion.id, "Envio de Documento", `Acompanhante enviou documentos. Frente: ${documentFrontUrl}, Verso: ${documentBackUrl}`);
                     }
 
                     // Gerando URL para o vídeo de comparação
                     if (req.files.comparisonMedia) {
-                        console.log('Gerando URL para o vídeo de comparação');
                         comparisonVideoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.comparisonMedia[0].key}`;
 
                         // Armazenando o vídeo de comparação
@@ -243,12 +234,12 @@ exports.register = async (req, res) => {
                                 status: "PENDING",
                             }
                         });
-                        console.log('Vídeo de comparação salvo com sucesso');
+
+                        await logActivity(createdCompanion.id, "Envio de Vídeo de Comparação", `Acompanhante enviou vídeo de comparação: ${comparisonVideoUrl}`);
                     }
 
                     // Gerando URL para a foto de perfil
                     if (req.files.profilePic) {
-                        console.log('Gerando URL para a foto de perfil');
                         profilePicUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.profilePic[0].key}`;
 
                         await prisma.companion.update({
@@ -257,7 +248,8 @@ exports.register = async (req, res) => {
                                 profileImage: profilePicUrl,
                             }
                         });
-                        console.log('Foto de perfil salva com sucesso');
+
+                        await logActivity(createdCompanion.id, "Atualização de Imagem de Perfil", `Acompanhante atualizou a foto de perfil: ${profilePicUrl}`);
                     }
                 }
 

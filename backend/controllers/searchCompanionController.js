@@ -445,7 +445,7 @@ exports.searchCompanionProfile = async (req, res) => {
             });
 
             if (!companion) {
-                return res.status(404).json({ message: 'Acompanhante não encontrada' });
+                return res.status(200).json({ error: true, message: 'Acompanhante não encontrada', data: null });
             }
 
             const formatDate = (date) =>
@@ -528,6 +528,7 @@ exports.searchCompanionProfile = async (req, res) => {
                 isActive: schedule.isActive,
             }));
 
+            console.log(companion);
             res.status(200).json(companion);
         } catch (error) {
             console.error(error);

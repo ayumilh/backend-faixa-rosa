@@ -76,46 +76,6 @@ exports.updateCompanion = async (req, res) => {
 };
 
 
-const checkFileExists = async (imageKey) => {
-    try {
-        const data = await wasabiS3.send(new HeadObjectCommand({
-            Bucket: process.env.WASABI_BUCKET, // Nome do seu bucket
-            Key: imageKey, // Caminho completo do arquivo dentro do bucket (chave)
-        }));
-        return data; // Arquivo existe
-    } catch (err) {
-        console.error("Erro ao verificar arquivo:", err);
-        if (err.name === "NotFound") {
-            console.log("Arquivo não encontrado.");
-        }
-        return null; // Arquivo não encontrado
-    }
-};
-
-// Função para excluir imagens antigas do Wasabi
-const deleteImageFromWasabi = async (imageUrl) => {
-    // Extrair a chave do arquivo da URL
-    const imageKey = imageUrl.replace("https://s3.us-central-1.wasabisys.com/", "");
-
-    if (imageKey) {
-        try {
-            // Verificar se o arquivo realmente existe antes de deletar
-            const fileExists = await checkFileExists(imageKey);
-            if (fileExists) {
-                await wasabiS3.send(new DeleteObjectCommand({
-                    Bucket: process.env.WASABI_BUCKET,
-                    Key: imageKey,
-                }));
-            }
-        } catch (deleteError) {
-            console.error("Erro ao deletar imagem:", deleteError);
-            throw new Error("Erro ao excluir a imagem.");
-        }
-    } else {
-        console.error("Erro: A chave do arquivo não está definida corretamente.");
-    }
-};
-
 exports.updateProfileAndBanner = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -145,24 +105,6 @@ exports.updateProfileAndBanner = async (req, res) => {
         if (!bucketName) {
             console.error("Erro: O nome do bucket não está configurado corretamente.");
             return res.status(500).json({ error: "Nome do bucket não configurado corretamente." });
-        }
-
-        // Deletar imagens antigas, se forem diferentes da nova imagem
-        if (oldProfileImageUrl && oldProfileImageUrl !== profileImageUrl) {
-            await deleteImageFromWasabi(oldProfileImageUrl);  // Deletar o arquivo antigo de perfil
-            await prisma.companion.update({
-                where: { id: companion.id },
-                data: { profileImage: null }, // Remover a referência da imagem antiga
-            });
-        }
-
-        if (oldBannerImageUrl && oldBannerImageUrl !== bannerImageUrl) {
-            console.log(`Deletando imagem antiga de banner: ${oldBannerImageUrl}`);
-            await deleteImageFromWasabi(oldBannerImageUrl);  // Deletar o arquivo antigo de banner
-            await prisma.companion.update({
-                where: { id: companion.id },
-                data: { bannerImage: null }, // Remover a referência da imagem antiga
-            });
         }
 
         // Atualiza no banco de dados as imagens de perfil e banner
