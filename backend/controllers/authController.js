@@ -115,8 +115,8 @@ exports.register = async (req, res) => {
                         userId: createdUser.id,
                         userName,
                         name: `${firstName} ${lastName}`,
-                        profileStatus: "PENDING",
-                        documentStatus: "PENDING",
+                        profileStatus: "IN_ANALYSIS",
+                        documentStatus: "IN_ANALYSIS",
                         createdAt: new Date(),
                         updatedAt: new Date(),
                         age,
@@ -141,7 +141,7 @@ exports.register = async (req, res) => {
                             type: "RG",
                             fileFront: documentFrontUrl,
                             fileBack: documentBackUrl,
-                            documentStatus: "PENDING",
+                            documentStatus: "IN_ANALYSIS",
                         }
                     });
 
@@ -179,7 +179,7 @@ exports.register = async (req, res) => {
                         userId: createdUser.id,
                         userName,
                         name: `${firstName} ${lastName}`,
-                        profileStatus: "PENDING",
+                        profileStatus: "IN_ANALYSIS",
                         lastOnline: new Date(),
                         points: 0,
                         description: "",
@@ -207,7 +207,7 @@ exports.register = async (req, res) => {
                                 type: "RG",
                                 fileFront: documentFrontUrl,
                                 fileBack: documentBackUrl,
-                                documentStatus: "PENDING",
+                                documentStatus: "IN_ANALYSIS",
                             }
                         });
 

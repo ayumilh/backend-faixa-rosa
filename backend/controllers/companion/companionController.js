@@ -1,4 +1,6 @@
 const prisma = require('../../prisma/client');
+const { LocationType } = require('@prisma/client');
+
 const Joi = require('joi');
 const { DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { logActivity } = require("../../utils/activityService");
@@ -381,7 +383,6 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
                 data: {
                     description: data.description ?? companion.description,
                     atendimentos: data.atendimentos ?? companion.atendimentos,
-                    profileStatus: "IN_ANALYSIS",
                     userName: data.userName ?? companion.userName,
                 },
             });

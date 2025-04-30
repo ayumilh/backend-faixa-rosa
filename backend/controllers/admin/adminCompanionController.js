@@ -49,15 +49,19 @@ exports.listAcompanhantes = async (req, res) => {
                         id: true,
                         documentStatus: true,
                         updatedAt: true,
+                        fileFront: true,
+                        fileBack: true,
+                        type: true,
                     },
                 },
-                media: {  // Verificando se existe vídeo de comparação
+                media: {
                     where: {
-                        mediaType: 'VIDEO', // Verificando tipo de mídia
+                        mediaType: 'VIDEO',
                     },
                     select: {
-                        id: true,   // Verifica se existe um vídeo
-                        status: true, // Retorna o status do vídeo
+                        id: true,
+                        status: true,
+                        url: true,
                     },
                 },
             },
@@ -89,8 +93,16 @@ exports.listAcompanhantes = async (req, res) => {
 
             // Verifica se o acompanhante tem vídeo de comparação
             const hasComparisonVideo = companion.media.length > 0 ? true : false;
-            const videoStatus = hasComparisonVideo ? companion.media[0].status : 'Nenhum vídeo enviado';
-
+            const videoStatus = hasComparisonVideo
+            ? {
+                status: companion.media[0].status,
+                url: companion.media[0].url,
+              }
+            : {
+                status: 'Nenhum vídeo enviado',
+                url: null,
+              };
+          
             return {
                 id: companion.id,
                 name: `${companion.user.firstName} ${companion.user.lastName}`,
@@ -350,7 +362,6 @@ exports.updatePlan = async (req, res) => {
 
 // Atualizar plano extra
 exports.updateExtraPlanForCompanion = async (req, res) => {
-    console.log("Atualizando plano extra...");
     const { id } = req.params; // ID da acompanhante
     const { extraPlanId, isChecked } = req.body;
 
@@ -437,75 +448,74 @@ exports.getActivityLog = async (req, res) => {
 
 exports.deleteCompanionAndUser = async (req, res) => {
     const { id } = req.params;
-  
+
     try {
-      const companionId = parseInt(id);
-      if (isNaN(companionId)) {
-        return res.status(400).json({ error: "ID inválido" });
-      }
-  
-      const companion = await prisma.companion.findUnique({
-        where: { id: companionId },
-        include: {
-          user: true
+        const companionId = parseInt(id);
+        if (isNaN(companionId)) {
+            return res.status(400).json({ error: "ID inválido" });
         }
-      });
-  
-      if (!companion) {
-        return res.status(404).json({ error: "Acompanhante não encontrada" });
-      }
-  
-      const userId = companion.user.id;
-  
-      await prisma.$transaction(async (tx) => {
-        await tx.story.deleteMany({ where: { companionId } });
-        await tx.feedPost.deleteMany({ where: { companionId } });
-        await tx.review.deleteMany({ where: { companionId } });
-        await tx.activityLog.deleteMany({ where: { companionId } });
-        await tx.carrouselImage.deleteMany({ where: { companionId } });
-        await tx.media.deleteMany({ where: { companionId } });
-        await tx.contactMethodCompanion.deleteMany({ where: { companionId } });
-        await tx.paymentMethodCompanion.deleteMany({ where: { companionId } });
-        await tx.physicalCharacteristics.deleteMany({ where: { companionId } });
-        await tx.ageCategoryCompanion.deleteMany({ where: { companionId } });
-        await tx.serviceCompanionOffered.deleteMany({ where: { companionId } });
-        await tx.servicosGeraisCompanion.deleteMany({ where: { companionId } });
-        await tx.servicosEspeciaisCompanion.deleteMany({ where: { companionId } });
-        await tx.locationCompanion.deleteMany({ where: { companionId } });
-        await tx.unavailableDates.deleteMany({ where: { companionId } });
-        await tx.weeklySchedule.deleteMany({ where: { companionId } });
-        await tx.timedServiceCompanion.deleteMany({ where: { companionId } });
-        await tx.planSubscription.deleteMany({ where: { companionId } });
-        await tx.document.deleteMany({ where: { companionId } });
-        await tx.follow.deleteMany({ where: { followingId: companionId } });
-      
-        // Desvincula os planos extras
-        await tx.companion.update({
-          where: { id: companionId },
-          data: {
-            extraPlans: { set: [] },
-          },
+
+        const companion = await prisma.companion.findUnique({
+            where: { id: companionId },
+            include: {
+                user: true
+            }
         });
-      
-        // Remove o Top10
-        await tx.top10.deleteMany({ where: { userId } });
-      
-        // 🆕 Remove os pagamentos vinculados ao usuário
-        await tx.payment.deleteMany({ where: { userId } });
-      
-        // Deleta o companion
-        await tx.companion.delete({ where: { id: companionId } });
-      
-        // Deleta o usuário
-        await tx.user.delete({ where: { id: userId } });
-      });
-      
-  
-      return res.status(200).json({ message: "Acompanhante deletada com sucesso." });
-  
+
+        if (!companion) {
+            return res.status(404).json({ error: "Acompanhante não encontrada" });
+        }
+
+        const userId = companion.user.id;
+
+        await prisma.$transaction(async (tx) => {
+            await tx.story.deleteMany({ where: { companionId } });
+            await tx.feedPost.deleteMany({ where: { companionId } });
+            await tx.review.deleteMany({ where: { companionId } });
+            await tx.activityLog.deleteMany({ where: { companionId } });
+            await tx.carrouselImage.deleteMany({ where: { companionId } });
+            await tx.media.deleteMany({ where: { companionId } });
+            await tx.contactMethodCompanion.deleteMany({ where: { companionId } });
+            await tx.paymentMethodCompanion.deleteMany({ where: { companionId } });
+            await tx.physicalCharacteristics.deleteMany({ where: { companionId } });
+            await tx.ageCategoryCompanion.deleteMany({ where: { companionId } });
+            await tx.serviceCompanionOffered.deleteMany({ where: { companionId } });
+            await tx.servicosGeraisCompanion.deleteMany({ where: { companionId } });
+            await tx.servicosEspeciaisCompanion.deleteMany({ where: { companionId } });
+            await tx.locationCompanion.deleteMany({ where: { companionId } });
+            await tx.unavailableDates.deleteMany({ where: { companionId } });
+            await tx.weeklySchedule.deleteMany({ where: { companionId } });
+            await tx.timedServiceCompanion.deleteMany({ where: { companionId } });
+            await tx.planSubscription.deleteMany({ where: { companionId } });
+            await tx.document.deleteMany({ where: { companionId } });
+            await tx.follow.deleteMany({ where: { followingId: companionId } });
+
+            // Desvincula os planos extras
+            await tx.companion.update({
+                where: { id: companionId },
+                data: {
+                    extraPlans: { set: [] },
+                },
+            });
+
+            // Remove o Top10
+            await tx.top10.deleteMany({ where: { userId } });
+
+            // 🆕 Remove os pagamentos vinculados ao usuário
+            await tx.payment.deleteMany({ where: { userId } });
+
+            // Deleta o companion
+            await tx.companion.delete({ where: { id: companionId } });
+
+            // Deleta o usuário
+            await tx.user.delete({ where: { id: userId } });
+        });
+
+
+        return res.status(200).json({ message: "Acompanhante deletada com sucesso." });
+
     } catch (error) {
-      console.error("Erro ao deletar acompanhante via admin:", error);
-      return res.status(500).json({ error: "Erro interno ao deletar acompanhante." });
+        console.error("Erro ao deletar acompanhante via admin:", error);
+        return res.status(500).json({ error: "Erro interno ao deletar acompanhante." });
     }
-  };
-  
+};
