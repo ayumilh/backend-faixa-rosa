@@ -34,7 +34,7 @@ async function updateTop10Ranking() {
 
     console.log("👑 Companions ranqueadas:", ranked.length);
 
-    // Limpar Top10 antigo
+
     await prisma.top10.deleteMany();
 
     // Resetar todos os companions (remover referência antiga)

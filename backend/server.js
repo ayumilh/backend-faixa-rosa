@@ -80,6 +80,7 @@ const feedPostRoutes = require('./routes/companion/feedPostCompanionRoutes.js');
 const storyRoutes = require('./routes/companion/storyCompanionRoutes.js');
 const followRoutes = require('./routes/companion/followRoutes.js');
 const carrouselRoutes = require('./routes/companion/carrouselRoutes.js');
+const addPoints = require('./routes/companion/addPointsRoutes.js');
 
 
 // Rotas privadas
@@ -106,7 +107,8 @@ app.use('/api/companions', authenticate,
   storyRoutes,
   feedPostRoutes,
   followRoutes,
-  carrouselRoutes
+  carrouselRoutes,
+  addPoints
 );
 
 app.use('/api/search', searchRoutes);
@@ -116,7 +118,7 @@ app.post('/webhook', receiveWebhook);
 
 app.post('/api/denuncias', authenticate, denunciaRoutes);
 
-// ⏰ Inicia os crons agendados 
+// Inicia os crons agendados 
 require('./job/index.js');
 
 const PORT = process.env.PORT || 4000;

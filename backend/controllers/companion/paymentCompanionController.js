@@ -343,94 +343,110 @@ exports.receiveWebhook = async (req, res) => {
             for (const payment of payments) {
                 // Se o pagamento for o plano principal, processe a reativação ou criação da assinatura
                 if (payment.planId) {
-                    const plan = await prisma.plan.findUnique({
-                        where: { id: updatedPayment.planId },
-                        include: { planType: true },
+                  const plan = await prisma.plan.findUnique({
+                    where: { id: payment.planId },
+                    include: { planType: true },
+                  });
+              
+                  if (!plan) {
+                    return res.status(404).json({ error: 'Plano principal não encontrado.' });
+                  }
+              
+                  const companionSubscription = await prisma.planSubscription.findFirst({
+                    where: { planId: payment.planId, companionId: payment.userId, endDate: null },
+                  });
+              
+                  let planSubscriptionId;
+              
+                  if (!companionSubscription) {
+                    const companionExists = await prisma.companion.findUnique({
+                      where: { userId: payment.userId },
                     });
-
-                    if (!plan) {
-                        return res.status(404).json({ error: 'Plano principal não encontrado.' });
+              
+                    console.log('Companion Exists:', companionExists);
+                    if (!companionExists) {
+                      return res.status(400).json({ error: 'Acompanhante não encontrado.' });
                     }
-
-                    // Atualizar a assinatura do plano principal
-                    const companionSubscription = await prisma.planSubscription.findFirst({
-                        where: { planId: updatedPayment.planId, companionId: updatedPayment.userId, endDate: null },
+              
+                    const newPlanSubscription = await prisma.planSubscription.create({
+                      data: {
+                        companionId: companionExists.id,
+                        planId: payment.planId,
+                        startDate: new Date(),
+                        endDate: null,
+                        planSubscriptionId: payment.id, // associa o próprio ID do payment como referência
+                        paymentMethod: payment.paymentMethod,
+                      },
+                      include: { plan: true },
                     });
-
-                    let planSubscriptionId;
-
-                    if (!companionSubscription) {
-                        // Verifique se o companionId existe antes de associar
-                        const companionExists = await prisma.companion.findUnique({
-                            where: { userId: updatedPayment.userId },
-                        });
-                        console.log('Companion Exists:', companionExists);
-
-                        if (!companionExists) {
-                            return res.status(400).json({ error: 'Acompanhante não encontrado.' });
-                        }
-                        // Se não houver uma assinatura ativa, cria uma nova
-                        const newPlanSubscription = await prisma.planSubscription.create({
-                            data: {
-                                companionId: companionExists.id,
-                                planId: updatedPayment.planId,
-                                startDate: new Date(),
-                                endDate: null,
-                                planSubscriptionId: payments.id,
-                                paymentMethod: updatedPayment.paymentMethod,
-                            },
-                            include: { plan: true },
-                        });
-
-                        planSubscriptionId = newPlanSubscription.id;
-                    } else {
-                        // Se já existir uma assinatura ativa, não cria uma nova, apenas reativa
-                        const updatedPlanSubscription = await prisma.planSubscription.update({
-                            where: { id: companionSubscription.id },
-                            data: {
-                                startDate: new Date(), // Atualiza a data de início
-                                endDate: null, // Reativa a assinatura
-                                updatedAt: new Date(),
-                                subscriptionStatus: 'ACTIVE',
-                                nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-                                paymentMethod: updatedPayment.paymentMethod,
-                            },
-                            include: { plan: true },
-                        });
-
-                        planSubscriptionId = updatedPlanSubscription.id;
-                    }
-
-                    // atualiza o payment com o id da nova planSubscription
-                    await prisma.payment.update({
-                        where: { id: updatedPayment.id },
-                        data: {
-                            planSubscriptionId: planSubscriptionId,  // Atualiza o planSubscriptionId do pagamento
+              
+                    planSubscriptionId = newPlanSubscription.id;
+              
+                    // ✅ Atribuir os +100 pontos extras se for a primeira assinatura
+                    await prisma.companion.update({
+                      where: { userId: payment.userId },
+                      data: {
+                        points: {
+                          increment: 100,
                         },
-                    });
-
-
-                    await prisma.planSubscription.update({
-                        where: { id: planSubscriptionId },
-                        data: {
-                            planSubscriptionId: updatedPayment.id,  // Atualiza o planSubscriptionId do pagamento
+                        ActivityLog: {
+                          create: {
+                            action: "PONTOS_RECEBIDOS",
+                            details: "+100 pontos por assinar o plano principal pela primeira vez",
+                          },
                         },
+                      },
                     });
-
-                    // Atualizar os pontos da acompanhante com base no plano
-                    const create = await prisma.companion.update({
-                        where: { userId: updatedPayment.userId },
-                        data: {
-                            planId: updatedPayment.planId,
-                            planTypeId: plan.planTypeId || null,
-                            points: {
-                                increment: plan.planType?.points || 0,  // Incrementa os pontos com base no plano
-                            },
-                        },
+              
+                    console.log('Assinatura criada para o plano principal: +100 PONTOS', newPlanSubscription.id);
+                  } else {
+                    const updatedPlanSubscription = await prisma.planSubscription.update({
+                      where: { id: companionSubscription.id },
+                      data: {
+                        startDate: new Date(),
+                        endDate: null,
+                        updatedAt: new Date(),
+                        subscriptionStatus: 'ACTIVE',
+                        nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                        paymentMethod: payment.paymentMethod,
+                      },
+                      include: { plan: true },
                     });
-                    console.log('Assinatura atualizada ou criada para o plano principal:', create.id, create.userId);
+              
+                    planSubscriptionId = updatedPlanSubscription.id;
+                  }
+              
+                  // Atualiza o payment com o novo planSubscriptionId
+                  await prisma.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                      planSubscriptionId: planSubscriptionId,
+                    },
+                  });
+              
+                  await prisma.planSubscription.update({
+                    where: { id: planSubscriptionId },
+                    data: {
+                      planSubscriptionId: payment.id,
+                    },
+                  });
+              
+                  // Incrementa os pontos base do plano
+                  await prisma.companion.update({
+                    where: { userId: payment.userId },
+                    data: {
+                      planId: payment.planId,
+                      planTypeId: plan.planTypeId || null,
+                      points: {
+                        increment: plan.planType?.points || 0,
+                      },
+                    },
+                  });
+              
+                  console.log('Assinatura atualizada ou criada para o plano principal:', payment.id, payment.userId);
                 }
-            }
+              }
+              
 
             // Verificar se há planos extras
             for (const payment of payments) {

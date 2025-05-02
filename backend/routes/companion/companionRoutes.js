@@ -60,4 +60,6 @@ router.get("/locations/", getLocationManagement);
 router.put('/finance/update', updateCompanionFinanceAndServices);
 router.get('/finance/', getCompanionFinanceAndServices);
 
+
+
 module.exports = router;

@@ -164,7 +164,7 @@ exports.getCompanionMedia = async (req, res) => {
                 where: { id: companion.planId },
                 select: { name: true }
             });
-            
+
             planName = plan ? plan.name : null;
         } else {
             planName = "Sem plano";
@@ -861,6 +861,35 @@ exports.updateLocationManagement = async (req, res) => {
         const companion = await prisma.companion.findUnique({ where: { userId } });
         if (!companion) return res.status(404).json({ error: 'Acompanhante não encontrada.' });
 
+        const alreadyHasCity = !!companion.city;
+        const alreadyHasState = !!companion.state;
+
+        // Atualiza cidade e estado da acompanhante
+        if (city && state) {
+            await prisma.companion.update({
+                where: { id: companion.id },
+                data: { city, state }
+            });
+
+            // Atribuir 100 pontos se for o primeiro cadastro
+            if (!alreadyHasCity || !alreadyHasState) {
+                await prisma.companion.update({
+                    where: { id: companion.id },
+                    data: {
+                        points: {
+                            increment: 100
+                        },
+                        ActivityLog: {
+                            create: {
+                                action: "PONTOS_RECEBIDOS",
+                                details: "+100 pontos por completar cidade e estado"
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         // Armazena locais antigos para log
         let oldLocations = [];
         if (locations && locations.length > 0) {
@@ -1179,8 +1208,6 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
             };
         });
 
-        console.log("Dados carregados com sucesso:", { paymentMethods, timedServices });
-
         return res.status(200).json({
             paymentMethods,
             timedServices
@@ -1191,3 +1218,5 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
+
+

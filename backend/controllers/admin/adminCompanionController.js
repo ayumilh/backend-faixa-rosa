@@ -94,15 +94,15 @@ exports.listAcompanhantes = async (req, res) => {
             // Verifica se o acompanhante tem vídeo de comparação
             const hasComparisonVideo = companion.media.length > 0 ? true : false;
             const videoStatus = hasComparisonVideo
-            ? {
-                status: companion.media[0].status,
-                url: companion.media[0].url,
-              }
-            : {
-                status: 'Nenhum vídeo enviado',
-                url: null,
-              };
-          
+                ? {
+                    status: companion.media[0].status,
+                    url: companion.media[0].url,
+                }
+                : {
+                    status: 'Nenhum vídeo enviado',
+                    url: null,
+                };
+
             return {
                 id: companion.id,
                 name: `${companion.user.firstName} ${companion.user.lastName}`,
@@ -328,8 +328,6 @@ exports.deleteAcompanhante = async (req, res) => {
 
 // Atualizar plano
 exports.updatePlan = async (req, res) => {
-    console.log('Atualizando plano...');
-    console.log(req.body);
     const { id } = req.params;
     const { planId } = req.body; // Novo plano a ser atribuído
 
@@ -346,9 +344,24 @@ exports.updatePlan = async (req, res) => {
             return res.status(404).json({ message: 'Acompanhante não encontrado.' });
         }
 
+        const plan = await prisma.plan.findUnique({
+            where: { id: parseInt(planId) },
+            include: { planType: true },
+        });
+
+        if (!plan || !plan.planType) {
+            return res.status(404).json({ message: 'Plano ou tipo de plano não encontrado.' });
+        }
+
         await prisma.companion.update({
             where: { id: parseInt(id) },
-            data: { planId: parseInt(planId) },
+            data: {
+                planId: plan.id,
+                planTypeId: plan.planTypeId,
+                points: {
+                    increment: plan.planType.points || 0,
+                }
+            },
         });
 
         console.log('Plano atualizado com sucesso.');
@@ -362,7 +375,7 @@ exports.updatePlan = async (req, res) => {
 
 // Atualizar plano extra
 exports.updateExtraPlanForCompanion = async (req, res) => {
-    const { id } = req.params; // ID da acompanhante
+    const { id } = req.params;
     const { extraPlanId, isChecked } = req.body;
 
     if (!id || !extraPlanId) {
@@ -373,39 +386,66 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
         const companionId = parseInt(id);
         const extraId = parseInt(extraPlanId);
 
-        // Verifica se a assinatura do plano extra já existe
         const existingSubscription = await prisma.planSubscription.findFirst({
             where: {
-                companionId: companionId,
+                companionId,
                 extraPlanId: extraId,
                 isExtra: true,
             },
         });
 
         if (isChecked) {
-            // Se está marcado e não existe, cria
             if (!existingSubscription) {
                 await prisma.planSubscription.create({
                     data: {
-                        companionId: companionId,
+                        companionId,
                         extraPlanId: extraId,
                         isExtra: true,
                         startDate: new Date(),
                         subscriptionStatus: "ACTIVE",
                     },
                 });
+
+                const extraPlan = await prisma.extraPlan.findUnique({
+                    where: { id: extraId },
+                });
+
+                if (extraPlan?.pointsBonus) {
+                    await prisma.companion.update({
+                        where: { id: companionId },
+                        data: {
+                            points: {
+                                increment: extraPlan.pointsBonus,
+                            },
+                        },
+                    });
+                }
+
                 return res.status(200).json({ message: "Plano extra atribuído com sucesso." });
             } else {
                 return res.status(200).json({ message: "Plano extra já está atribuído." });
             }
         } else {
-            // Se está desmarcado e existe, remove
             if (existingSubscription) {
                 await prisma.planSubscription.delete({
-                    where: {
-                        id: existingSubscription.id,
-                    },
+                    where: { id: existingSubscription.id },
                 });
+
+                const extraPlan = await prisma.extraPlan.findUnique({
+                    where: { id: extraId },
+                });
+
+                if (extraPlan?.pointsBonus) {
+                    await prisma.companion.update({
+                        where: { id: companionId },
+                        data: {
+                            points: {
+                                decrement: extraPlan.pointsBonus,
+                            },
+                        },
+                    });
+                }
+
                 return res.status(200).json({ message: "Plano extra removido com sucesso." });
             } else {
                 return res.status(200).json({ message: "Plano extra já estava removido." });
@@ -416,7 +456,6 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
         return res.status(500).json({ message: "Erro ao atualizar plano extra.", error: error.message });
     }
 };
-
 
 
 // Buscar histórico de atividades
