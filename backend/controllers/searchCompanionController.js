@@ -561,6 +561,36 @@ exports.listFeedPosts = async (req, res) => {
     }
 };
 
+
+// Listar stories ativos (que ainda não expiraram)
+exports.listActiveStories = async (req, res) => {
+    try {
+        const stories = await prisma.story.findMany({
+            where: {
+                expiresAt: { gt: new Date() }
+            },
+            include: {
+                companion: {
+                    select: {
+                        userName: true,
+                        profileImage: true,
+                        description: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        return res.status(200).json(stories);
+    } catch (error) {
+        console.error('Erro ao listar stories:', error);
+        return res.status(500).json({ error: 'Erro ao listar stories.' });
+    }
+};
+
+
 // Função para calcular a idade com base na data de nascimento
 function calculateAge(birthDate) {
     const today = new Date();

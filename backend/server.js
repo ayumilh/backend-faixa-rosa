@@ -2,11 +2,60 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require("cors");
+const http = require('http');
+const { Server } = require('socket.io');
+const { PrismaClient } = require('@prisma/client');
 const { authenticate, verifyAdmin } = require('./middleware/authMiddleware.js');
 
 const app = express();
+const prisma = new PrismaClient();
+const server = http.createServer(app); 
 
 const allowedOrigins = ["https://www.faixarosa.com", "http://localhost:3000"];
+
+// Configura Socket.IO com CORS
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Função online/offline com Socket.IO
+io.on("connection", async (socket) => {
+  const userId = parseInt(socket.handshake.query.userId);
+
+  if (!isNaN(userId)) {
+    console.log(`Usuário ${userId} conectou via Socket`);
+
+    await prisma.companion.updateMany({
+      where: { userId },
+      data: { lastOnline: new Date() },
+    });
+
+    socket.broadcast.emit("userStatus", {
+      userId,
+      status: "online"
+    });
+  }
+
+  socket.on("disconnect", async () => {
+    if (!isNaN(userId)) {
+      console.log(`Usuário ${userId} desconectou via Socket`);
+
+      await prisma.companion.updateMany({
+        where: { userId },
+        data: { lastOnline: new Date() },
+      });
+
+      socket.broadcast.emit("userStatus", {
+        userId,
+        status: "offline"
+      });
+    }
+  });
+});
 
 // Middlewares
 
@@ -122,6 +171,6 @@ app.post('/api/denuncias', authenticate, denunciaRoutes);
 require('./job/index.js');
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor com Socket.IO rodando na porta ${PORT}`);
 });
