@@ -528,7 +528,6 @@ exports.searchCompanionProfile = async (req, res) => {
                 isActive: schedule.isActive,
             }));
 
-            console.log(companion);
             res.status(200).json(companion);
         } catch (error) {
             console.error(error);
@@ -582,7 +581,7 @@ exports.listActiveStories = async (req, res) => {
                 createdAt: 'desc'
             }
         });
-
+        console.log('Stories encontrados:', stories);
         return res.status(200).json(stories);
     } catch (error) {
         console.error('Erro ao listar stories:', error);
