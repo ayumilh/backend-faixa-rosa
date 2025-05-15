@@ -38,24 +38,43 @@ exports.createStory = async (req, res) => {
     }
 };
 
-// Listar stories ativos (que ainda não expiraram)
+// Listar stories ativos da acompanhante autenticada
 exports.listActiveStories = async (req, res) => {
-    try {
-        const stories = await prisma.story.findMany({
-            where: {
-                expiresAt: { gt: new Date() } // Apenas stories que ainda não expiraram
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
+  const userId = req.user?.id;
 
-        return res.status(200).json(stories);
-    } catch (error) {
-        console.error('Erro ao listar stories:', error);
-        return res.status(500).json({ error: 'Erro ao listar stories.' });
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuário não autenticado.' });
+  }
+
+  try {
+    // Busca o ID da acompanhante vinculada ao userId autenticado
+    const companion = await prisma.companion.findUnique({
+      where: { userId },
+    });
+
+    if (!companion) {
+      return res.status(404).json({ error: 'Acompanhante não encontrada.' });
     }
+
+    const stories = await prisma.story.findMany({
+      where: {
+        companionId: companion.id,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return res.status(200).json(stories);
+  } catch (error) {
+    console.error('Erro ao listar stories:', error);
+    return res.status(500).json({ error: 'Erro ao listar stories.' });
+  }
 };
+
 
 // Deletar um story específico (caso a acompanhante queira remover antes de expirar)
 exports.deleteStory = async (req, res) => {

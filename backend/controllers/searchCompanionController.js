@@ -586,7 +586,6 @@ exports.listActiveStories = async (req, res) => {
                 createdAt: 'desc'
             }
         });
-        console.log('Stories encontrados:', stories);
         return res.status(200).json(stories);
     } catch (error) {
         console.error('Erro ao listar stories:', error);
