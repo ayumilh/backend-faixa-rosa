@@ -371,172 +371,177 @@ exports.searchCompanionCity = async (req, res) => {
 };
 
 exports.searchCompanionProfile = async (req, res) => {
-    const { userName } = req.query;
+  const { userName } = req.query;
 
-    if (req.method === 'GET') {
-        try {
-            // Busque as informações da acompanhante no banco de dados
-            const companion = await prisma.companion.findUnique({
-                where: {
-                    userName: userName,
-                },
-                select: {
-                    id: true,
-                    userName: true,
-                    description: true,
-                    age: true,
-                    city: true,
-                    state: true,
-                    profileStatus: true,
-                    lastOnline: true,
-                    points: true,
-                    plan: true,
-                    planType: true,
-                    profileImage: true,
-                    bannerImage: true,
-                    atendimentos: true,
-                    createdAt: true,
-                    user: {
-                        select: {
-                            email: true,
-                            birthDate: true,
-                        },
-                    },
-                    servicesOffered: {
-                        include: {
-                            service: true,
-                        },
-                    },
-                    PhysicalCharacteristics: true,
-                    timedServiceCompanion: {
-                        include: {
-                            TimedService: true, // Inclui os dados do serviço de tempo (name, description)
-                        },
-                    },
-                    paymentMethods: {  // Obtém apenas os métodos de pagamento específicos da acompanhante
-                        select: {
-                            paymentMethod: true
-                        },
-                    },
-                    lugares: {
-                        include: {
-                            location: true, // Inclui os dados da tabela Location
-                        }
-                    },
-                    contactMethods: { // Incluir os métodos de contato
-                        select: {
-                            id: true,
-                            whatsappNumber: true,
-                            whatsappMessage: true,
-                            telegramUsername: true,
-                            phoneNumber: true
-                        }
-                    },
-                    weeklySchedules: {
-                        select: {
-                            id: true,
-                            dayOfWeek: true,
-                            startTime: true,
-                            endTime: true,
-                            isActive: true,
-                        }
-                    }
-                },
-            });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Método não permitido' });
+  }
 
-            if (!companion) {
-                return res.status(200).json({ error: true, message: 'Acompanhante não encontrada', data: null });
-            }
+  try {
+    const companion = await prisma.companion.findUnique({
+      where: { userName },
+      select: {
+        id: true,
+        userName: true,
+        description: true,
+        age: true,
+        city: true,
+        state: true,
+        profileStatus: true,
+        lastOnline: true,
+        points: true,
+        plan: true,
+        planType: true,
+        profileImage: true,
+        bannerImage: true,
+        atendimentos: true,
+        createdAt: true,
+        user: {
+          select: {
+            email: true,
+            birthDate: true,
+          },
+        },
+        servicesOffered: {
+          include: { service: true },
+        },
+        PhysicalCharacteristics: true,
+        timedServiceCompanion: {
+          include: { TimedService: true },
+        },
+        paymentMethods: {
+          select: { paymentMethod: true },
+        },
+        lugares: {
+          include: { location: true },
+        },
+        contactMethods: {
+          select: {
+            id: true,
+            whatsappNumber: true,
+            whatsappMessage: true,
+            telegramUsername: true,
+            phoneNumber: true,
+          },
+        },
+        weeklySchedules: {
+          select: {
+            id: true,
+            dayOfWeek: true,
+            startTime: true,
+            endTime: true,
+            isActive: true,
+          },
+        },
+      },
+    });
 
-            const formatDate = (date) =>
-                new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(date));
-
-            companion.createdAtFormatted = formatDate(companion.createdAt);
-
-            // Buscar e contar total de postagens (imagem ou vídeo) da acompanhante
-            const [mediaCount, carrouselCount, feedCount] = await Promise.all([
-                prisma.media.count({ where: { companionId: companion.id } }),
-                prisma.carrouselImage.count({ where: { companionId: companion.id } }),
-                prisma.feedPost.count({ where: { companionId: companion.id } }),
-            ]);
-
-            const totalReviews = await prisma.review.count({
-                where: {
-                    companionId: companion.id,
-                },
-            });
-
-            // Soma total de todas as postagens
-            const totalPosts = mediaCount + carrouselCount + feedCount;
-
-            // Inclui no objeto de resposta
-            companion.totalPosts = totalPosts;
-            companion.totalReviews = totalReviews;
-
-            // Calcular a idade corretamente
-            const birthDate = new Date(companion.user.birthDate);
-            const age = calculateAge(birthDate);
-            companion.age = age;
-
-            // Ajustar os serviços oferecidos para incluir nome e descrição
-            companion.servicesOffered = companion.servicesOffered.map(service => ({
-                id: service.id,
-                companionId: service.companionId,
-                serviceId: service.serviceId,
-                isOffered: service.isOffered,
-                price: service.price,
-                name: service.service.name,
-                description: service.service.description,
-            }));
-
-            // Ajustar os serviços por tempo para incluir nome e descrição
-            companion.timedServiceCompanion = companion.timedServiceCompanion.map(service => ({
-                id: service.id,
-                companionId: service.companionId,
-                timedServiceId: service.timedServiceId,
-                isOffered: service.isOffered,
-                price: service.price,
-                name: service.TimedService?.name ?? "Nome não informado",
-                description: service.TimedService?.description ?? "Descrição não informada",
-            }));
-
-            // Filtrar os métodos de pagamento para garantir que apenas os cadastrados no banco sejam exibidos
-            companion.paymentMethods = companion.paymentMethods.map(method => method.paymentMethod);
-
-            // Ajustar os dados da localização
-            companion.lugares = companion.lugares.map(loc => ({
-                id: loc.id,
-                companionId: loc.companionId,
-                locationId: loc.locationId,
-                amenities: loc.amenities, // Lista de AmenityType[]
-                location: loc.location ? {
-                    id: loc.location.id,
-                    name: loc.location.name,
-                    address: loc.location.address,
-                    city: loc.location.city,
-                    state: loc.location.state,
-                    country: loc.location.country
-                } : null
-            }));
-
-            // Ajustar os horários semanais
-            companion.weeklySchedules = companion.weeklySchedules.map(schedule => ({
-                id: schedule.id,
-                dayOfWeek: schedule.dayOfWeek,
-                startTime: schedule.startTime || "Horário não informado",
-                endTime: schedule.endTime || "Horário não informado",
-                isActive: schedule.isActive,
-            }));
-
-            res.status(200).json(companion);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
-        }
-    } else {
-        res.status(405).json({ message: 'Método não permitido' });
+    if (!companion) {
+      return res.status(200).json({
+        error: true,
+        message: 'Acompanhante não encontrada',
+        data: null,
+      });
     }
+
+    // Função segura para calcular idade
+    const calculateAge = (birthDate) => {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    const formatDate = (date) =>
+      new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(date));
+
+    companion.createdAtFormatted = formatDate(companion.createdAt);
+
+    const [mediaCount, carrouselCount, feedCount] = await Promise.all([
+      prisma.media.count({ where: { companionId: companion.id } }),
+      prisma.carrouselImage.count({ where: { companionId: companion.id } }),
+      prisma.feedPost.count({ where: { companionId: companion.id } }),
+    ]);
+
+    const totalReviews = await prisma.review.count({
+      where: { companionId: companion.id },
+    });
+
+    companion.totalPosts = mediaCount + carrouselCount + feedCount;
+    companion.totalReviews = totalReviews;
+
+    // Calcular idade se possível
+    if (companion.user?.birthDate) {
+      const birthDate = new Date(companion.user.birthDate);
+      companion.age = calculateAge(birthDate);
+    }
+
+    // Formatando serviços
+    companion.servicesOffered = (companion.servicesOffered || []).map(service => ({
+      id: service.id,
+      companionId: service.companionId,
+      serviceId: service.serviceId,
+      isOffered: service.isOffered,
+      price: service.price,
+      name: service.service?.name ?? '',
+      description: service.service?.description ?? '',
+    }));
+
+    // Serviços por tempo
+    companion.timedServiceCompanion = (companion.timedServiceCompanion || []).map(service => ({
+      id: service.id,
+      companionId: service.companionId,
+      timedServiceId: service.timedServiceId,
+      isOffered: service.isOffered,
+      price: service.price,
+      name: service.TimedService?.name ?? "Nome não informado",
+      description: service.TimedService?.description ?? "Descrição não informada",
+    }));
+
+    // Métodos de pagamento
+    companion.paymentMethods = (companion.paymentMethods || []).map(
+      method => method.paymentMethod
+    );
+
+    // Localizações
+    companion.lugares = (companion.lugares || []).map(loc => ({
+      id: loc.id,
+      companionId: loc.companionId,
+      locationId: loc.locationId,
+      amenities: loc.amenities,
+      location: loc.location ? {
+        id: loc.location.id,
+        name: loc.location.name,
+        address: loc.location.address,
+        city: loc.location.city,
+        state: loc.location.state,
+        country: loc.location.country,
+      } : null,
+    }));
+
+    // Horários
+    companion.weeklySchedules = (companion.weeklySchedules || []).map(schedule => ({
+      id: schedule.id,
+      dayOfWeek: schedule.dayOfWeek,
+      startTime: schedule.startTime || "Horário não informado",
+      endTime: schedule.endTime || "Horário não informado",
+      isActive: schedule.isActive,
+    }));
+
+    return res.status(200).json(companion);
+  } catch (error) {
+    console.error("Erro interno:", error);
+    return res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
+  }
 };
+
 
 
 // Listar todos os posts

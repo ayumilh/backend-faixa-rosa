@@ -46,40 +46,72 @@ exports.listPlanTypes = async (req, res) => {
 
 // Lista os planos assinados por um usuário
 exports.listUserPlans = async (req, res) => {
-    const userId = req.user?.id;
+  const userId = req.user?.id;
 
-    if (!userId) {
-        return res.status(401).json({ error: 'Usuário não autenticado.' });
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuário não autenticado.' });
+  }
+
+  try {
+    const companion = await prisma.companion.findUnique({
+      where: { userId },
+      include: {
+        plan: {
+          include: {
+            planType: true, // tipo principal do plano
+          },
+        },
+        subscriptions: {
+          where: {
+            isExtra: true,
+            endDate: null,
+            subscriptionStatus: "ACTIVE"
+          },
+          include: {
+            extraPlan: true, // detalhes dos planos extras ativos
+          },
+        },
+      },
+    });
+
+    if (!companion) {
+      return res.status(404).json({ error: 'Acompanhante não encontrada.' });
     }
 
-    try {
-        const userPlans = await prisma.companion.findUnique({
-            where: { userId },
-            include: {
-                plan: {
-                    include: {
-                        planType: true, // Inclui informações do plano principal
-                    },
-                },
-                subscriptions: {
-                    where: { isExtra: true, endDate: null }, // Apenas planos extras ativos
-                    include: {
-                        extraPlan: true, // Inclui os detalhes do plano extra
-                    },
-                },
-            },
-        });
+    const mainPlan = companion.plan ? {
+      id: companion.plan.id,
+      name: companion.plan.name,
+      price: companion.plan.price,
+      description: companion.plan.description,
+      planType: companion.plan.planType,
+      createdAt: companion.plan.createdAt,
+    } : null;
 
-        if (!userPlans.plan && (!userPlans.extraPlans || userPlans.extraPlans.length === 0)) {
-            return res.status(200).json({ message: 'Usuário não possui nenhum plano ativo.' });
-        }
+    const activeExtras = companion.subscriptions.map(sub => ({
+      id: sub.id,
+      name: sub.extraPlan?.name,
+      description: sub.extraPlan?.description,
+      pointsBonus: sub.extraPlan?.pointsBonus,
+      hasDarkMode: sub.extraPlan?.hasDarkMode,
+      hasStories: sub.extraPlan?.hasStories,
+      startDate: sub.startDate,
+    }));
 
-        return res.status(200).json(userPlans);
-    } catch (error) {
-        console.error('Erro ao listar planos do usuário:', error);
-        return res.status(500).json({ error: 'Erro ao listar planos do usuário.' });
+    if (!mainPlan && activeExtras.length === 0) {
+      return res.status(200).json({ message: 'Usuário não possui nenhum plano ativo.' });
     }
+
+    return res.status(200).json({
+      mainPlan,
+      extraPlans: activeExtras
+    });
+
+  } catch (error) {
+    console.error('Erro ao listar planos do usuário:', error);
+    return res.status(500).json({ error: 'Erro ao listar planos do usuário.' });
+  }
 };
+
 
 // assinar plano basico
 exports.subscribeToPlan = async (req, res) => {
