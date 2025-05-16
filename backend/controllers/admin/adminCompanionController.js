@@ -373,88 +373,145 @@ exports.updatePlan = async (req, res) => {
     }
 };
 
-// Atualizar plano extra
 exports.updateExtraPlanForCompanion = async (req, res) => {
-    const { id } = req.params;
-    const { extraPlanId, isChecked } = req.body;
+  const { id } = req.params;
+  const { extraPlanId, isChecked } = req.body;
 
-    if (!id || !extraPlanId) {
-        return res.status(400).json({ message: "ID do acompanhante e extraPlanId são obrigatórios." });
+  console.log("==> ExtraPlanId recebido:", extraPlanId);
+  console.log("==> isChecked:", isChecked);
+  console.log("==> ID do acompanhante:", id);
+
+  if (!id || !extraPlanId) {
+    return res.status(400).json({ message: "ID do acompanhante e extraPlanId são obrigatórios." });
+  }
+
+  try {
+    const companionId = parseInt(id);
+    const extraId = parseInt(extraPlanId);
+
+    const extraPlan = await prisma.extraPlan.findUnique({ where: { id: extraId } });
+
+    console.log("🔍 Plano extra encontrado no banco:", extraPlan);
+
+    if (!extraPlan) {
+      return res.status(404).json({ message: "Plano extra não encontrado." });
     }
 
-    try {
-        const companionId = parseInt(id);
-        const extraId = parseInt(extraPlanId);
+    if (isChecked) {
+      // 1. Verificar se existe assinatura
+      const existingSubscription = await prisma.planSubscription.findFirst({
+        where: {
+          companionId,
+          extraPlanId: extraId,
+          isExtra: true,
+        },
+      });
 
-        const existingSubscription = await prisma.planSubscription.findFirst({
-            where: {
-                companionId,
-                extraPlanId: extraId,
-                isExtra: true,
+      console.log("🔁 Assinatura existente:", existingSubscription);
+
+      // 2. Upsert da assinatura
+      const upserted = await prisma.planSubscription.upsert({
+        where: {
+          companionId_extraPlanId: {
+            companionId,
+            extraPlanId: extraId,
+          },
+        },
+        update: {
+          subscriptionStatus: "ACTIVE",
+          startDate: new Date(),
+          isExtra: true,
+        },
+        create: {
+          companionId,
+          extraPlanId: extraId,
+          isExtra: true,
+          startDate: new Date(),
+          subscriptionStatus: "ACTIVE",
+        },
+      });
+
+      console.log("✅ Subscription upserted:", upserted);
+
+      // 3. Verificar se já está conectado no many-to-many
+      const isAlreadyConnected = await prisma.companion.findFirst({
+        where: {
+          id: companionId,
+          extraPlans: {
+            some: { id: extraId },
+          },
+        },
+      });
+
+      console.log("🔗 Já está conectado no extraPlans:", !!isAlreadyConnected);
+
+      if (!isAlreadyConnected) {
+        const updated = await prisma.companion.update({
+          where: { id: companionId },
+          data: {
+            extraPlans: {
+              connect: { id: extraId },
             },
+            ...(extraPlan.pointsBonus
+              ? {
+                  points: {
+                    increment: extraPlan.pointsBonus,
+                  },
+                }
+              : {}),
+          },
         });
 
-        if (isChecked) {
-            if (!existingSubscription) {
-                await prisma.planSubscription.create({
-                    data: {
-                        companionId,
-                        extraPlanId: extraId,
-                        isExtra: true,
-                        startDate: new Date(),
-                        subscriptionStatus: "ACTIVE",
+        console.log("✅ Companion atualizado com plano extra:", updated);
+      }
+
+      return res.status(200).json({ message: "Plano extra atribuído com sucesso." });
+    } else {
+      const existingSubscription = await prisma.planSubscription.findFirst({
+        where: {
+          companionId,
+          extraPlanId: extraId,
+          isExtra: true,
+        },
+      });
+
+      console.log("🗑 Assinatura para remover:", existingSubscription);
+
+      if (existingSubscription) {
+        await prisma.$transaction([
+          prisma.planSubscription.delete({
+            where: { id: existingSubscription.id },
+          }),
+          prisma.companion.update({
+            where: { id: companionId },
+            data: {
+              extraPlans: {
+                disconnect: { id: extraId },
+              },
+              ...(extraPlan.pointsBonus
+                ? {
+                    points: {
+                      decrement: extraPlan.pointsBonus,
                     },
-                });
+                  }
+                : {}),
+            },
+          }),
+        ]);
 
-                const extraPlan = await prisma.extraPlan.findUnique({
-                    where: { id: extraId },
-                });
-
-                if (extraPlan?.pointsBonus) {
-                    await prisma.companion.update({
-                        where: { id: companionId },
-                        data: {
-                            points: {
-                                increment: extraPlan.pointsBonus,
-                            },
-                        },
-                    });
-                }
-
-                return res.status(200).json({ message: "Plano extra atribuído com sucesso." });
-            } else {
-                return res.status(200).json({ message: "Plano extra já está atribuído." });
-            }
-        } else {
-            if (existingSubscription) {
-                await prisma.planSubscription.delete({
-                    where: { id: existingSubscription.id },
-                });
-
-                const extraPlan = await prisma.extraPlan.findUnique({
-                    where: { id: extraId },
-                });
-
-                if (extraPlan?.pointsBonus) {
-                    await prisma.companion.update({
-                        where: { id: companionId },
-                        data: {
-                            points: {
-                                decrement: extraPlan.pointsBonus,
-                            },
-                        },
-                    });
-                }
-
-                return res.status(200).json({ message: "Plano extra removido com sucesso." });
-            } else {
-                return res.status(200).json({ message: "Plano extra já estava removido." });
-            }
-        }
-    } catch (error) {
-        console.error("Erro ao atualizar plano extra:", error);
-        return res.status(500).json({ message: "Erro ao atualizar plano extra.", error: error.message });
+        console.log("❌ Plano extra removido com sucesso");
+        return res.status(200).json({ message: "Plano extra removido com sucesso." });
+      } else {
+        return res.status(200).json({ message: "Plano extra já estava removido." });
+      }
     }
+  } catch (error) {
+    console.error("❌ Erro ao atualizar plano extra:", error);
+    return res.status(500).json({
+      message: "Erro ao atualizar plano extra.",
+      error: error.message,
+    });
+  }
 };
 
 

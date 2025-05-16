@@ -125,6 +125,8 @@ model PlanSubscription {
   plan               Plan?      @relation(fields: [planId], references: [id])
 
   Payment Payment[]
+
+  @@unique([companionId, extraPlanId])
 }
 
 model CityChangeConfig {

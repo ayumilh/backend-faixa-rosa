@@ -63,13 +63,16 @@ exports.searchCompanionCity = async (req, res) => {
                             endDate: true,
                         },
                         where: {
-                            endDate: null, // Garante que planos desativados (com endDate) não apareçam
+                            OR: [
+                                { endDate: null },
+                                { endDate: { gt: new Date() } }, // considera planos ativos temporários
+                            ],
                             extraPlan: {
-                                // Usando isNot para garantir que extraPlan não seja null
                                 isNot: null,
                             },
                         },
                     },
+
                     timedServiceCompanion: {
                         include: { TimedService: true }
                     },
@@ -371,175 +374,175 @@ exports.searchCompanionCity = async (req, res) => {
 };
 
 exports.searchCompanionProfile = async (req, res) => {
-  const { userName } = req.query;
+    const { userName } = req.query;
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Método não permitido' });
-  }
-
-  try {
-    const companion = await prisma.companion.findUnique({
-      where: { userName },
-      select: {
-        id: true,
-        userName: true,
-        description: true,
-        age: true,
-        city: true,
-        state: true,
-        profileStatus: true,
-        lastOnline: true,
-        points: true,
-        plan: true,
-        planType: true,
-        profileImage: true,
-        bannerImage: true,
-        atendimentos: true,
-        createdAt: true,
-        user: {
-          select: {
-            email: true,
-            birthDate: true,
-          },
-        },
-        servicesOffered: {
-          include: { service: true },
-        },
-        PhysicalCharacteristics: true,
-        timedServiceCompanion: {
-          include: { TimedService: true },
-        },
-        paymentMethods: {
-          select: { paymentMethod: true },
-        },
-        lugares: {
-          include: { location: true },
-        },
-        contactMethods: {
-          select: {
-            id: true,
-            whatsappNumber: true,
-            whatsappMessage: true,
-            telegramUsername: true,
-            phoneNumber: true,
-          },
-        },
-        weeklySchedules: {
-          select: {
-            id: true,
-            dayOfWeek: true,
-            startTime: true,
-            endTime: true,
-            isActive: true,
-          },
-        },
-      },
-    });
-
-    if (!companion) {
-      return res.status(200).json({
-        error: true,
-        message: 'Acompanhante não encontrada',
-        data: null,
-      });
+    if (req.method !== 'GET') {
+        return res.status(405).json({ message: 'Método não permitido' });
     }
 
-    // Função segura para calcular idade
-    const calculateAge = (birthDate) => {
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      return age;
-    };
+    try {
+        const companion = await prisma.companion.findUnique({
+            where: { userName },
+            select: {
+                id: true,
+                userName: true,
+                description: true,
+                age: true,
+                city: true,
+                state: true,
+                profileStatus: true,
+                lastOnline: true,
+                points: true,
+                plan: true,
+                planType: true,
+                profileImage: true,
+                bannerImage: true,
+                atendimentos: true,
+                createdAt: true,
+                user: {
+                    select: {
+                        email: true,
+                        birthDate: true,
+                    },
+                },
+                servicesOffered: {
+                    include: { service: true },
+                },
+                PhysicalCharacteristics: true,
+                timedServiceCompanion: {
+                    include: { TimedService: true },
+                },
+                paymentMethods: {
+                    select: { paymentMethod: true },
+                },
+                lugares: {
+                    include: { location: true },
+                },
+                contactMethods: {
+                    select: {
+                        id: true,
+                        whatsappNumber: true,
+                        whatsappMessage: true,
+                        telegramUsername: true,
+                        phoneNumber: true,
+                    },
+                },
+                weeklySchedules: {
+                    select: {
+                        id: true,
+                        dayOfWeek: true,
+                        startTime: true,
+                        endTime: true,
+                        isActive: true,
+                    },
+                },
+            },
+        });
 
-    const formatDate = (date) =>
-      new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }).format(new Date(date));
+        if (!companion) {
+            return res.status(200).json({
+                error: true,
+                message: 'Acompanhante não encontrada',
+                data: null,
+            });
+        }
 
-    companion.createdAtFormatted = formatDate(companion.createdAt);
+        // Função segura para calcular idade
+        const calculateAge = (birthDate) => {
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        };
 
-    const [mediaCount, carrouselCount, feedCount] = await Promise.all([
-      prisma.media.count({ where: { companionId: companion.id } }),
-      prisma.carrouselImage.count({ where: { companionId: companion.id } }),
-      prisma.feedPost.count({ where: { companionId: companion.id } }),
-    ]);
+        const formatDate = (date) =>
+            new Intl.DateTimeFormat("pt-BR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            }).format(new Date(date));
 
-    const totalReviews = await prisma.review.count({
-      where: { companionId: companion.id },
-    });
+        companion.createdAtFormatted = formatDate(companion.createdAt);
 
-    companion.totalPosts = mediaCount + carrouselCount + feedCount;
-    companion.totalReviews = totalReviews;
+        const [mediaCount, carrouselCount, feedCount] = await Promise.all([
+            prisma.media.count({ where: { companionId: companion.id } }),
+            prisma.carrouselImage.count({ where: { companionId: companion.id } }),
+            prisma.feedPost.count({ where: { companionId: companion.id } }),
+        ]);
 
-    // Calcular idade se possível
-    if (companion.user?.birthDate) {
-      const birthDate = new Date(companion.user.birthDate);
-      companion.age = calculateAge(birthDate);
+        const totalReviews = await prisma.review.count({
+            where: { companionId: companion.id },
+        });
+
+        companion.totalPosts = mediaCount + carrouselCount + feedCount;
+        companion.totalReviews = totalReviews;
+
+        // Calcular idade se possível
+        if (companion.user?.birthDate) {
+            const birthDate = new Date(companion.user.birthDate);
+            companion.age = calculateAge(birthDate);
+        }
+
+        // Formatando serviços
+        companion.servicesOffered = (companion.servicesOffered || []).map(service => ({
+            id: service.id,
+            companionId: service.companionId,
+            serviceId: service.serviceId,
+            isOffered: service.isOffered,
+            price: service.price,
+            name: service.service?.name ?? '',
+            description: service.service?.description ?? '',
+        }));
+
+        // Serviços por tempo
+        companion.timedServiceCompanion = (companion.timedServiceCompanion || []).map(service => ({
+            id: service.id,
+            companionId: service.companionId,
+            timedServiceId: service.timedServiceId,
+            isOffered: service.isOffered,
+            price: service.price,
+            name: service.TimedService?.name ?? "Nome não informado",
+            description: service.TimedService?.description ?? "Descrição não informada",
+        }));
+
+        // Métodos de pagamento
+        companion.paymentMethods = (companion.paymentMethods || []).map(
+            method => method.paymentMethod
+        );
+
+        // Localizações
+        companion.lugares = (companion.lugares || []).map(loc => ({
+            id: loc.id,
+            companionId: loc.companionId,
+            locationId: loc.locationId,
+            amenities: loc.amenities,
+            location: loc.location ? {
+                id: loc.location.id,
+                name: loc.location.name,
+                address: loc.location.address,
+                city: loc.location.city,
+                state: loc.location.state,
+                country: loc.location.country,
+            } : null,
+        }));
+
+        // Horários
+        companion.weeklySchedules = (companion.weeklySchedules || []).map(schedule => ({
+            id: schedule.id,
+            dayOfWeek: schedule.dayOfWeek,
+            startTime: schedule.startTime || "Horário não informado",
+            endTime: schedule.endTime || "Horário não informado",
+            isActive: schedule.isActive,
+        }));
+
+        return res.status(200).json(companion);
+    } catch (error) {
+        console.error("Erro interno:", error);
+        return res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
     }
-
-    // Formatando serviços
-    companion.servicesOffered = (companion.servicesOffered || []).map(service => ({
-      id: service.id,
-      companionId: service.companionId,
-      serviceId: service.serviceId,
-      isOffered: service.isOffered,
-      price: service.price,
-      name: service.service?.name ?? '',
-      description: service.service?.description ?? '',
-    }));
-
-    // Serviços por tempo
-    companion.timedServiceCompanion = (companion.timedServiceCompanion || []).map(service => ({
-      id: service.id,
-      companionId: service.companionId,
-      timedServiceId: service.timedServiceId,
-      isOffered: service.isOffered,
-      price: service.price,
-      name: service.TimedService?.name ?? "Nome não informado",
-      description: service.TimedService?.description ?? "Descrição não informada",
-    }));
-
-    // Métodos de pagamento
-    companion.paymentMethods = (companion.paymentMethods || []).map(
-      method => method.paymentMethod
-    );
-
-    // Localizações
-    companion.lugares = (companion.lugares || []).map(loc => ({
-      id: loc.id,
-      companionId: loc.companionId,
-      locationId: loc.locationId,
-      amenities: loc.amenities,
-      location: loc.location ? {
-        id: loc.location.id,
-        name: loc.location.name,
-        address: loc.location.address,
-        city: loc.location.city,
-        state: loc.location.state,
-        country: loc.location.country,
-      } : null,
-    }));
-
-    // Horários
-    companion.weeklySchedules = (companion.weeklySchedules || []).map(schedule => ({
-      id: schedule.id,
-      dayOfWeek: schedule.dayOfWeek,
-      startTime: schedule.startTime || "Horário não informado",
-      endTime: schedule.endTime || "Horário não informado",
-      isActive: schedule.isActive,
-    }));
-
-    return res.status(200).json(companion);
-  } catch (error) {
-    console.error("Erro interno:", error);
-    return res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
-  }
 };
 
 
