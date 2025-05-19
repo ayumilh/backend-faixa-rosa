@@ -399,6 +399,50 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    // Gera um token e define validade de 1 hora
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hora
+
+    // Salva no banco
+    await prisma.passwordResetToken.create({
+      data: {
+        token,
+        userId: user.id,
+        expiresAt: expires,
+      },
+    });
+
+    // Link para frontend (ajuste para o seu domínio)
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    const emailHtml = `
+      <h2>Redefinição de Senha</h2>
+      <p>Olá, ${user.name || 'usuário'}!</p>
+      <p>Clique no botão abaixo para redefinir sua senha:</p>
+      <a href="${resetLink}" style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none;">Redefinir Senha</a>
+      <p>Este link expirará em 1 hora.</p>
+    `;
+
+    // Envia e-mail
+    await sendEmail(email, 'Redefina sua senha', emailHtml);
+
+    res.json({ message: 'Instruções de redefinição de senha enviadas para o e-mail.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao enviar instruções de redefinição.' });
+  }
+};
 
 
 // Atualiza a data de nascimento do usuário e a idade do acompanhante

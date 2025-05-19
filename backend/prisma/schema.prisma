@@ -39,6 +39,19 @@ model User {
   Top10             Top10?
 
   Consent Consent[]
+
+  PasswordResetToken PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Document {
