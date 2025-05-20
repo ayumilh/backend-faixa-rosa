@@ -101,6 +101,8 @@ exports.listUserPlans = async (req, res) => {
       return res.status(200).json({ message: 'Usuário não possui nenhum plano ativo.' });
     }
 
+    console.log('Planos do usuário:', { mainPlan, activeExtras });
+
     return res.status(200).json({
       mainPlan,
       extraPlans: activeExtras
