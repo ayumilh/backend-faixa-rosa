@@ -1,7 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
+const crypto = require('crypto');
 const { logActivity } = require("../utils/activityService"); 
+const sendEmail = require('../utils/sendEmail');
 const { calculateAge } = require('../utils/helpers');
 
 const prisma = require('../prisma/client');
@@ -277,7 +279,6 @@ exports.register = async (req, res) => {
 };
 
 
-
 exports.login = async (req, res) => {
     if (!process.env.JWT_SECRET) {
         return res.status(500).json({ error: 'Chave secreta JWT não configurada no servidor' });
@@ -425,13 +426,15 @@ exports.forgotPassword = async (req, res) => {
     });
 
     // Link para frontend (ajuste para o seu domínio)
-    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    const resetLink = `${process.env.FRONTEND_URL}/auth/resetar-senha?token=${token}`;
     const emailHtml = `
-      <h2>Redefinição de Senha</h2>
-      <p>Olá, ${user.name || 'usuário'}!</p>
-      <p>Clique no botão abaixo para redefinir sua senha:</p>
-      <a href="${resetLink}" style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none;">Redefinir Senha</a>
-      <p>Este link expirará em 1 hora.</p>
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color: #d63384;">Redefinição de Senha</h2>
+        <p>Olá, ${user.firstName || "usuário"},</p>
+        <p>Clique no botão abaixo para redefinir sua senha. O link é válido por 1 hora.</p>
+        <a href="${resetLink}" style="background-color: #d63384; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Redefinir Senha</a>
+        <p style="margin-top: 20px; font-size: 12px; color: #999;">Se você não solicitou isso, ignore este e-mail.</p>
+      </div>
     `;
 
     // Envia e-mail

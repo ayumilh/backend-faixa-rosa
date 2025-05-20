@@ -10,6 +10,8 @@ const { uploadRegister } = require('../config/wasabi.js');
 router.post('/register', uploadRegister, authController.register);
 router.post('/login', authController.login);
 
+router.post('/esqueceu-senha', authController.forgotPassword);
+
 router.post('/userId', verifyToken.userId);
 
 // verify
