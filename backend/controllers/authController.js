@@ -67,18 +67,22 @@ exports.register = async (req, res) => {
             },
         });
 
-        console.log('🔎 Usuário existente?', existingUser);
+        console.log('Usuário existente?', existingUser);
 
         if (existingUser) {
-            const existingContractor = await prisma.contractor.findFirst({ where: { userName } });
-            const existingCompanion = await prisma.companion.findFirst({ where: { userName } });
+            return res.status(400).json({ error: 'Email ou CPF já estão em uso' });
+        }
 
-            console.log('🔎 Contractor existente?', existingContractor);
-            console.log('🔎 Companion existente?', existingCompanion);
+        // Verifica se o userName já está em uso em outra tabela
+        const existingContractor = await prisma.contractor.findFirst({ where: { userName } });
+        const existingCompanion = await prisma.companion.findFirst({ where: { userName } });
 
-            if (existingContractor || existingCompanion) {
-                return res.status(400).json({ error: 'Email, CPF ou Nome de Usuário já estão em uso' });
-            }
+        console.log('🔎 Contractor existente?', existingContractor);
+        console.log('🔎 Companion existente?', existingCompanion);
+
+        // Se já existe userName em uso, bloqueia também
+        if (existingContractor || existingCompanion) {
+            return res.status(400).json({ error: 'Nome de Usuário já está em uso' });
         }
 
         console.log('📥 Senha recebida:', password);
