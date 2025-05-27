@@ -30,6 +30,9 @@ const loginSchema = userSchema
 
 exports.register = async (req, res) => {
     try {
+        console.log('📥 Dados recebidos no req.body:', req.body);
+        console.log('📂 Arquivos recebidos:', req.files);
+
         const {
             userName,
             firstName = '',
@@ -59,21 +62,28 @@ exports.register = async (req, res) => {
             where: {
                 OR: [
                     { email },
-                    { cpf },
+                    ...(cpf ? [{ cpf }] : []),
                 ],
             },
         });
 
+        console.log('🔎 Usuário existente?', existingUser);
+
         if (existingUser) {
             const existingContractor = await prisma.contractor.findFirst({ where: { userName } });
             const existingCompanion = await prisma.companion.findFirst({ where: { userName } });
+
+            console.log('🔎 Contractor existente?', existingContractor);
+            console.log('🔎 Companion existente?', existingCompanion);
 
             if (existingContractor || existingCompanion) {
                 return res.status(400).json({ error: 'Email, CPF ou Nome de Usuário já estão em uso' });
             }
         }
 
+        console.log('📥 Senha recebida:', password);
         const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+        console.log('🔒 Hash da senha:', hashedPassword);
 
         const calculateAge = (birthDate) => {
             const today = new Date();
@@ -99,6 +109,8 @@ exports.register = async (req, res) => {
                 },
             });
 
+            console.log('👤 Usuário criado:', createdUser);
+
             if (userType === "CONTRATANTE") {
                 const age = calculateAge(formattedBirthDate);
                 const createdContractor = await prisma.contractor.create({
@@ -114,11 +126,14 @@ exports.register = async (req, res) => {
                     },
                 });
 
+                console.log('📄 Contractor criado:', createdContractor);
+
                 let documentFrontUrl = null;
                 let documentBackUrl = null;
                 let profilePicUrl = null;
 
-                if (req.files.fileFront && req.files.fileBack) {
+                if (req.files?.fileFront && req.files?.fileBack) {
+                    console.log('🧾 Upload de documentos:', req.files.fileFront[0], req.files.fileBack[0]);
                     documentFrontUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileFront[0].key}`;
                     documentBackUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileBack[0].key}`;
 
@@ -140,7 +155,8 @@ exports.register = async (req, res) => {
                     });
                 }
 
-                if (req.files.profilePic) {
+                if (req.files?.profilePic) {
+                    console.log('🖼️ Upload de foto de perfil:', req.files.profilePic[0]);
                     profilePicUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.profilePic[0].key}`;
 
                     await prisma.contractor.update({
@@ -169,12 +185,15 @@ exports.register = async (req, res) => {
                     },
                 });
 
+                console.log('📸 Companion criado:', createdCompanion);
+
                 let documentFrontUrl = null;
                 let documentBackUrl = null;
                 let comparisonVideoUrl = null;
                 let profilePicUrl = null;
 
-                if (req.files.fileFront && req.files.fileBack) {
+                if (req.files?.fileFront && req.files?.fileBack) {
+                    console.log('🧾 Upload de documentos:', req.files.fileFront[0], req.files.fileBack[0]);
                     documentFrontUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileFront[0].key}`;
                     documentBackUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.fileBack[0].key}`;
 
@@ -196,7 +215,8 @@ exports.register = async (req, res) => {
                     });
                 }
 
-                if (req.files.comparisonMedia) {
+                if (req.files?.comparisonMedia) {
+                    console.log('🎥 Upload de vídeo de comparação:', req.files.comparisonMedia[0]);
                     comparisonVideoUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.comparisonMedia[0].key}`;
 
                     await prisma.media.create({
@@ -209,7 +229,8 @@ exports.register = async (req, res) => {
                     });
                 }
 
-                if (req.files.profilePic) {
+                if (req.files?.profilePic) {
+                    console.log('🖼️ Upload de foto de perfil:', req.files.profilePic[0]);
                     profilePicUrl = `https://${process.env.WASABI_BUCKET}.s3.${process.env.WASABI_REGION}.wasabisys.com/${req.files.profilePic[0].key}`;
 
                     await prisma.companion.update({
@@ -231,6 +252,8 @@ exports.register = async (req, res) => {
         });
 
         const { user, companionId, documentUrls, profilePicUrl, comparisonVideoUrl } = transactionResult;
+
+        console.log('✅ Usuário registrado com sucesso:', user, companionId, documentUrls, profilePicUrl, comparisonVideoUrl);
 
         if (userType === "ACOMPANHANTE" && companionId) {
             if (documentUrls?.documentFrontUrl && documentUrls?.documentBackUrl) {
@@ -254,7 +277,7 @@ exports.register = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro ao registrar usuário:', error);
+        console.error('❌ Erro ao registrar usuário:', error);
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'Email ou CPF já está em uso' });
         }
