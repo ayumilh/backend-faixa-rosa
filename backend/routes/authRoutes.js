@@ -12,6 +12,8 @@ router.post('/login', authController.login);
 
 router.post('/esqueceu-senha', authController.forgotPassword);
 
+router.post('/resetar-senha', authController.resetPassword);
+
 router.post('/userId', verifyToken.userId);
 
 // verify

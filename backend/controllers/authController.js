@@ -414,23 +414,25 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
-
-    if (!user) {
-        return res.status(404).json({ message: 'Usuário não encontrado.' });
-    }
-
-    console.log('Usuário encontrado:', user);
-
     try {
+        if (!email) {
+            return res.status(400).json({ message: "E-mail é obrigatório." });
+        }
 
-        // Gera um token e define validade de 1 hora
-        const token = crypto.randomBytes(32).toString('hex');
-        const expires = new Date(Date.now() + 3600000); // 1 hora
+        const user = await prisma.user.findUnique({ where: { email } });
 
-        // Salva no banco
+        if (!user) {
+            return res.status(404).json({ message: "Usuário não encontrado." });
+        }
+
+        // Gera token e validade
+        const token = crypto.randomBytes(32).toString("hex");
+        const expires = new Date(Date.now() + 3600000); // 1h
+
+        // Remove tokens antigos do usuário
+        await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+        // Salva novo token
         await prisma.passwordResetToken.create({
             data: {
                 token,
@@ -439,28 +441,79 @@ exports.forgotPassword = async (req, res) => {
             },
         });
 
-        // Link para frontend (ajuste para o seu domínio)
-        const resetLink = `${process.env.FRONTEND_URL}/auth/resetar-senha?token=${token}`;
+        const resetLink = `http://localhost:3000/resetar-senha?token=${token}`;
+
         const emailHtml = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color: #d63384;">Redefinição de Senha</h2>
-        <p>Olá, ${user.firstName || "usuário"},</p>
-        <p>Clique no botão abaixo para redefinir sua senha. O link é válido por 1 hora.</p>
-        <a href="${resetLink}" style="background-color: #d63384; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Redefinir Senha</a>
-        <p style="margin-top: 20px; font-size: 12px; color: #999;">Se você não solicitou isso, ignore este e-mail.</p>
+  <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
+    <div style="max-width: 600px; margin: auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+
+      <h2 style="text-align: center; color: #d63384;">Redefinição de Senha</h2>
+      <p style="font-size: 16px; color: #333; text-align: center;">Olá <strong>${user.firstName || "usuário"}</strong>,</p>
+      <p style="font-size: 16px; color: #333; text-align: center;">
+        Você solicitou uma redefinição de senha. Clique no botão abaixo para continuar. Este link é válido por <strong>1 hora</strong>.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" style="background-color: #d63384; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Redefinir Senha</a>
       </div>
-    `;
 
-        // Envia e-mail
-        await sendEmail(user.email, 'Redefina sua senha', emailHtml);
+      <p style="font-size: 14px; color: #666; text-align: center;">
+        Se você não solicitou isso, pode ignorar este e-mail.
+      </p>
+    </div>
 
-        res.json({ message: 'Instruções de redefinição de senha enviadas para o e-mail.' });
+    <div style="max-width: 600px; margin: auto; text-align: center; font-size: 12px; color: #999; margin-top: 30px;">
+      <hr style="margin: 20px auto; border: none; border-top: 1px solid #ddd;" />
+      <img src="https://www.faixarosa.com/favicon.ico" alt="Logo Faixa Rosa" style="width: 50px; margin: 10px 0;" />
+      <p>&copy; 2025 Faixa Rosa. Todos os direitos reservados.</p>
+      <div style="margin-top: 10px;">
+        <a href="https://www.faixarosa.com/termos" style="color: #007bff; margin: 0 10px; text-decoration: none;">Termos de Serviço</a>
+      </div>
+    </div>
+  </div>
+`;
+
+
+        await sendEmail(user.email, "Redefina sua senha - Faixa Rosa", emailHtml);
+
+        return res.json({ message: "E-mail de redefinição enviado com sucesso." });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erro ao enviar instruções de redefinição.' });
+        console.error("Erro ao solicitar redefinição de senha:", error);
+        return res.status(500).json({ message: "Erro interno ao enviar o e-mail." });
     }
 };
 
+exports.resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    try {
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: "Token e nova senha são obrigatórios." });
+        }
+
+        const resetToken = await prisma.passwordResetToken.findUnique({
+            where: { token },
+        });
+
+        if (!resetToken || resetToken.expiresAt < new Date()) {
+            return res.status(400).json({ message: "Token inválido ou expirado." });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        await prisma.user.update({
+            where: { id: resetToken.userId },
+            data: { password: hashedPassword },
+        });
+
+        await prisma.passwordResetToken.delete({ where: { token } });
+
+        return res.json({ message: "Senha redefinida com sucesso." });
+    } catch (error) {
+        console.error("Erro ao redefinir senha:", error);
+        return res.status(500).json({ message: "Erro interno ao redefinir senha." });
+    }
+};
 
 
 // Atualiza a data de nascimento do usuário e a idade do acompanhante

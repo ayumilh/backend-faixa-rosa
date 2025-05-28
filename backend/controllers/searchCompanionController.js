@@ -388,6 +388,7 @@ exports.searchCompanionProfile = async (req, res) => {
                 userName: true,
                 description: true,
                 age: true,
+                isAgeHidden: true,
                 city: true,
                 state: true,
                 profileStatus: true,
@@ -537,6 +538,8 @@ exports.searchCompanionProfile = async (req, res) => {
             endTime: schedule.endTime || "Horário não informado",
             isActive: schedule.isActive,
         }));
+
+        console.log("Acompanhante encontrado:", companion);
 
         return res.status(200).json(companion);
     } catch (error) {
