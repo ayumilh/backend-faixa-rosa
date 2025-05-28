@@ -441,7 +441,7 @@ exports.forgotPassword = async (req, res) => {
             },
         });
 
-        const resetLink = `http://localhost:3000/resetar-senha?token=${token}`;
+        const resetLink = `https://www.faixarosa.com/resetar-senha?token=${token}`;
 
         const emailHtml = `
   <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
