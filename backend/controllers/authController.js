@@ -444,34 +444,99 @@ exports.forgotPassword = async (req, res) => {
         const resetLink = `https://www.faixarosa.com/resetar-senha?token=${token}`;
 
         const emailHtml = `
-  <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
-    <div style="max-width: 600px; margin: auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
-
-      <h2 style="text-align: center; color: #d63384;">Redefinição de Senha</h2>
-      <p style="font-size: 16px; color: #333; text-align: center;">Olá <strong>${user.firstName || "usuário"}</strong>,</p>
-      <p style="font-size: 16px; color: #333; text-align: center;">
-        Você solicitou uma redefinição de senha. Clique no botão abaixo para continuar. Este link é válido por <strong>1 hora</strong>.
-      </p>
-
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${resetLink}" style="background-color: #d63384; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Redefinir Senha</a>
-      </div>
-
-      <p style="font-size: 14px; color: #666; text-align: center;">
-        Se você não solicitou isso, pode ignorar este e-mail.
-      </p>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redefinição de Senha - Faixa Rosa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 650px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      background-color: #d63384;
+      padding: 40px;
+      color: white;
+      border-radius: 20px;
+    }
+    .header h1 {
+      font-size: 32px;
+      margin: 0;
+    }
+    .main-content {
+      padding: 20px;
+      text-align: center;
+    }
+    .main-button {
+      display: inline-block;
+      background-color: #d63384;
+      color: white;
+      padding: 14px 30px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      padding: 20px;
+    }
+    .footer a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+      }
+      .main-button {
+        padding: 12px 25px;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 Redefinição de Senha</h1>
     </div>
+    <div class="main-content">
+      <p>Olá, <strong>${user.firstName || "usuário"}</strong>! <br>
+      Recebemos uma solicitação para redefinir a senha da sua conta. Se você fez essa solicitação, clique no botão abaixo.</p>
 
-    <div style="max-width: 600px; margin: auto; text-align: center; font-size: 12px; color: #999; margin-top: 30px;">
-      <hr style="margin: 20px auto; border: none; border-top: 1px solid #ddd;" />
-      <img src="https://www.faixarosa.com/favicon.ico" alt="Logo Faixa Rosa" style="width: 50px; margin: 10px 0;" />
+      <a href="${resetLink}" class="main-button">Redefinir Senha</a>
+
+      <p style="font-size: 14px; color: #666;">O link acima expira em <strong>1 hora</strong>. Se você não fez essa solicitação, pode ignorar este e-mail.</p>
+    </div>
+    <div class="footer">
+      <hr style="border: 1px solid #ddd;">
       <p>&copy; 2025 Faixa Rosa. Todos os direitos reservados.</p>
-      <div style="margin-top: 10px;">
-        <a href="https://www.faixarosa.com/termos" style="color: #007bff; margin: 0 10px; text-decoration: none;">Termos de Serviço</a>
-      </div>
+      <a href="https://www.faixarosa.com/termos">Termos de Serviço</a>
     </div>
   </div>
+</body>
+</html>
 `;
+
 
 
         await sendEmail(user.email, "Redefina sua senha - Faixa Rosa", emailHtml);
