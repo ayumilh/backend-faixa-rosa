@@ -410,7 +410,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
                 PhysicalCharacteristics: true, // Garante que está incluindo as características físicas
                 media: {
                     where: { mediaType: "VIDEO" },
-                    select: { id: true, url: true, createdAt: true }
+                    select: { id: true, url: true, status: true, createdAt: true }
                 },
             }
         });

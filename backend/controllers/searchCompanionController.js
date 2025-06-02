@@ -406,6 +406,15 @@ exports.searchCompanionProfile = async (req, res) => {
                         birthDate: true,
                     },
                 },
+                media: {
+                    where: { mediaType: "VIDEO" },
+                    select: {
+                        id: true,
+                        url: true,
+                        createdAt: true,
+                        status: true,
+                    },
+                },
                 servicesOffered: {
                     include: { service: true },
                 },
