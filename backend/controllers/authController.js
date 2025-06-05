@@ -30,9 +30,6 @@ const loginSchema = userSchema
 
 exports.register = async (req, res) => {
     try {
-        console.log('📥 Dados recebidos no req.body:', req.body);
-        console.log('📂 Arquivos recebidos:', req.files);
-
         const {
             userName,
             firstName = '',
@@ -228,7 +225,7 @@ exports.register = async (req, res) => {
                             companionId: createdCompanion.id,
                             url: comparisonVideoUrl,
                             mediaType: "VIDEO",
-                            status: "PENDING",
+                            status: "IN_ANALYSIS",
                         }
                     });
                 }
