@@ -203,7 +203,10 @@ exports.getCompanionMedia = async (req, res) => {
 exports.updateCompanionDescriptionProfile = async (req, res) => {
     try {
         const userId = req.user?.id;
+
         let data = req.body;
+        console.log("DADOS RECEBIDOS:", data);
+
 
         if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
             data = JSON.parse(JSON.stringify(req.body));
@@ -262,9 +265,11 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
             await prisma.companion.update({
                 where: { id: companion.id },
                 data: {
-                    isAgeHidden: data.canHideAge,
-                },
+                    isAgeHidden: data.canHideAge === true || data.canHideAge === "true",
+                }
+
             });
+
             await logActivity(companion.id, "Atualização de Perfil", `Acompanhante atualizou a visibilidade da idade para ${data.canHideAge ? "ocultar" : "exibir"}.`);
         }
 

@@ -149,9 +149,9 @@ async function seedPlansAndExtras() {
                 duration: 60,
                 pointsBonus: 4000,
                 isEnabled: true,
-                hasContact: false,
-                canHideAge: false,
-                hasPublicReviews: false,
+                hasContact: true,
+                canHideAge: true,
+                hasPublicReviews: true,
                 hasDarkMode: true,
                 hasStories: true,
             },
@@ -504,7 +504,7 @@ async function runAllSeeds() {
     try {
         // await seedPlan();
         // await seedPlanTypes();
-        // await seedPlansAndExtras();
+        await seedPlansAndExtras();
         // await seedTimedServices();
         // await seedAttendedLocations();
         // await seedServicesOffered();

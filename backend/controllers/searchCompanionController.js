@@ -72,7 +72,6 @@ exports.searchCompanionCity = async (req, res) => {
                             },
                         },
                     },
-
                     timedServiceCompanion: {
                         include: { TimedService: true }
                     },
@@ -140,6 +139,7 @@ exports.searchCompanionCity = async (req, res) => {
                 plan: companion.plan,
                 subscriptions: companion.subscriptions,
                 timedServices,
+                isAgeHidden: companion.isAgeHidden,
                 carrouselImages: companion.carrouselImages,
                 totalPosts: companion.totalPosts,
                 totalReviews: companion.totalReviews,
@@ -281,9 +281,11 @@ exports.searchCompanionCity = async (req, res) => {
                         endDate: true,
                     },
                     where: {
-                        endDate: null,
+                        OR: [
+                            { endDate: null },
+                            { endDate: { gt: new Date() } }, // considera planos ativos temporários
+                        ],
                         extraPlan: {
-                            // Usando isNot para garantir que extraPlan não seja null
                             isNot: null,
                         },
                     },
@@ -361,6 +363,7 @@ exports.searchCompanionCity = async (req, res) => {
             return {
                 ...acompanhante,
                 timedServices,
+                isAgeHidden: acompanhante.isAgeHidden,
                 totalPosts,
                 totalReviews
             };
@@ -548,16 +551,12 @@ exports.searchCompanionProfile = async (req, res) => {
             isActive: schedule.isActive,
         }));
 
-        console.log("Acompanhante encontrado:", companion);
-
         return res.status(200).json(companion);
     } catch (error) {
         console.error("Erro interno:", error);
         return res.status(500).json({ message: 'Erro ao buscar os dados da acompanhante' });
     }
 };
-
-
 
 // Listar todos os posts
 exports.listFeedPosts = async (req, res) => {
