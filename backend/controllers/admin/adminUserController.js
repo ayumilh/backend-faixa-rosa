@@ -27,7 +27,6 @@ exports.listUsers = async (req, res) => {
     }
 };
 
-
 // Obter detalhes de um usuário específico
 exports.getUserById = async (req, res) => {
     const { id } = req.params;

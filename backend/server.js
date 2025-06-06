@@ -117,7 +117,7 @@ const adminDenunciaRoutes = require('./routes/admin/adminDenunciasRoutes');
 const adminUsuarioRoutes = require('./routes/admin/adminUserRoutes');
 const { receiveWebhook } = require('./controllers/companion/paymentCompanionController.js');
 const adminMediaRoutes = require('./routes/admin/adminMediaRoutes.js');
-
+const adminContratanteRoutes = require('./routes/admin/adminContratanteRoute');
 
 
 // ACOMPANHANTES ROUTES
@@ -142,7 +142,8 @@ app.use('/api/admin', authenticate, verifyAdmin,
   adminStoryRoutes,
   adminFeedPostRoutes,
   adminPagamentoRoutes,
-  adminMediaRoutes
+  adminMediaRoutes,
+  adminContratanteRoutes
 );
 
 app.use('/api/users', authenticate, 
