@@ -582,30 +582,48 @@ exports.listFeedPosts = async (req, res) => {
 
 // Listar stories ativos (que ainda não expiraram)
 exports.listActiveStories = async (req, res) => {
-    try {
-        const stories = await prisma.story.findMany({
-            where: {
-                expiresAt: { gt: new Date() }
+  try {
+    const { cidade, estado } = req.query;
+
+    const stories = await prisma.story.findMany({
+      where: {
+        expiresAt: { gt: new Date() },
+        ...(cidade && estado && {
+          companion: {
+            city: {
+              equals: cidade,
+              mode: 'insensitive',
             },
-            include: {
-                companion: {
-                    select: {
-                        userName: true,
-                        profileImage: true,
-                        description: true
-                    }
-                }
+            state: {
+              equals: estado,
+              mode: 'insensitive',
             },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-        return res.status(200).json(stories);
-    } catch (error) {
-        console.error('Erro ao listar stories:', error);
-        return res.status(500).json({ error: 'Erro ao listar stories.' });
-    }
+          },
+        }),
+      },
+      include: {
+        companion: {
+          select: {
+            userName: true,
+            profileImage: true,
+            description: true,
+            city: true,
+            state: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return res.status(200).json(stories);
+  } catch (error) {
+    console.error('Erro ao listar stories:', error);
+    return res.status(500).json({ error: 'Erro ao listar stories.' });
+  }
 };
+
 
 
 // Função para calcular a idade com base na data de nascimento
