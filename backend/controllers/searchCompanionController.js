@@ -405,6 +405,7 @@ exports.searchCompanionProfile = async (req, res) => {
                 createdAt: true,
                 user: {
                     select: {
+                        id: true,
                         email: true,
                         birthDate: true,
                     },

@@ -166,7 +166,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/payments', authenticate, paymentRoutes);
 app.post('/webhook', receiveWebhook);
 
-app.post('/api/denuncias', authenticate, denunciaRoutes);
+app.use('/api/denuncias', denunciaRoutes);
 
 // Inicia os crons agendados 
 require('./job/index.js');

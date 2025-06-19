@@ -1,9 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const { createDenuncia, listDenuncias, removerDenuncia } = require('../controllers/denunciaController');
+const {
+  createDenuncia,
+  listDenuncias,
+  updateDenunciaStatus,
+  removerDenuncia
+} = require('../controllers/denunciaController');
 
-router.post('/create', createDenuncia);
-router.get('/', listDenuncias);
-router.delete('/:id/delete', removerDenuncia);
+const { authenticate, verifyAdmin } = require('../middleware/authMiddleware');
+
+// Criar denúncia (acesso usuários autenticados)
+router.post('/create', authenticate, createDenuncia);
+
+// Listar denúncias (acesso admin)
+router.get('/', authenticate, verifyAdmin, listDenuncias);
+
+// Atualizar status da denúncia (acesso admin)
+router.put('/:id/status', authenticate, verifyAdmin, updateDenunciaStatus);
+
+// Remover denúncia (acesso admin — opcional)
+router.delete('/:id', authenticate, verifyAdmin, removerDenuncia);
 
 module.exports = router;

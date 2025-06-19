@@ -1,60 +1,72 @@
-const prisma = require('../prisma/client'); 
+const prisma = require('../prisma/client');
 
-// Criar uma denúncia    --- testar contratante denunciando
+// Função utilitária para buscar usuário (Companion ou Contractor)
+const buscarUsuario = async (userId) => {
+    const companion = await prisma.companion.findUnique({
+        where: { userId },
+        select: { id: true }
+    });
+
+    const contractor = await prisma.contractor.findUnique({
+        where: { userId },
+        select: { id: true }
+    });
+
+    return {
+        companionId: companion?.id || null,
+        contractorId: contractor?.id || null,
+    };
+};
+
+// Criar denúncia
 exports.createDenuncia = async (req, res) => {
     try {
         const userId = req.user?.id;
         const { denunciadoId, motivo, descricao } = req.body;
 
-        if (!denunciadoId || !motivo || !descricao) {
+        console.log("Dados da denúncia:", {
+            userId,
+            denunciadoId,
+            motivo,
+            descricao
+        });
+
+        if (!denunciadoId || !motivo) {
             return res.status(400).json({ error: 'Campos obrigatórios não preenchidos.' });
         }
 
-        // Buscar o denunciante (pode ser Companion ou Contractor)
-        const denuncianteCompanion = await prisma.companion.findUnique({
-            where: { userId },
-            select: { id: true }
-        });
+        if (userId === denunciadoId) {
+            return res.status(400).json({ error: 'Você não pode denunciar a si mesmo.' });
+        }
 
-        const denuncianteContractor = await prisma.contractor.findUnique({
-            where: { userId },
-            select: { id: true }
-        });
+        const denunciante = await buscarUsuario(userId);
+        const denunciado = await buscarUsuario(denunciadoId);
 
-        if (!denuncianteCompanion && !denuncianteContractor) {
+        if (!denunciante.companionId && !denunciante.contractorId) {
             return res.status(403).json({ error: 'Somente usuários registrados podem fazer denúncias.' });
         }
 
-        // Buscar o denunciado (pode ser Companion ou Contractor)
-        const denunciadoCompanion = await prisma.companion.findUnique({
-            where: { userId: denunciadoId },
-            select: { id: true }
-        });
-
-        const denunciadoContractor = await prisma.contractor.findUnique({
-            where: { userId: denunciadoId },
-            select: { id: true }
-        });
-
-        if (!denunciadoCompanion && !denunciadoContractor) {
+        if (!denunciado.companionId && !denunciado.contractorId) {
             return res.status(404).json({ error: 'Denunciado não encontrado.' });
         }
 
-        // Criar a denúncia com os IDs corretos
         const denuncia = await prisma.denuncia.create({
             data: {
-                denuncianteCompanionId: denuncianteCompanion ? denuncianteCompanion.id : null,
-                denuncianteContractorId: denuncianteContractor ? denuncianteContractor.id : null,
-                denunciadoCompanionId: denunciadoCompanion ? denunciadoCompanion.id : null,
-                denunciadoContractorId: denunciadoContractor ? denunciadoContractor.id : null,
+                denuncianteCompanionId: denunciante.companionId,
+                denuncianteContractorId: denunciante.contractorId,
+                denunciadoCompanionId: denunciado.companionId,
+                denunciadoContractorId: denunciado.contractorId,
                 motivo,
                 descricao,
                 denunciaStatus: 'PENDING',
-                createdAt: new Date(),
             },
         });
 
-        return res.status(201).json({ message: 'Denúncia registrada com sucesso.', denuncia });
+        return res.status(201).json({
+            success: true,
+            message: 'Denúncia registrada com sucesso.',
+            data: denuncia,
+        });
 
     } catch (error) {
         console.error("Erro ao criar denúncia:", error);
@@ -62,68 +74,130 @@ exports.createDenuncia = async (req, res) => {
     }
 };
 
-
-
-// Listar todas as denúncias
+// Listar denúncias (admin)
 exports.listDenuncias = async (req, res) => {
     try {
-        // Buscar todas as denúncias com os relacionamentos corretos
+        const { page = 1, limit = 20, status = '' } = req.query;
+
         const denuncias = await prisma.denuncia.findMany({
+            where: status ? { denunciaStatus: status } : {},
+            skip: (page - 1) * limit,
+            take: parseInt(limit),
             include: {
-                denuncianteCompanion: {
-                    select: { id: true, name: true, city: true, state: true, profileStatus: true, documentStatus: true }
-                },
-                denuncianteContractor: {
-                    select: { id: true, name: true, age: true, profileStatus: true, documentStatus: true }
-                },
-                denunciadoCompanion: {
-                    select: { id: true, name: true, city: true, state: true, profileStatus: true, documentStatus: true }
-                },
-                denunciadoContractor: {
-                    select: { id: true, name: true, age: true, profileStatus: true, documentStatus: true }
-                }
+                denuncianteCompanion: { select: { id: true, name: true, city: true, state: true } },
+                denuncianteContractor: { select: { id: true, name: true, age: true } },
+                denunciadoCompanion: { select: { id: true, name: true, city: true, state: true } },
+                denunciadoContractor: { select: { id: true, name: true, age: true } },
             },
-            orderBy: {
-                createdAt: 'desc',
-            }
+            orderBy: { createdAt: 'desc' },
         });
 
-        return res.status(200).json(denuncias);
+        const total = await prisma.denuncia.count({
+            where: status ? { denunciaStatus: status } : {},
+        });
+
+        // 🔥 Mapeando para adicionar os nomes diretamente no objeto
+        const denunciasFormatadas = denuncias.map((d) => ({
+            ...d,
+            denuncianteNome:
+                d.denuncianteCompanion?.name ||
+                d.denuncianteContractor?.name ||
+                '—',
+            denunciadoNome:
+                d.denunciadoCompanion?.name ||
+                d.denunciadoContractor?.name ||
+                '—',
+            denuncianteLocal:
+                d.denuncianteCompanion
+                    ? `${d.denuncianteCompanion.city}/${d.denuncianteCompanion.state}`
+                    : d.denuncianteContractor
+                    ? `Idade: ${d.denuncianteContractor.age}`
+                    : '—',
+            denunciadoLocal:
+                d.denunciadoCompanion
+                    ? `${d.denunciadoCompanion.city}/${d.denunciadoCompanion.state}`
+                    : d.denunciadoContractor
+                    ? `Idade: ${d.denunciadoContractor.age}`
+                    : '—',
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: denunciasFormatadas,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
     } catch (error) {
         console.error('Erro ao listar denúncias:', error);
-        return res.status(500).json({ error: 'Erro ao listar denúncias.', details: error.message });
+        return res.status(500).json({
+            success: false,
+            message: 'Erro ao listar denúncias.',
+            error: error.message,
+        });
     }
 };
 
-
-// Resolver uma denúncia (Excluir)
-exports.removerDenuncia = async (req, res) => {
+// Atualizar status da denúncia
+exports.updateDenunciaStatus = async (req, res) => {
     try {
-        // Pegando o ID da denúncia e convertendo para inteiro
-        const id = parseInt(req.params.id, 10);
+        const { id } = req.params;
+        const { status, observacoes } = req.body;
 
-        if (isNaN(id)) {
-            return res.status(400).json({ error: 'ID inválido.' });
-        }
-
-        // Verifica se a denúncia existe antes de deletar
-        const denunciaExistente = await prisma.denuncia.findUnique({
-            where: { id }
+        const denuncia = await prisma.denuncia.findUnique({
+            where: { id: parseInt(id) },
         });
 
-        if (!denunciaExistente) {
+        if (!denuncia) {
             return res.status(404).json({ error: 'Denúncia não encontrada.' });
         }
 
-        // Remove a denúncia do banco de dados
+        const denunciaAtualizada = await prisma.denuncia.update({
+            where: { id: parseInt(id) },
+            data: {
+                denunciaStatus: status,
+                observacoes: observacoes || undefined,
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Status da denúncia atualizado com sucesso.',
+            data: denunciaAtualizada,
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar denúncia:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Erro ao atualizar denúncia.',
+            error: error.message,
+        });
+    }
+};
+
+// Remover denúncia (opcional)
+exports.removerDenuncia = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+
+        const denuncia = await prisma.denuncia.findUnique({
+            where: { id }
+        });
+
+        if (!denuncia) {
+            return res.status(404).json({ error: 'Denúncia não encontrada.' });
+        }
+
         await prisma.denuncia.delete({
             where: { id }
         });
 
-        return res.status(200).json({ message: 'Denúncia resolvida e removida.' });
+        return res.status(200).json({ message: 'Denúncia removida com sucesso.' });
     } catch (error) {
         console.error('Erro ao remover denúncia:', error);
         return res.status(500).json({ error: 'Erro ao remover denúncia.', details: error.message });
     }
 };
-
