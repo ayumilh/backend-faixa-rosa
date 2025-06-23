@@ -11,7 +11,13 @@ const app = express();
 const prisma = new PrismaClient();
 const server = http.createServer(app); 
 
-const allowedOrigins = ["https://www.faixarosa.com", "http://localhost:3000"];
+const allowedOrigins = [
+  "https://www.faixarosa.com",
+  "https://faixarosa.com",
+  "https://www.faixarosa.com.br",
+  "https://faixarosa.com.br",
+  "http://localhost:3000"
+];
 
 // Configura Socket.IO com CORS
 const io = new Server(server, {
