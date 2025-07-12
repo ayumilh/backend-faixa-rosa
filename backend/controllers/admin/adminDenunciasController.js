@@ -1,7 +1,7 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
 
 //  Listar todas as denúncias
-exports.listDenuncias = async (req, res) => {
+export async function listDenuncias(req, res) {
     try {
         const denuncias = await prisma.denuncia.findMany({
             include: {
@@ -29,7 +29,7 @@ exports.listDenuncias = async (req, res) => {
 };
 
 //  Obter detalhes de uma denúncia específica
-exports.getDenunciaById = async (req, res) => {
+export async function getDenunciaById(req, res) {
     const { id } = req.params;
 
     try {
@@ -67,7 +67,7 @@ exports.getDenunciaById = async (req, res) => {
 };
 
 // Atualizar o status de uma denúncia
-exports.updateDenunciaStatus = async (req, res) => {
+export async function updateDenunciaStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -103,7 +103,7 @@ exports.updateDenunciaStatus = async (req, res) => {
 
 
 // Deletar uma denúncia (somente admin)
-exports.deleteDenuncia = async (req, res) => {
+export async function deleteDenuncia(req, res) {
     const { id } = req.params;
 
     try {

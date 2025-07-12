@@ -1,15 +1,14 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
 
 // Listar acompanhantes
-exports.listAcompanhantes = async (req, res) => {
+export async function listAcompanhantes(req, res) {
     try {
         const acompanhantes = await prisma.companion.findMany({
             include: {
-                user: {
+                appUser: {
                     select: {
                         firstName: true,
                         lastName: true,
-                        email: true,
                     },
                 },
                 plan: {
@@ -107,7 +106,7 @@ exports.listAcompanhantes = async (req, res) => {
 
             return {
                 id: companion.id,
-                name: `${companion.user.firstName} ${companion.user.lastName}`,
+                name: `${companion.appUser.firstName} ${companion.appUser.lastName}`,
                 city: companion.city,
                 state: companion.state,
                 profileStatus: companion.profileStatus, // PENDENTE, ATIVO ou REJEITADO
@@ -135,14 +134,14 @@ exports.listAcompanhantes = async (req, res) => {
     }
 };
 
-exports.detalhesAcompanhante = async (req, res) => {
+export async function detalhesAcompanhante(req, res){
     const { id } = req.params;
 
     try {
         const acompanhante = await prisma.companion.findUnique({
             where: { id: parseInt(id) },
             include: {
-                user: {
+                appUser: {
                     include: {
                         Consent: true,
                         reviews: true,
@@ -194,7 +193,7 @@ exports.detalhesAcompanhante = async (req, res) => {
 
 
 // Aprovar perfil de acompanhantes 
-exports.approveAcompanhantes = async (req, res) => {
+export async function approveAcompanhantes(req, res) {
     const { id } = req.params;
 
     const companionId = parseInt(id);
@@ -219,7 +218,7 @@ exports.approveAcompanhantes = async (req, res) => {
 }
 
 // Rejeitar perfil de acompanhantes
-exports.rejectAcompanhantes = async (req, res) => {
+export async function rejectAcompanhantes(req, res) {
     const { id } = req.params;
 
     const companionId = parseInt(id);
@@ -248,7 +247,7 @@ exports.rejectAcompanhantes = async (req, res) => {
 }
 
 // Suspender perfil de acompanhantes
-exports.suspendAcompanhantes = async (req, res) => {
+export async function suspendAcompanhantes(req, res) {
     const { id } = req.params;
 
     const companionId = parseInt(id);
@@ -276,7 +275,7 @@ exports.suspendAcompanhantes = async (req, res) => {
     }
 }
 
-exports.deleteAcompanhante = async (req, res) => {
+export async function deleteAcompanhante(req, res) {
     const { id } = req.params;
 
     try {
@@ -329,7 +328,7 @@ exports.deleteAcompanhante = async (req, res) => {
 };
 
 // Atualizar plano
-exports.updatePlan = async (req, res) => {
+export async function updatePlan(req, res) {
     const { id } = req.params;
     const { planId } = req.body; // Novo plano a ser atribuído
 
@@ -375,7 +374,7 @@ exports.updatePlan = async (req, res) => {
     }
 };
 
-exports.updateExtraPlanForCompanion = async (req, res) => {
+export async function updateExtraPlanForCompanion(req, res) {
     const { id } = req.params;
     const { extraPlanId, isChecked } = req.body;
 
@@ -409,7 +408,7 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
                 },
             });
 
-            console.log("🔁 Assinatura existente:", existingSubscription);
+            console.log("Assinatura existente:", existingSubscription);
 
             const now = new Date();
             const endDate = extraPlan.isTemporary
@@ -439,7 +438,7 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
                 },
             });
 
-            console.log("✅ Subscription upserted:", upserted);
+            console.log("Subscription upserted:", upserted);
 
             // 3. Verificar se já está conectado no many-to-many
             const isAlreadyConnected = await prisma.companion.findFirst({
@@ -470,7 +469,7 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
                     },
                 });
 
-                console.log("✅ Companion atualizado com plano extra:", updated);
+                console.log("Companion atualizado com plano extra:", updated);
             }
 
             return res.status(200).json({ message: "Plano extra atribuído com sucesso." });
@@ -524,7 +523,7 @@ exports.updateExtraPlanForCompanion = async (req, res) => {
 
 
 // Buscar histórico de atividades
-exports.getActivityLog = async (req, res) => {
+export async function getActivityLog(req, res) {
     const { id } = req.params;
     const companionId = parseInt(id);
 
@@ -550,7 +549,7 @@ exports.getActivityLog = async (req, res) => {
 };
 
 
-exports.deleteCompanionAndUser = async (req, res) => {
+export async function deleteCompanionAndUser(req, res) {
     const { id } = req.params;
 
     try {
@@ -562,7 +561,7 @@ exports.deleteCompanionAndUser = async (req, res) => {
         const companion = await prisma.companion.findUnique({
             where: { id: companionId },
             include: {
-                user: true
+                appUser: true
             }
         });
 
@@ -570,7 +569,7 @@ exports.deleteCompanionAndUser = async (req, res) => {
             return res.status(404).json({ error: "Acompanhante não encontrada" });
         }
 
-        const userId = companion.user.id;
+        const userId = companion.appUser.id;
 
         await prisma.$transaction(async (tx) => {
             await tx.story.deleteMany({ where: { companionId } });
@@ -612,7 +611,7 @@ exports.deleteCompanionAndUser = async (req, res) => {
             await tx.companion.delete({ where: { id: companionId } });
 
             // Deleta o usuário
-            await tx.user.delete({ where: { id: userId } });
+            await tx.appUser.delete({ where: { id: userId } });
         });
 
 

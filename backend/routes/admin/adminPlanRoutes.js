@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as adminPlanController from '../../controllers/admin/adminPlanController.js';
+
 const router = express.Router();
-const adminPlanController = require('../../controllers/admin/adminPlanController'); // Importa o controller
 
 // ============================
 // ROTAS PARA PLANOS PRINCIPAIS
@@ -47,7 +48,7 @@ router.put('/subscriptions/:companionId/disable', adminPlanController.disableUse
 // Cancelar um plano extra específico de um usuário
 router.patch('/subscriptions/:companionId/extra/:extraPlanId/disable', adminPlanController.disableUserExtraPlan);
 
-
+// Obter assinaturas próximas do vencimento
 router.get("/expiring", adminPlanController.getExpiringSubscriptions);
 
-module.exports = router;
+export default router;

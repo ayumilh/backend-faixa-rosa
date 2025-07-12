@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import { 
+  listUsers, 
+  getUserById, 
+  updateUserStatus, 
+  deleteCompanionData 
+} from '../../controllers/admin/adminUserController.js';
+
 const router = express.Router();
-const { 
-    listUsers, 
-    getUserById, 
-    updateUserStatus, 
-    deleteCompanionData 
-} = require('../../controllers/admin/adminUserController'); 
 
 // Listar contratantes
 router.get('/users', listUsers);
@@ -19,4 +20,4 @@ router.patch('/users/:id/status', updateUserStatus);
 // Deletar usuário e dados vinculados
 router.delete('/users/:id/delete', deleteCompanionData);
 
-module.exports = router;
+export default router;

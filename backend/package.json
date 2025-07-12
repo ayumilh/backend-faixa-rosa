@@ -8,13 +8,16 @@
     "seed": "node prisma/seed.js"
   },
   "author": "ayumilh",
-  "license": "ISC",
+  "license": "SC",
+  "type": "module",
   "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.738.0",
     "@prisma/client": "^6.2.1",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
+    "better-auth": "^1.2.12",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

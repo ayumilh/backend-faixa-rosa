@@ -1,7 +1,9 @@
-const { S3Client } = require("@aws-sdk/client-s3");
-const multer = require("multer");
-const multerS3 = require("multer-s3");
-require("dotenv").config();
+import { S3Client } from '@aws-sdk/client-s3';
+import multer from 'multer';
+import multerS3 from 'multer-s3';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Configuração da conexão com a Wasabi
 const wasabiS3 = new S3Client({
@@ -202,35 +204,22 @@ const uploadRegister = multer({
     { name: 'profilePic', maxCount: 1 }, // Foto de perfil
 ]);
 
-// Exportando o middleware
-exports.uploadRegister = uploadRegister;
 
+// Exportações ESM
+export const uploadRegisterMiddleware = uploadRegister;
 
-
-// Middleware para upload de imagens de perfil e banner
-exports.uploadProfileAndBanner = uploadProfileAndBanner.fields([
-    { name: "profileImage", maxCount: 1 },
-    { name: "bannerImage", maxCount: 1 },
+export const uploadProfileAndBannerMiddleware = uploadProfileAndBanner.fields([
+  { name: 'profileImage', maxCount: 1 },
+  { name: 'bannerImage', maxCount: 1 },
 ]);
 
-// Middleware para upload de imagens do carrossel
-exports.uploadCarrouselImages = uploadCarrouselImage.array("carrouselImages", 5);
-
-
-// Middleware para upload de vídeos de comparação
-exports.uploadSingleVideo = uploadVideo.single("comparisonMedia");
-
-// Middleware para upload de imagens (ex: documentos)
-exports.uploadDocuments = upload.fields([
-    { name: "fileFront", maxCount: 1 },
-    { name: "fileBack", maxCount: 1 },
+export const uploadCarrouselImages = uploadCarrouselImage.array('carrouselImages', 5);
+export const uploadSingleVideo = uploadVideo.single('comparisonMedia');
+export const uploadDocuments = upload.fields([
+  { name: 'fileFront', maxCount: 1 },
+  { name: 'fileBack', maxCount: 1 },
 ]);
+export const uploadStorySingle = uploadStory.single('media');
+export const uploadFeedSingle = uploadFeed.single('media');
 
-// Middleware para upload de imagens e vídeos dos Stories 
-exports.uploadStorySingle = uploadStory.single("media");
-
-// Middleware para upload de imagens e vídeos do Feed
-exports.uploadFeedSingle = uploadFeed.single("media");
-
-exports.wasabiS3 = wasabiS3;
-exports.bucketName = bucketName;
+export { wasabiS3, bucketName };

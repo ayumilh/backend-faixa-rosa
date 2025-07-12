@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import prisma from '../prisma/client.js';
+
 const router = express.Router();
-const prisma = require('../prisma/client');
 
 router.get('/listar', async (req, res) => {
   try {
@@ -17,7 +18,7 @@ router.get('/listar', async (req, res) => {
             points: true,
           }
         },
-        user: {
+        appUser: {
           select: {
             firstName: true,
             lastName: true,
@@ -43,7 +44,7 @@ router.get('/listar', async (req, res) => {
       state: comp.state,
       rank: comp.top10?.rank,
       points: comp.top10?.points,
-      name: `${comp.user.firstName} ${comp.user.lastName}`,
+      name: `${comp.appUser.firstName} ${comp.appUser.lastName}`,
       plan: comp.plan?.name || "Sem plano"
     }));
 
@@ -54,4 +55,4 @@ router.get('/listar', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

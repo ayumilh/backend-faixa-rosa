@@ -1,9 +1,10 @@
-const prisma = require('../../prisma/client');
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { uploadFeedSingle, wasabiS3, bucketName } = require("../../config/wasabi");
+import prisma from '../../prisma/client.js';
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { uploadFeedSingle, wasabiS3, bucketName } from '../../config/wasabi.js';
+
 
 // Criar um post no feed
-exports.createFeedPost = async (req, res) => {
+export async function createFeedPost(req, res) {
     try {
         const userId = req.user?.id;
         if (!userId) return res.status(401).json({ error: "Usuário não autenticado." });
@@ -44,7 +45,7 @@ exports.createFeedPost = async (req, res) => {
 };
 
 // Listar todos os posts
-exports.listFeedPosts = async (req, res) => {
+export async function listFeedPosts(req, res) {
     try {
         const userId = req.user?.id;  // Recupera o userId do usuário autenticado
 
@@ -71,7 +72,7 @@ exports.listFeedPosts = async (req, res) => {
 
 
 // Deletar um post do feed
-exports.deleteFeedPost = async (req, res) => {
+export async function deleteFeedPost(req, res) {
     try {
         const { id } = req.params;
         const userId = req.user?.id;

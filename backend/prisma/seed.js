@@ -1,4 +1,4 @@
-const prisma = require('../prisma/client'); // Importando o cliente Prisma
+import prisma from '../prisma/client.js';
 
 async function seedPlan() {
     const plans = [
@@ -269,8 +269,6 @@ async function seedPlansAndExtras() {
 
     console.log('Seed concluído: Planos extras e funcionalidades inseridos com sucesso!');
 }
-
-
 
 async function seedTimedServices() {
     const services = [

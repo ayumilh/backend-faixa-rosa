@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const dotenv = require("dotenv");
+import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -8,7 +8,6 @@ let prisma;
 if (!global.prisma) {
   prisma = new PrismaClient();
 
-  // Conecta assim que o app inicia
   prisma.$connect()
     .then(() => console.log("Conectado ao PostgreSQL com Prisma"))
     .catch((err) => {
@@ -21,4 +20,4 @@ if (!global.prisma) {
   prisma = global.prisma;
 }
 
-module.exports = prisma;
+export default prisma;

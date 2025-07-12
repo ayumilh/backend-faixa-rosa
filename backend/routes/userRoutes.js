@@ -1,19 +1,15 @@
-const express = require('express');
+import express from 'express';
+import { uploadDocuments } from "../config/wasabi.js";
+import * as userController from '../controllers/userController.js';
+import * as documentController from '../controllers/companion/documentCompanionController.js';
+import * as getUser from '../utils/getUser.js';
+
 const router = express.Router();
-const { uploadDocuments } = require("../config/wasabi");
-const userController = require('../controllers/userController.js');
-const documentController = require('../controllers/companion/documentCompanionController.js');
-const getUser = require('../utils/getUser.js');
 
-// router.get('/', userController.getAllUsers);
-// router.get('/:id', userController.getUserById);
-// router.put('/:id', userController.updateUser);
-// router.delete('/:id', userController.deleteUser);
-
-//Informações Usuario Get
+// Informações do Usuário
 router.get('/info', getUser.getUserIdBd);
 
-// documentRoutes.js
+// Upload de Documentos
 router.post("/documents/upload", uploadDocuments, documentController.uploadDocument);
 
-module.exports = router;
+export default router;

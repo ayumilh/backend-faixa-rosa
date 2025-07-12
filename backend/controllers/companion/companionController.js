@@ -1,13 +1,14 @@
-const prisma = require('../../prisma/client');
-const { LocationType } = require('@prisma/client');
+import prisma from '../../prisma/client.js';
+import pkg from '@prisma/client';
+const { LocationType } = pkg;
 
-const Joi = require('joi');
-const { DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
-const { logActivity } = require("../../utils/activityService");
-const { uploadSingleVideo, uploadProfileAndBanner, uploadDocuments, wasabiS3, bucketName } = require("../../config/wasabi");
+import Joi from 'joi';
+import { DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { logActivity } from '../../utils/activityService.js';
+import { uploadSingleVideo, uploadProfileAndBannerMiddleware, uploadDocuments, wasabiS3, bucketName } from '../../config/wasabi.js';
 
 // Listar todos os acompanhantes
-exports.listCompanions = async (req, res) => {
+export async function listCompanions(req, res) {
     try {
         const companions = await prisma.companion.findMany({
             include: {
@@ -23,7 +24,7 @@ exports.listCompanions = async (req, res) => {
 }
 
 // Excluir um acompanhante
-exports.deleteCompanion = async (req, res) => {
+export async function deleteCompanion(req, res) {
     const { id } = req.params;
 
     try {
@@ -45,7 +46,7 @@ exports.deleteCompanion = async (req, res) => {
 }
 
 // Atualizar informações de um acompanhante
-exports.updateCompanion = async (req, res) => {
+export async function updateCompanion(req, res) {
     const userId = req.user?.id;
     const { name, description, city, state } = req.body;
 
@@ -78,7 +79,7 @@ exports.updateCompanion = async (req, res) => {
 };
 
 
-exports.updateProfileAndBanner = async (req, res) => {
+export async function updateProfileAndBanner(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -130,7 +131,7 @@ exports.updateProfileAndBanner = async (req, res) => {
         return res.status(500).json({ error: "Erro interno ao atualizar as imagens." });
     }
 };
-exports.getCompanionMedia = async (req, res) => {
+export async function getCompanionMedia(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -199,8 +200,7 @@ exports.getCompanionMedia = async (req, res) => {
 };
 
 
-// Atualizar descrição do perfil
-exports.updateCompanionDescriptionProfile = async (req, res) => {
+export async function updateCompanionDescriptionProfile(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -404,7 +404,7 @@ exports.updateCompanionDescriptionProfile = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados." });
     }
 };
-exports.getCompanionDescriptionProfile = async (req, res) => {
+export async function getCompanionDescriptionProfile(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -445,7 +445,7 @@ exports.getCompanionDescriptionProfile = async (req, res) => {
 
 
 // Adicionar Contato
-exports.updateCompanionContact = async (req, res) => {
+export async function updateCompanionContact(req, res) {
     const userId = req.user?.id;
     const {
         whatsappNumber,
@@ -492,7 +492,7 @@ exports.updateCompanionContact = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-exports.getCompanionContact = async (req, res) => {
+export async function getCompanionContact(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -531,7 +531,7 @@ exports.getCompanionContact = async (req, res) => {
 
 
 // Adicionar Serviços e Preços
-exports.updateCompanionServicesAndPrices = async (req, res) => {
+export async function updateCompanionServicesAndPrices(req, res) {
     const userId = req.user?.id;
     const { services } = req.body;
 
@@ -609,7 +609,7 @@ exports.updateCompanionServicesAndPrices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-exports.getCompanionServicesAndPrices = async (req, res) => {
+export async function getCompanionServicesAndPrices(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -660,7 +660,7 @@ exports.getCompanionServicesAndPrices = async (req, res) => {
 
 
 // Adicionar Horários
-exports.updateWeeklySchedule = async (req, res) => {
+export async function updateWeeklySchedule(req, res){
     const userId = req.user?.id;
     const { schedule } = req.body;
 
@@ -752,7 +752,7 @@ exports.updateWeeklySchedule = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-exports.getWeeklySchedule = async (req, res) => {
+export async function getWeeklySchedule(req, res)  {
     try {
         const userId = req.user?.id;
 
@@ -790,7 +790,7 @@ exports.getWeeklySchedule = async (req, res) => {
 
 
 // dias indisponíveis
-exports.updateUnavailableDates = async (req, res) => {
+export async function updateUnavailableDates(req, res) {
     const userId = req.user?.id;
     const { unavailableDates } = req.body;
 
@@ -825,7 +825,7 @@ exports.updateUnavailableDates = async (req, res) => {
         });
     }
 };
-exports.getUnavailableDates = async (req, res) => {
+export async function getUnavailableDates(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -857,7 +857,7 @@ exports.getUnavailableDates = async (req, res) => {
 
 
 // Atualizar Localização e Locais Atendidos
-exports.updateLocationManagement = async (req, res) => {
+export async function updateLocationManagement(req, res) {
     try {
         const userId = req.user?.id;
         const { city, state, locations, amenities } = req.body;
@@ -1028,7 +1028,7 @@ exports.updateLocationManagement = async (req, res) => {
     }
 };
 
-exports.getLocationManagement = async (req, res) => {
+export async function getLocationManagement(req, res) {
     const userId = req.user?.id;
 
     try {
@@ -1078,7 +1078,7 @@ exports.getLocationManagement = async (req, res) => {
 
 
 // Adicionar Dados Financeiros e Serviços Oferecidos
-exports.updateCompanionFinanceAndServices = async (req, res) => {
+export async function updateCompanionFinanceAndServices(req, res) {
     try {
         const userId = req.user?.id;
         const { paymentMethods, timedServices } = req.body;
@@ -1163,7 +1163,7 @@ exports.updateCompanionFinanceAndServices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-exports.getCompanionFinanceAndServices = async (req, res) => {
+export async function getCompanionFinanceAndServices(req, res) {
     try {
         const userId = req.user?.id;
 
@@ -1223,5 +1223,3 @@ exports.getCompanionFinanceAndServices = async (req, res) => {
         return res.status(500).json({ error: "Erro ao processar os dados.", details: error.message });
     }
 };
-
-

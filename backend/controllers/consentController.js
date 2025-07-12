@@ -1,8 +1,8 @@
-const prisma = require('../prisma/client'); // ajuste o caminho se necessário
+import prisma from '../prisma/client.js';
 
-exports.registerConsent = async (req, res) => {
+export async function registerConsent(req, res) {
   try {
-    const { page, accepted, browser_fingerprint } = req.body;
+    const { accepted, browser_fingerprint } = req.body;
 
     const ip_address = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const user_agent = req.headers['user-agent'];
@@ -13,12 +13,10 @@ exports.registerConsent = async (req, res) => {
 
     const consent = await prisma.consent.create({
       data: {
-        page,
         accepted,
         ip_address,
         user_agent,
         browser_fingerprint,
-        user_id: null, // ainda não logado
       },
     });
 
@@ -27,4 +25,4 @@ exports.registerConsent = async (req, res) => {
     console.error('Erro ao registrar consentimento:', error);
     res.status(500).json({ error: 'Erro interno ao registrar consentimento.' });
   }
-};
+}

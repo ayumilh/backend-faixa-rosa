@@ -1,7 +1,7 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
 
 // Aprovar documento
-exports.approvedDocuments = async (req, res) => {
+export async function approvedDocuments(req, res) {
     try {
         const { id } = req.params;
 
@@ -49,7 +49,7 @@ exports.approvedDocuments = async (req, res) => {
 };
 
 // rejeitar documento
-exports.rejectDocument = async (req, res) => {
+export async function rejectDocument(req, res) {
     try {
         const { id } = req.params;
 

@@ -1,36 +1,48 @@
-const jwt = require("jsonwebtoken");
+import prisma from '../prisma/client.js';
 
-// Middleware para verificar autenticação geral
-function authenticate(req, res, next) {
-    const authHeader = req.headers.authorization;
+export async function authenticate(req, res, next) {
+  const rawToken = req.cookies?.["better-auth.session_token"];
+  const token = rawToken?.split('.')[0];
+  console.log("Token de sessão:", rawToken);
 
-    // Verifica se o header existe e está no formato correto
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Token não fornecido ou mal formatado" });
+  if (!token) {
+    return res.status(401).json({ error: "Token de sessão ausente." });
+  }
+
+  try {
+    // Buscar a sessão pelo token (retorna 1 ou nenhum resultado)
+    const session = await prisma.session.findUnique({
+      where: { token },
+    });
+
+    if (!session || !session.userId) {
+      return res.status(401).json({ error: "Sessão inválida ou expirada." });
     }
 
-    const token = authHeader.split(" ")[1];
+    // Buscar o usuário vinculado (AppUser) usando o userId da sessão
+    const user = await prisma.appUser.findUnique({
+      where: { id: session.userId },
+    });
 
-    if (!token) {
-        return res.status(401).json({ error: "Token ausente após Bearer" });
+    if (!user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        console.error("Erro ao validar token:", error.message);
-        return res.status(403).json({ error: "Token inválido ou expirado" });
-    }
-}
+    req.user = {
+      id: user.id,
+      userType: user.userType,
+    };
 
-// Middleware para verificar se o usuário é ADMIN
-function verifyAdmin(req, res, next) {
-    if (!req.user || req.user.userType !== "ADMIN") {
-        return res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
-    }
     next();
+  } catch (error) {
+    console.error("Erro ao autenticar:", error.message);
+    return res.status(500).json({ error: "Erro interno ao autenticar." });
+  }
 }
 
-module.exports = { authenticate, verifyAdmin };
+export function verifyAdmin(req, res, next) {
+  if (!req.user || req.user.userType !== "ADMIN") {
+    return res.status(403).json({ error: "Apenas administradores podem acessar esta rota." });
+  }
+  next();
+}

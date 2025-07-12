@@ -1,8 +1,9 @@
-const prisma = require('../../prisma/client');
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { wasabiS3, bucketName } = require("../../config/wasabi.js");
+import prisma from '../../prisma/client.js';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { wasabiS3, bucketName } from '../../config/wasabi.js';
 
-exports.addCarrouselImages = async (req, res) => {
+
+export async function addCarrouselImages(req, res) {
   try {
     const userId = req.user?.id;
     const carrouselImages = req.files;
@@ -135,7 +136,7 @@ exports.addCarrouselImages = async (req, res) => {
   }
 };
 
-exports.deleteCarrouselImage = async (req, res) => {
+export async function deleteCarrouselImage(req, res) {
   try {
     const userId = req.user?.id;
     const { imageUrl } = req.body;

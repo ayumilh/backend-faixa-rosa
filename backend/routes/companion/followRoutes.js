@@ -1,16 +1,14 @@
-const express = require('express');
-const {
-    followCompanion,
-    unfollowCompanion,
-    getFollowingOfContractor
-} = require('../../controllers/companion/followController.js');
+import express from 'express';
+import {
+  followCompanion,
+  unfollowCompanion,
+  getFollowingOfContractor,
+} from '../../controllers/companion/followController.js';
 
 const router = express.Router();
 
-router.post('follow/', followCompanion);
-router.delete('follow/delete/:id', unfollowCompanion);
+router.post('/follow/', followCompanion);
+router.delete('/follow/delete/:id', unfollowCompanion);
+router.get('/follow/list', getFollowingOfContractor);
 
-router.get('follow/list', getFollowingOfContractor);
-
-
-module.exports = router;
+export default router;

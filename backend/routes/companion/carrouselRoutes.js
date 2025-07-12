@@ -1,11 +1,13 @@
-const express = require('express');
-const { addCarrouselImages, deleteCarrouselImage } = require('../../controllers/companion/carrouselController.js');
-const { uploadCarrouselImages } = require('../../config/wasabi.js');
+import express from 'express';
+import { addCarrouselImages, deleteCarrouselImage } from '../../controllers/companion/carrouselController.js';
+import { uploadCarrouselImages } from '../../config/wasabi.js';
+
 const router = express.Router();
 
 // Rota para adicionar imagem ao carrossel
 router.post('/carrousel/update', uploadCarrouselImages, addCarrouselImages);
 
-router.delete("/carrousel/delete", deleteCarrouselImage);
+// Rota para deletar imagem do carrossel
+router.delete('/carrousel/delete', deleteCarrouselImage);
 
-module.exports = router;
+export default router;

@@ -1,12 +1,13 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
+
 
 // Listar todos os pagamentos
-exports.listPagamentos = async (req, res) => {
+export async function listPagamentos(req, res) {
     try {
         const pagamentos = await prisma.payment.findMany({
             include: {
-                user: {
-                    select: { firstName: true, lastName: true, email: true }
+                appUser: {
+                    select: { firstName: true, lastName: true }
                 },
                 plan: {
                     select: { name: true, price: true }
@@ -22,14 +23,14 @@ exports.listPagamentos = async (req, res) => {
 };
 
 // Obter detalhes de um pagamento por ID
-exports.getPagamentoById = async (req, res) => {
+export async function getPagamentoById(req, res) {
     const { id } = req.params;
     try {
         const pagamento = await prisma.payment.findUnique({
             where: { id: parseInt(id) },
             include: {
-                user: {
-                    select: { firstName: true, lastName: true, email: true }
+                appUser: {
+                    select: { firstName: true, lastName: true }
                 },
                 plan: {
                     select: { name: true, price: true }

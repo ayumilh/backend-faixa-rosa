@@ -1,7 +1,7 @@
-const prisma = require('../prisma/client');
+import prisma from '../prisma/client.js';
 
 // Função utilitária para buscar usuário (Companion ou Contractor)
-const buscarUsuario = async (userId) => {
+async function buscarUsuario(userId) {
     const companion = await prisma.companion.findUnique({
         where: { userId },
         select: { id: true }
@@ -19,7 +19,7 @@ const buscarUsuario = async (userId) => {
 };
 
 // Criar denúncia
-exports.createDenuncia = async (req, res) => {
+export async function createDenuncia(req, res) {
     try {
         const userId = req.user?.id;
         const { denunciadoId, motivo, descricao } = req.body;
@@ -75,7 +75,7 @@ exports.createDenuncia = async (req, res) => {
 };
 
 // Listar denúncias (admin)
-exports.listDenuncias = async (req, res) => {
+export async function listDenuncias(req, res) {
     try {
         const { page = 1, limit = 20, status = '' } = req.query;
 
@@ -142,7 +142,7 @@ exports.listDenuncias = async (req, res) => {
 };
 
 // Atualizar status da denúncia
-exports.updateDenunciaStatus = async (req, res) => {
+export async function updateDenunciaStatus(req, res) {
     try {
         const { id } = req.params;
         const { status, observacoes } = req.body;
@@ -179,7 +179,7 @@ exports.updateDenunciaStatus = async (req, res) => {
 };
 
 // Remover denúncia (opcional)
-exports.removerDenuncia = async (req, res) => {
+export async function removerDenuncia(req, res) {
     try {
         const id = parseInt(req.params.id, 10);
 

@@ -1,19 +1,20 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
 
 // Listar todos os contratantes
-exports.listContratantes = async (req, res) => {
+export async function listContratantes(req, res) {
+  console.log('Listando contratantes...');
   try {
-    const contratantes = await prisma.user.findMany({
+    const contratantes = await prisma.appUser.findMany({
       where: { userType: 'CONTRATANTE' },
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
         cpf: true,
         userType: true,
         createdAt: true,
         updatedAt: true,
+        profileVisibility: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -23,24 +24,24 @@ exports.listContratantes = async (req, res) => {
     console.error('Erro ao listar contratantes:', error);
     return res.status(500).json({ error: 'Erro ao listar contratantes.' });
   }
-};
+}
 
 // Obter contratante por ID
-exports.getContratanteById = async (req, res) => {
+export async function getContratanteById(req, res) {
   const { id } = req.params;
 
   try {
-    const contratante = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
+    const contratante = await prisma.appUser.findUnique({
+      where: { id },
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
         cpf: true,
         userType: true,
         createdAt: true,
         updatedAt: true,
+        profileVisibility: true,
       },
     });
 
@@ -53,25 +54,24 @@ exports.getContratanteById = async (req, res) => {
     console.error('Erro ao buscar contratante:', error);
     return res.status(500).json({ error: 'Erro ao buscar contratante.' });
   }
-};
+}
 
-// Criar novo contratante
-exports.createContratante = async (req, res) => {
-  const { firstName, lastName, email, cpf, password } = req.body;
+// Criar novo contratante (somente AppUser)
+export async function createContratante(req, res) {
+  const { firstName, lastName, cpf, userId } = req.body;
 
   try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email já está em uso.' });
+    const existing = await prisma.appUser.findUnique({ where: { id: userId } });
+    if (existing) {
+      return res.status(400).json({ error: 'Usuário já existe.' });
     }
 
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.appUser.create({
       data: {
+        id: userId,
         firstName,
         lastName,
-        email,
         cpf,
-        password, // Idealmente, hash a senha aqui
         userType: 'CONTRATANTE',
       },
     });
@@ -81,17 +81,17 @@ exports.createContratante = async (req, res) => {
     console.error('Erro ao criar contratante:', error);
     return res.status(500).json({ error: 'Erro ao criar contratante.' });
   }
-};
+}
 
 // Atualizar dados do contratante
-exports.updateContratante = async (req, res) => {
+export async function updateContratante(req, res) {
   const { id } = req.params;
-  const { firstName, lastName, email, cpf } = req.body;
+  const { firstName, lastName, cpf } = req.body;
 
   try {
-    const updatedUser = await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: { firstName, lastName, email, cpf },
+    const updatedUser = await prisma.appUser.update({
+      where: { id },
+      data: { firstName, lastName, cpf },
     });
 
     return res.status(200).json(updatedUser);
@@ -99,16 +99,16 @@ exports.updateContratante = async (req, res) => {
     console.error('Erro ao atualizar contratante:', error);
     return res.status(500).json({ error: 'Erro ao atualizar contratante.' });
   }
-};
+}
 
-// Atualizar status (visibilidade ou ativação, por exemplo)
-exports.updateContratanteStatus = async (req, res) => {
+// Atualizar status do contratante (visibilidade)
+export async function updateContratanteStatus(req, res) {
   const { id } = req.params;
   const { profileVisibility } = req.body;
 
   try {
-    const updated = await prisma.user.update({
-      where: { id: parseInt(id) },
+    const updated = await prisma.appUser.update({
+      where: { id },
       data: { profileVisibility },
     });
 
@@ -120,17 +120,17 @@ exports.updateContratanteStatus = async (req, res) => {
     console.error('Erro ao atualizar status do contratante:', error);
     return res.status(500).json({ error: 'Erro ao atualizar status do contratante.' });
   }
-};
+}
 
 // Deletar contratante
-exports.deleteContratante = async (req, res) => {
+export async function deleteContratante(req, res) {
   const { id } = req.params;
 
   try {
-    await prisma.user.delete({ where: { id: parseInt(id) } });
+    await prisma.appUser.delete({ where: { id } });
     return res.status(200).json({ message: 'Contratante deletado com sucesso.' });
   } catch (error) {
     console.error('Erro ao deletar contratante:', error);
     return res.status(500).json({ error: 'Erro ao deletar contratante.' });
   }
-};
+}

@@ -1,9 +1,10 @@
-const prisma = require('../../prisma/client');
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { wasabiS3, bucketName } = require("../../config/wasabi");
+import prisma from '../../prisma/client.js';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { wasabiS3, bucketName } from '../../config/wasabi.js';
+
 
 // Listar todos os stories (ativos e expirados)**
-exports.listAllStories = async (req, res) => {
+export const listAllStories = async (req, res) => {
     try {
         const stories = await prisma.story.findMany({
             include: {
@@ -22,7 +23,7 @@ exports.listAllStories = async (req, res) => {
 };
 
 // Listar apenas stories ativos (que ainda não expiraram)**
-exports.listActiveStories = async (req, res) => {
+export const listActiveStories = async (req, res) => {
     try {
         const stories = await prisma.story.findMany({
             where: { expiresAt: { gt: new Date() } }, // Apenas stories não expirados
@@ -42,7 +43,7 @@ exports.listActiveStories = async (req, res) => {
 };
 
 // Excluir um story específico (com remoção da mídia no Wasabi)**
-exports.deleteStoryAdmin = async (req, res) => {
+export const deleteStoryAdmin = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -72,7 +73,7 @@ exports.deleteStoryAdmin = async (req, res) => {
 };
 
 // Limpar automaticamente stories expirados**
-exports.cleanExpiredStories = async (req, res) => {
+export const cleanExpiredStories = async (req, res) => {
     try {
         const expiredStories = await prisma.story.findMany({
             where: { expiresAt: { lt: new Date() } }, // Buscar stories expirados

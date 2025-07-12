@@ -1,4 +1,4 @@
-const prisma = require('../prisma/client');
+import prisma from '../prisma/client.js';
 
 async function expireNitroPlans() {
   try {
@@ -27,10 +27,10 @@ async function expireNitroPlans() {
       data: { endDate: now },
     });
 
-    console.log(`✅ ${expiredIds.length} plano(s) Nitro expirado(s) com sucesso.`);
+    console.log(`${expiredIds.length} plano(s) Nitro expirado(s) com sucesso.`);
   } catch (error) {
     console.error("❌ Erro ao expirar planos Nitro:", error.message);
   }
 }
 
-module.exports = expireNitroPlans;
+export default expireNitroPlans;

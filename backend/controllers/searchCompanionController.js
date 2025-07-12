@@ -1,6 +1,16 @@
-const prisma = require('../prisma/client');
+import prisma from '../prisma/client.js';
 
-exports.searchCompanionCity = async (req, res) => {
+function calculateAge(birthDate) {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export async function searchCompanionCity(req, res) {
     try {
         // Recebendo os parâmetros da query
         let { cidade, estado, userName, planos } = req.query;
@@ -222,10 +232,9 @@ exports.searchCompanionCity = async (req, res) => {
                 atendimentos: true,
                 profileImage: true,
                 bannerImage: true,
-                user: {
+                appUser: {
                     select: {
                         id: true,
-                        email: true,
                         birthDate: true,
                     },
                 },
@@ -316,7 +325,7 @@ exports.searchCompanionCity = async (req, res) => {
 
         // Calculando a idade com base na data de nascimento
         const acompanhantesComIdade = acompanhantes.map(companion => {
-            const birthDate = new Date(companion.user.birthDate);
+            const birthDate = new Date(companion.appUser.birthDate);
             const age = new Date().getFullYear() - birthDate.getFullYear();
             const ageDate = new Date(new Date().setFullYear(birthDate.getFullYear()));
 
@@ -376,7 +385,7 @@ exports.searchCompanionCity = async (req, res) => {
     }
 };
 
-exports.searchCompanionProfile = async (req, res) => {
+export async function searchCompanionProfile(req, res) {
     const { userName } = req.query;
 
     if (req.method !== 'GET') {
@@ -403,10 +412,9 @@ exports.searchCompanionProfile = async (req, res) => {
                 bannerImage: true,
                 atendimentos: true,
                 createdAt: true,
-                user: {
+                appUser: {
                     select: {
                         id: true,
-                        email: true,
                         birthDate: true,
                     },
                 },
@@ -495,8 +503,8 @@ exports.searchCompanionProfile = async (req, res) => {
         companion.totalReviews = totalReviews;
 
         // Calcular idade se possível
-        if (companion.user?.birthDate) {
-            const birthDate = new Date(companion.user.birthDate);
+        if (companion.appUser?.birthDate) {
+            const birthDate = new Date(companion.appUser.birthDate);
             companion.age = calculateAge(birthDate);
         }
 
@@ -560,7 +568,7 @@ exports.searchCompanionProfile = async (req, res) => {
 };
 
 // Listar todos os posts
-exports.listFeedPosts = async (req, res) => {
+export async function listFeedPosts(req, res) {
     const { userName } = req.query;
 
     const companion = await prisma.companion.findFirst({ where: { userName } });
@@ -582,7 +590,7 @@ exports.listFeedPosts = async (req, res) => {
 
 
 // Listar stories ativos (que ainda não expiraram)
-exports.listActiveStories = async (req, res) => {
+export async function listActiveStories(req, res) {
   try {
     const { cidade, estado } = req.query;
 
@@ -624,18 +632,3 @@ exports.listActiveStories = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao listar stories.' });
   }
 };
-
-
-
-// Função para calcular a idade com base na data de nascimento
-function calculateAge(birthDate) {
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--; // Se ainda não fez aniversário neste ano
-    }
-
-    return age;
-}

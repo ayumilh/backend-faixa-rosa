@@ -1,7 +1,8 @@
-const express = require("express");
+import express from 'express';
+import { addPoints } from '../../controllers/companion/addPointsController.js';
+
 const router = express.Router();
-const { addPoints } = require("../../controllers/companion/addPointsController.js");
 
-router.post("/add-points", addPoints);
+router.post('/add-points', addPoints);
 
-module.exports = router;
+export default router;

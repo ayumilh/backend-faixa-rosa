@@ -14,16 +14,14 @@ model Consent {
   consent_datetime    DateTime @default(now())
   browser_fingerprint String?
   accepted            Boolean
-  user_id             Int?
-  user                User?    @relation(fields: [user_id], references: [id])
+  appUserId           String?
+  appUser             AppUser? @relation(fields: [appUserId], references: [id])
 }
 
-model User {
-  id                Int         @id @default(autoincrement())
+model AppUser {
+  id                String      @id
   firstName         String?     @default("") @db.VarChar(50)
   lastName          String?     @default("") @db.VarChar(100)
-  email             String      @unique @db.VarChar(320)
-  password          String?     @default("") @db.VarChar(64)
   birthDate         DateTime?   @db.Date
   cpf               String?     @unique @db.VarChar(15)
   userType          UserType    @default(CONTRATANTE)
@@ -43,13 +41,73 @@ model User {
   PasswordResetToken PasswordResetToken[]
 }
 
-model PasswordResetToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  userId     Int
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
   expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  appUser   AppUser  @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }
@@ -151,7 +209,7 @@ model CityChangeConfig {
 model Contractor {
   id                 Int        @id @default(autoincrement())
   userName           String     @unique
-  userId             Int        @unique
+  userId             String     @unique
   name               String
   age                Int
   profileStatus      String     @default("PENDING")
@@ -159,7 +217,7 @@ model Contractor {
   profileImage       String?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
-  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appUser            AppUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
   denunciasRecebidas Denuncia[] @relation("DenunciasRecebidasContractor")
   denunciasFeitas    Denuncia[] @relation("DenunciasFeitasContractor")
 
@@ -170,7 +228,7 @@ model Contractor {
 model Companion {
   id                      Int                          @id @default(autoincrement())
   userName                String                       @unique
-  userId                  Int                          @unique
+  userId                  String                       @unique
   name                    String
   age                     Int                          @default(0)
   isAgeHidden             Boolean                      @default(false)
@@ -191,7 +249,7 @@ model Companion {
   ageCategories           AgeCategoryCompanion[]
   plan                    Plan?                        @relation(fields: [planId], references: [id])
   planType                PlanType?                    @relation(fields: [planTypeId], references: [id])
-  user                    User                         @relation(fields: [userId], references: [id])
+  appUser                 AppUser                      @relation(fields: [userId], references: [id])
   contactMethods          ContactMethodCompanion[]
   denunciasRecebidas      Denuncia[]                   @relation("DenunciasRecebidasCompanion")
   denunciasFeitas         Denuncia[]                   @relation("DenunciasFeitasCompanion")
@@ -372,9 +430,9 @@ model Top10 {
   createdAt DateTime    @default(now())
   points    Int
   rank      Int
-  userId    Int         @unique
+  userId    String      @unique
   Companion Companion[] @relation("Top10Companions")
-  user      User        @relation(fields: [userId], references: [id])
+  appUser   AppUser     @relation(fields: [userId], references: [id])
 }
 
 model Convenio {
@@ -391,22 +449,22 @@ model Convenio {
   phone       String?
   image       String?
   planId      Int
-  createdById Int
+  createdById String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  createdBy   User            @relation(fields: [createdById], references: [id])
+  createdBy   AppUser         @relation(fields: [createdById], references: [id])
   plan        Plan            @relation(fields: [planId], references: [id])
 }
 
 model Review {
   id          Int       @id @default(autoincrement())
   companionId Int
-  userId      Int
+  userId      String
   rating      Int
   comment     String
   createdAt   DateTime  @default(now())
   companion   Companion @relation(fields: [companionId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
+  appUser     AppUser   @relation(fields: [userId], references: [id])
 }
 
 model Denuncia {
@@ -493,7 +551,7 @@ model CarrouselImage {
 
 model Payment {
   id                 Int               @id @default(autoincrement())
-  userId             Int
+  userId             String
   planId             Int?
   extraPlanId        Int?
   paymentMethod      String            @default("default_method")
@@ -509,7 +567,7 @@ model Payment {
   updatedAt          DateTime          @updatedAt
   plan               Plan?             @relation(fields: [planId], references: [id])
   planSubscriptionId Int?
-  user               User              @relation(fields: [userId], references: [id])
+  appUser            AppUser           @relation(fields: [userId], references: [id])
   ExtraPlan          ExtraPlan[]       @relation("PaymentExtraPlans")
   PlanSubscription   PlanSubscription? @relation(fields: [planSubscriptionId], references: [id])
 }

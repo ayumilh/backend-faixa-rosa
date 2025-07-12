@@ -1,4 +1,4 @@
-const prisma = require('../prisma/client'); // singleton certo!
+import prisma from '../prisma/client.js';
 
 async function updateTop10Ranking() {
   try {
@@ -15,7 +15,7 @@ async function updateTop10Ranking() {
           orderBy: { startDate: 'asc' },
           take: 1,
         },
-        user: true,
+        appUser: true,
       },
     });
 
@@ -59,15 +59,15 @@ async function updateTop10Ranking() {
         },
       });
     }
-    console.log("✅ Top 10 atualizado com sucesso.");
+    console.log("Top 10 atualizado com sucesso.");
   } catch (error) {
     console.error("❌ Erro ao atualizar o Top 10:", error);
   }
 }
 
 // Permite rodar direto via terminal
-if (require.main === module) {
-  updateTop10Ranking();
-}
+// if (require.main === module) {
+//   updateTop10Ranking();
+// }
 
-module.exports = updateTop10Ranking;
+export default updateTop10Ranking;

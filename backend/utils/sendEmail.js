@@ -1,5 +1,7 @@
-const nodemailer = require("nodemailer");
-require("dotenv").config();
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -11,7 +13,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendEmail(to, subject, html) {
+export default async function sendEmail(to, subject, html) {
   const mailOptions = {
     from: `"Faixa Rosa" <${process.env.EMAIL_USER}>`,
     to,
@@ -21,11 +23,9 @@ async function sendEmail(to, subject, html) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ E-mail enviado:", info.messageId);
+    console.log("E-mail enviado:", info.messageId);
   } catch (error) {
     console.error("❌ Erro ao enviar e-mail:", error);
     throw error;
   }
 }
-
-module.exports = sendEmail;

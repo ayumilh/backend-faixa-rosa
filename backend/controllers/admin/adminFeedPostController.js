@@ -1,9 +1,9 @@
-const prisma = require('../../prisma/client');
-const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { wasabiS3, bucketName } = require("../../config/wasabi");
+import prisma from '../../prisma/client.js';
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { wasabiS3, bucketName } from "../../config/wasabi.js";
 
 // Listar todos os posts no feed
-exports.listFeedPosts = async (req, res) => {
+export async function listFeedPosts(req, res) {
     try {
         const posts = await prisma.feedPost.findMany({
             include: {
@@ -21,7 +21,7 @@ exports.listFeedPosts = async (req, res) => {
 };
 
 // Obter detalhes de um post no feed
-exports.getPostsByCompanion = async (req, res) => {
+export async function getPostsByCompanion(req, res) {
     const { id } = req.params;
 
     const companionId = parseInt(id);
@@ -56,7 +56,7 @@ exports.getPostsByCompanion = async (req, res) => {
 };
 
 // Deletar um post do feed
-exports.deleteFeedPost = async (req, res) => {
+export async function deleteFeedPost(req, res) {
     const { id } = req.params;
 
     try {

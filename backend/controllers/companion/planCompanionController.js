@@ -1,11 +1,11 @@
-const prisma = require('../../prisma/client');
-const { mercadoPago } = require("../../config/mercadoPago.js");
-const { Customer } = require("mercadopago");
-const { logActivity } = require("../../utils/activityService");
-const { createPayment } = require('./paymentCompanionController');
+import prisma from '../../prisma/client.js';
+import { mercadoPago } from "../../config/mercadoPago.js";
+import { Customer } from "mercadopago";
+import { logActivity } from "../../utils/activityService.js";
+import { createPayment } from './paymentCompanionController.js';
 
 // listar planos
-exports.listPlans = async (req, res) => {
+export async function listPlans(req, res) {
     try {
         const plans = await prisma.plan.findMany({
             include: {
@@ -21,7 +21,7 @@ exports.listPlans = async (req, res) => {
 };
 
 // listar planos disponíveis
-exports.listAvailablePlanTypes = async (req, res) => {
+export async function listAvailablePlanTypes(req, res) {
     try {
         const planTypes = await prisma.planType.findMany({
             orderBy: { points: 'desc' }, // Ordena pelos pontos, por exemplo
@@ -34,7 +34,7 @@ exports.listAvailablePlanTypes = async (req, res) => {
 };
 
 // obter funcionalidades dos plano
-exports.listPlanTypes = async (req, res) => {
+export async function listPlanTypes(req, res) {
     try {
         const planTypes = await prisma.planType.findMany();
         return res.status(200).json(planTypes);
@@ -45,7 +45,7 @@ exports.listPlanTypes = async (req, res) => {
 };
 
 // Lista os planos assinados por um usuário
-exports.listUserPlans = async (req, res) => {
+export async function listUserPlans(req, res) {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -116,7 +116,7 @@ exports.listUserPlans = async (req, res) => {
 
 
 // assinar plano basico
-exports.subscribeToPlan = async (req, res) => {
+export async function subscribeToPlan(req, res) {
     const userId = req.user?.id;
     const { planId, payment_method_id } = req.body;
     console.log(planId);
@@ -500,7 +500,7 @@ exports.subscribeToPlan = async (req, res) => {
 // };
 
 
-exports.createUserPlan = async (req, res) => {
+export async function createUserPlan(req, res) {
     try {
         const userId = req.user.id;
         const { planTypeId, extras = [], payment_method_id = null, cardToken = null, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
@@ -773,7 +773,7 @@ exports.createUserPlan = async (req, res) => {
 };
 
 // adicionar planos extras, se ja tem plano basico
-exports.addUserExtras = async (req, res) => {
+export async function addUserExtras(req, res) {
     try {
         const userId = 12;
         const { extras, payment_method_id, cardToken, cardId, fromSavedCard, issuer_id, installments, email, identificationNumber, identificationType } = req.body;
@@ -785,7 +785,7 @@ exports.addUserExtras = async (req, res) => {
 
         if (!companion) return res.status(403).json({ error: 'Apenas acompanhantes podem adicionar planos extras.' });
 
-        const user = await prisma.user.findFirst({ where: { id: userId } });
+        const user = await prisma.appUser.findFirst({ where: { id: userId } });
         if (!user) return { error: 'Usuário não encontrado.' }
 
         // Ajuste para buscar os planos extras
@@ -1059,7 +1059,7 @@ exports.addUserExtras = async (req, res) => {
 };
 
 // desativar planos extras
-exports.disableExtraPlans = async (req, res) => {
+export async function disableExtraPlans(req, res) {
     const userId = req.user?.id;
     const { extraPlanIds } = req.body;
     console.log(extraPlanIds);
@@ -1140,7 +1140,7 @@ exports.disableExtraPlans = async (req, res) => {
 };
 
 // desativar assinatura
-exports.disablePlan = async (req, res) => {
+export async function disablePlan(req, res) {
     const userId = req.user?.id;
 
     // Busca a acompanhante pelo userId

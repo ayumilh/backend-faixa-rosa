@@ -1,6 +1,6 @@
-const prisma = require("../prisma/client"); // Importando o cliente Prisma
+import prisma from "../prisma/client.js";
 
-const validarUsername = async (userName) => {
+export const validarUsername = async (userName) => {
   if (!userName) {
     return { error: "O campo userName é obrigatório." };
   }
@@ -20,5 +20,3 @@ const validarUsername = async (userName) => {
     return { error: "Erro interno ao verificar o userName." };
   }
 };
-
-module.exports = { validarUsername };

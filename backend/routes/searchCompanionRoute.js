@@ -1,14 +1,17 @@
-const express = require("express");
+import express from "express";
+import {
+  searchCompanionCity,
+  searchCompanionProfile,
+  listFeedPosts,
+  listActiveStories
+} from "../controllers/searchCompanionController.js";
+
 const router = express.Router();
-const { searchCompanionCity, searchCompanionProfile, listFeedPosts, listActiveStories } = require("../controllers/searchCompanionController.js");
 
-// busca das acompanhantes por cidade
+// Busca das acompanhantes por cidade
 router.get("/companion", searchCompanionCity);
-
 router.get("/profile", searchCompanionProfile);
-
 router.get("/feed-posts", listFeedPosts);
-
 router.get("/story", listActiveStories);
 
-module.exports = router;
+export default router;

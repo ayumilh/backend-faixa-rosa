@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as pagamentoController from '../../controllers/admin/adminPagamentoController.js';
+
 const router = express.Router();
-const pagamentoController = require('../../controllers/admin/adminPagamentoController');
 
 // Listar todos os pagamentos
 router.get('/pagamentos', pagamentoController.listPagamentos);
@@ -8,5 +9,4 @@ router.get('/pagamentos', pagamentoController.listPagamentos);
 // Obter detalhes de um pagamento por ID
 router.get('/pagamentos/:id', pagamentoController.getPagamentoById);
 
-
-module.exports = router;
+export default router;

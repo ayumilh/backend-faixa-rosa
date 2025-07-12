@@ -1,7 +1,7 @@
-const cron = require('node-cron');
-const expireSubscriptions = require('./expireSubscriptions');
-const updateTop10Ranking = require('./updateTop10Ranking');
-const expireNitroPlans = require('./expireNitroPlans');
+import cron from 'node-cron';
+import expireSubscriptions from './expireSubscriptions.js';
+import updateTop10Ranking from './updateTop10Ranking.js';
+import expireNitroPlans from './expireNitroPlans.js';
 
 console.log("📆 CRON ativado...");
 

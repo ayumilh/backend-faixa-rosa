@@ -1,12 +1,11 @@
 import express from 'express';
-import * as authController from '../controllers/betterAuthController.js';
+import * as authController from './betterAuthRoutes.js';
 import * as utilsController from '../controllers/authController.js';  // Para as verificações (CPF, Email, Username)
-import { uploadRegisterMiddleware } from '../config/wasabi.js'; // Middleware para upload de imagem de perfil
 
 const router = express.Router();
 
 // Rotas de Autenticação via Better Auth
-router.post('/sign-up/email', uploadRegisterMiddleware, authController.signUpEmail);
+router.post('/sign-up/email', authController.signUpEmail);
 router.post('/sign-in/email', authController.signInEmail);
 router.get('/me', authController.getSession);
 router.post('/sign-out', authController.signOut);

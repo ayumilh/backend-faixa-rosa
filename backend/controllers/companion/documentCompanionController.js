@@ -1,8 +1,9 @@
-const prisma = require('../../prisma/client');
-const { uploadDocuments } = require("../../config/wasabi");
-const { logActivity } = require("../../utils/activityService"); 
+import prisma from '../../prisma/client.js';
+import { uploadDocuments } from '../../config/wasabi.js';
+import { logActivity } from '../../utils/activityService.js';
 
-exports.uploadDocument = async (req, res) => {
+
+export async function uploadDocument(req, res) {
     try {
         const userId = req.user?.id;
         const type = "RG"
@@ -62,7 +63,7 @@ exports.uploadDocument = async (req, res) => {
     }
 };
 
-exports.getDocuments = async (req, res) => {
+export async function getDocuments(req, res) {
     const { companionId } = req.params;
 
     try {

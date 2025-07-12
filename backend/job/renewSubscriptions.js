@@ -1,7 +1,6 @@
-const prisma = require('../prisma/client');
-const cron = require('node-cron');
-const { createPayment } = require('../controllers/companion/paymentCompanionController');
-
+import prisma from '../prisma/client.js';
+import cron from 'node-cron';
+import { createPayment } from '../controllers/companion/paymentCompanionController.js';
 
 // Função para renovar as assinaturas pagas por cartão de crédito
 async function renewExpiredSubscriptions() {
@@ -32,7 +31,7 @@ async function renewExpiredSubscriptions() {
                 planSubscriptionId: subscription.id, // Buscar pelo planSubscriptionId
             },
             include: {
-                user: true, // Inclui o usuário para pegar o e-mail
+                appUser: true, // Inclui o usuário para pegar o e-mail
             },
         });
 
@@ -84,37 +83,6 @@ async function renewExpiredSubscriptions() {
 }
 
 
-//   for (const subscription of subscriptionsToRenew) {
-//     try {
-//       const userId = subscription.companionId;
-//       const planId = subscription.planId;
-//       const cardToken = subscription.cardToken;
-
-//       // Realiza o pagamento de renovação do plano
-//       const paymentResult = await createPayment(userId, null, payment_method_id, extras, totalAmount, cardToken, issuer_id, installments, email, identificationNumber, identificationType);
-
-//       // Verifica se o pagamento foi aprovado
-//       if (paymentResult && paymentResult.transactionId) {
-//         // Atualiza o status da assinatura para renovada
-//         await prisma.planSubscription.update({
-//           where: { id: subscription.id },
-//           data: {
-//             subscriptionStatus: 'ACTIVE', // Renova a assinatura
-//             nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)), // Define o próximo pagamento para 1 mês
-//             updatedAt: new Date(), // Atualiza a data de atualização
-//           },
-//         });
-
-//         console.log(`Assinatura renovada para o usuário ${userId} no plano ${planId}`);
-//       } else {
-//         console.log(`Falha ao renovar o pagamento para o usuário ${userId} no plano ${planId}`);
-//       }
-//     } catch (error) {
-//       console.error('Erro ao tentar renovar assinatura:', error);
-//     }
-//   }
-
-
 // Agendando o cron job para rodar todos os dias a partir das 01:00 (1 hora depois da expiração)
 cron.schedule('0 1 * * *', async () => {
     console.log('Verificando e renovando assinaturas expiradas pagas com cartão...');
@@ -127,3 +95,5 @@ cron.schedule('0 1 * * *', async () => {
 renewExpiredSubscriptions().catch((error) => {
     console.error('Erro ao expirar assinaturas durante o teste:', error);
 });
+
+export default renewExpiredSubscriptions;

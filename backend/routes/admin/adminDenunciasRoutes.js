@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import {
+  listDenuncias,
+  getDenunciaById,
+  updateDenunciaStatus,
+  deleteDenuncia
+} from '../../controllers/admin/adminDenunciasController.js';
+
 const router = express.Router();
-const {
-    listDenuncias,
-    getDenunciaById,
-    updateDenunciaStatus,
-    deleteDenuncia
-} = require('../../controllers/admin/adminDenunciasController');
 
 // Listar todas as denúncias
 router.get('/denuncias', listDenuncias);
@@ -19,4 +20,4 @@ router.patch('/denuncias/:id/status', updateDenunciaStatus);
 // Deletar uma denúncia
 router.delete('/denuncias/:id/delete', deleteDenuncia);
 
-module.exports = router;
+export default router;

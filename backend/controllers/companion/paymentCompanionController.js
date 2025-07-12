@@ -1,12 +1,9 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
+import mercadopago from "mercadopago";
+const { Preference, Payment, CustomerCard, Preapproval } = mercadopago;
 
-const { mercadoPago } = require("../../config/mercadoPago.js");
-const { Preference, Payment, CustomerCard, Preapproval } = require("mercadopago");
-
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
 dotenv.config();
-
-
 
 // Função para gerar idempotencyKey
 function generateIdempotencyKey() {
@@ -14,7 +11,7 @@ function generateIdempotencyKey() {
 }
 
 // Criar um pagamento
-exports.createPayment = async (
+export async function createPayment(
     userId,
     product = null,
     payment_method_id,
@@ -29,7 +26,7 @@ exports.createPayment = async (
     identificationType,
     fromSavedCard = false,
     cardId = null,
-) => {
+) {
     try {
         if (!userId || !payment_method_id) {
             return { error: 'Usuário ou método de pagamento não encontrado.' };
@@ -40,7 +37,7 @@ exports.createPayment = async (
         console.log("ID do Customer:", customer_id);
         console.log("payment_method_id:", payment_method_id);
 
-        const user = await prisma.user.findFirst({ where: { id: userId } });
+        const user = await prisma.appUser.findFirst({ where: { id: userId } });
         if (!user) return { error: 'Usuário não encontrado.' };
 
         const plan = product
@@ -151,7 +148,7 @@ exports.createPayment = async (
             }
 
             savedCardId = cardResponse.body.id;
-            console.log("✅ Cartão salvo com sucesso:", savedCardId);
+            console.log("Cartão salvo com sucesso:", savedCardId);
         }
 
         const now = new Date();
@@ -238,7 +235,7 @@ exports.createPayment = async (
     }
 };
 
-exports.receiveWebhook = async (req, res) => {
+export async function receiveWebhook(req, res) {
     try {
         const { action, data, type } = req.body;
         console.log('Webhook recebido:', req.body);
@@ -382,7 +379,7 @@ exports.receiveWebhook = async (req, res) => {
               
                     planSubscriptionId = newPlanSubscription.id;
               
-                    // ✅ Atribuir os +100 pontos extras se for a primeira assinatura
+                    // Atribuir os +100 pontos extras se for a primeira assinatura
                     await prisma.companion.update({
                       where: { userId: payment.userId },
                       data: {
@@ -754,7 +751,7 @@ exports.receiveWebhook = async (req, res) => {
     }
 };
 
-exports.getPaymentStatus = async (req, res) => {
+export async function getPaymentStatus(req, res) {
     const userId = req.user.id;
     const transactionId = req.params.transactionId;
 
@@ -823,11 +820,11 @@ exports.getPaymentStatus = async (req, res) => {
     }
 };
 
-exports.getSavedCards = async (req, res) => {
+export async function getSavedCards(req, res) {
     try {
         const userId = req.user.id;
 
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.appUser.findUnique({ where: { id: userId } });
         if (!user?.email) return res.status(400).json({ error: "E-mail não encontrado" });
 
         const response = await fetch(`https://api.mercadopago.com/v1/customers/search?email=${user.email}`, {
@@ -856,7 +853,7 @@ exports.getSavedCards = async (req, res) => {
 };
 
 // Listar pagamentos de um usuário
-exports.listPaymentsByUser = async (req, res) => {
+export async function listPaymentsByUser(req, res) {
     const { userId } = req.params;
 
     try {
@@ -872,7 +869,7 @@ exports.listPaymentsByUser = async (req, res) => {
 };
 
 // Atualizar status do pagamento
-exports.updatePaymentStatus = async (req, res) => {
+export async function updatePaymentStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
 

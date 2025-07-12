@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import { createFeedPost, listFeedPosts, deleteFeedPost } from '../../controllers/companion/feedPostCompanionController.js';
+
 const router = express.Router();
-const { createFeedPost, listFeedPosts, deleteFeedPost } = require('../../controllers/companion/feedPostCompanionController');
 
 router.post('/feed/create', createFeedPost);
 router.get('/feed', listFeedPosts);
 router.delete('/feed/:id/delete', deleteFeedPost);
 
-module.exports = router;
+export default router;

@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as feedPostController from '../../controllers/admin/adminFeedPostController.js';
+
 const router = express.Router();
-const feedPostController = require('../../controllers/admin/adminFeedPostController');
 
 // Listar todos os posts no feed
 router.get('/feed', feedPostController.listFeedPosts);
@@ -11,4 +12,4 @@ router.get('/companion/:id/posts', feedPostController.getPostsByCompanion);
 // Deletar um post do feed
 router.delete('/feed/:id/delete', feedPostController.deleteFeedPost);
 
-module.exports = router;
+export default router;

@@ -1,9 +1,9 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
 
 // Listar contratantes
-exports.listUsers = async (req, res) => {
+export const listUsers = async (req, res) => {
     try {
-        const users = await prisma.user.findMany({
+        const users = await prisma.appUser.findMany({
             where: {
                 userType: 'CONTRATANTE'
             },
@@ -11,7 +11,6 @@ exports.listUsers = async (req, res) => {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true,
                 cpf: true,
                 userType: true,
                 createdAt: true,
@@ -28,17 +27,16 @@ exports.listUsers = async (req, res) => {
 };
 
 // Obter detalhes de um usuário específico
-exports.getUserById = async (req, res) => {
+export const getUserById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prisma.appUser.findUnique({
             where: { id: parseInt(id) },
             select: {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true,
                 cpf: true,
                 userType: true,
                 createdAt: true,
@@ -66,12 +64,12 @@ exports.getUserById = async (req, res) => {
 };
 
 // Atualizar status de um usuário (Ativar, Suspender, Bloquear)
-exports.updateUserStatus = async (req, res) => {
+export const updateUserStatus = async (req, res) => {
     const { id } = req.params;
     const { profileVisibility } = req.body;
 
     try {
-        const updatedUser = await prisma.user.update({
+        const updatedUser = await prisma.appUser.update({
             where: { id: parseInt(id) },
             data: { profileVisibility },
         });
@@ -87,12 +85,12 @@ exports.updateUserStatus = async (req, res) => {
 };
 
 // Deletar usuário e dados vinculados
-exports.deleteCompanionData = async (req, res) => {
+export const deleteCompanionData = async (req, res) => {
     const { id } = req.params;
 
     try {
         // Verifica se o usuário existe e inclui as informações do companion
-        const user = await prisma.user.findUnique({
+        const user = await prisma.appUser.findUnique({
             where: { id: parseInt(id) },
             include: {
                 companion: {

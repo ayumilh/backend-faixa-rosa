@@ -1,4 +1,4 @@
-const prisma = require('../prisma/client');
+import prisma from '../prisma/client.js';
 
 async function expireSubscriptions() {
   const now = new Date();
@@ -20,4 +20,4 @@ async function expireSubscriptions() {
   console.log(`🔒 ${expiredSubscriptions.count} assinaturas expiradas`);
 }
 
-module.exports = expireSubscriptions;
+export default expireSubscriptions;

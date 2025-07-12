@@ -1,12 +1,12 @@
-const prisma = require("../prisma/client"); // Importando o cliente Prisma
+import prisma from "../prisma/client.js";
 
-const validarEmail = async (email) => {
+export const validarEmail = async (email) => {
   if (!email) {
     return { error: "O campo email é obrigatório." };
   }
 
   try {
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.appUser.findUnique({
       where: { email },
       select: { id: true },
     });
@@ -20,5 +20,3 @@ const validarEmail = async (email) => {
     return { error: "Erro interno ao verificar o email." };
   }
 };
-
-module.exports = { validarEmail };

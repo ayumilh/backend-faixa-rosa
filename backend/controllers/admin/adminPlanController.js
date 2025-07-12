@@ -1,7 +1,9 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
+
+
 
 // Criar um novo plano    ---- criar o planType (tabela de funcionalidades) do plano e criar const de atualizar funcionalidades ao plano
-exports.createPlan = async (req, res) => {
+export const createPlan = async (req, res) => {
     try {
         const { name, price, description, isBasic, planTypeId } = req.body;
 
@@ -23,7 +25,7 @@ exports.createPlan = async (req, res) => {
 };
 
 // Atualizar um plano existente  
-exports.updatePlan = async (req, res) => {
+export const updatePlan = async (req, res) => {
     const { id } = req.params;
     const { name, price, description, isBasic } = req.body;
 
@@ -46,7 +48,7 @@ exports.updatePlan = async (req, res) => {
 };
 
 // Deletar um plano
-exports.deletePlan = async (req, res) => {
+export const deletePlan = async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -59,7 +61,7 @@ exports.deletePlan = async (req, res) => {
 };
 
 // Listar todos os planos
-exports.listPlans = async (req, res) => {
+export const listPlans = async (req, res) => {
     try {
         const plans = await prisma.plan.findMany({
             include: { planType: true },
@@ -78,7 +80,7 @@ exports.listPlans = async (req, res) => {
  */
 
 // Criar um novo plano extra
-exports.createExtraPlan = async (req, res) => {
+export const createExtraPlan = async (req, res) => {
     try {
         const { name, description, isTemporary, duration, pointsBonus } = req.body;
 
@@ -100,7 +102,7 @@ exports.createExtraPlan = async (req, res) => {
 };
 
 // Atualizar um plano extra
-exports.updateExtraPlan = async (req, res) => {
+export const updateExtraPlan = async (req, res) => {
     const { id } = req.params;
     const { name, description, isTemporary, duration, pointsBonus } = req.body;
 
@@ -124,7 +126,7 @@ exports.updateExtraPlan = async (req, res) => {
 };
 
 // Deletar um plano extra
-exports.deleteExtraPlan = async (req, res) => {
+export const deleteExtraPlan = async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -137,7 +139,7 @@ exports.deleteExtraPlan = async (req, res) => {
 };
 
 // Listar todos os planos extras
-exports.listExtraPlans = async (req, res) => {
+export const listExtraPlans = async (req, res) => {
     try {
         const extraPlans = await prisma.extraPlan.findMany();
         return res.status(200).json(extraPlans);
@@ -154,7 +156,7 @@ exports.listExtraPlans = async (req, res) => {
  */
 
 // Listar todas as assinaturas ativas
-exports.listActiveSubscriptions = async (req, res) => {
+export const listActiveSubscriptions = async (req, res) => {
     try {
         // Busca os acompanhantes que têm pelo menos um plano principal ativo
         const activeCompanions = await prisma.companion.findMany({
@@ -195,7 +197,7 @@ exports.listActiveSubscriptions = async (req, res) => {
 };
 
 
-exports.getCancelledCompanions = async (req, res) => {
+export const getCancelledCompanions = async (req, res) => {
     try {
         // Busca os acompanhantes que possuem pelo menos uma assinatura principal cancelada
         const cancelledCompanions = await prisma.companion.findMany({
@@ -222,7 +224,7 @@ exports.getCancelledCompanions = async (req, res) => {
 
 
 // Cancelar a assinatura principal de um usuário
-exports.disableUserPlan = async (req, res) => {
+export const disableUserPlan = async (req, res) => {
     const { companionId } = req.params;
     const id = parseInt(companionId);
 
@@ -257,7 +259,7 @@ exports.disableUserPlan = async (req, res) => {
 
 
 // Cancelar um plano extra específico de um usuário
-exports.disableUserExtraPlan = async (req, res) => {
+export const disableUserExtraPlan = async (req, res) => {
     const { companionId, extraPlanId } = req.params;
 
     try {
@@ -282,18 +284,18 @@ exports.disableUserExtraPlan = async (req, res) => {
  */
 
 // 🔹 Notificar usuários sobre renovação de planos
-exports.sendRenewalNotifications = async (req, res) => {
+export const sendRenewalNotifications = async (req, res) => {
     try {
         const subscriptions = await prisma.planSubscription.findMany({
             where: {
                 endDate: { not: null },
             },
-            include: { plan: true, companion: { include: { user: true } } },
+            include: { plan: true, companion: { include: { appUser: true } } },
         });
 
         const notifications = subscriptions.map((sub) => {
             return {
-                to: sub.companion.user.email,
+                to: sub.companion.appUser.email,
                 subject: "Renovação de Assinatura",
                 message: `Sua assinatura do plano ${sub.plan.name} vence em breve. Renove agora para evitar interrupções!`,
             };
@@ -306,7 +308,7 @@ exports.sendRenewalNotifications = async (req, res) => {
     }
 };
 
-exports.getExpiringSubscriptions = async (req, res) => {
+export const getExpiringSubscriptions = async (req, res) => {
     try {
         // Data de hoje
         const today = new Date();
@@ -329,7 +331,7 @@ exports.getExpiringSubscriptions = async (req, res) => {
                 extraPlan: true,
                 companion: {
                     include: {
-                        user: true // Inclui dados do usuário (email, firstName, etc.)
+                        appUser: true // Inclui dados do usuário (email, firstName, etc.)
                     }
                 }
             }
@@ -349,7 +351,7 @@ exports.getExpiringSubscriptions = async (req, res) => {
  */
 
 // 🔹 Criar um novo cupom de desconto
-exports.createCoupon = async (req, res) => {
+export const createCoupon = async (req, res) => {
     try {
         const { code, discount, expirationDate } = req.body;
 
@@ -369,7 +371,7 @@ exports.createCoupon = async (req, res) => {
 };
 
 // 🔹 Aplicar cupom de desconto a um pagamento
-exports.applyCoupon = async (req, res) => {
+export const applyCoupon = async (req, res) => {
     try {
         const { couponCode, paymentId } = req.body;
 

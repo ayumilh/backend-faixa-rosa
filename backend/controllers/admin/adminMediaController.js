@@ -1,6 +1,7 @@
-const prisma = require('../../prisma/client');
+import prisma from '../../prisma/client.js';
+
 // Aprovar media
-exports.approvedMedia = async (req, res) => {
+export async function approvedMedia(req, res) {
     try {
         const { id } = req.params;
 
@@ -52,7 +53,7 @@ exports.approvedMedia = async (req, res) => {
 };
 
 // Rejeitar media
-exports.rejectMedia = async (req, res) => {
+export async function rejectMedia(req, res) {
     try {
         const { id } = req.params;
 
@@ -106,7 +107,7 @@ exports.rejectMedia = async (req, res) => {
 };
 
 // suspender media
-exports.suspendMedia = async (req, res) => {
+export async function suspendMedia(req, res) {
     try {
         const { id } = req.params;
 

@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { registerConsent } from '../controllers/consentController.js';
+
 const router = express.Router();
-const { registerConsent } = require('../controllers/consentController');
 
 router.post('/save', registerConsent);
 
-module.exports = router;
+export default router;
