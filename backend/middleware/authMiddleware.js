@@ -3,7 +3,6 @@ import prisma from '../prisma/client.js';
 export async function authenticate(req, res, next) {
   const rawToken = req.cookies?.["better-auth.session_token"];
   const token = rawToken?.split('.')[0];
-  console.log("Token de sessão:", rawToken);
 
   if (!token) {
     return res.status(401).json({ error: "Token de sessão ausente." });
