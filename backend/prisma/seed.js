@@ -500,12 +500,12 @@ const seedServicesOffered = async () => {
 
 async function runAllSeeds() {
     try {
-        // await seedPlan();
-        // await seedPlanTypes();
+        await seedPlan();
+        await seedPlanTypes();
         await seedPlansAndExtras();
-        // await seedTimedServices();
-        // await seedAttendedLocations();
-        // await seedServicesOffered();
+        await seedTimedServices();
+        await seedAttendedLocations();
+        await seedServicesOffered();
     } catch (error) {
         console.error('Erro ao executar seeds:', error);
     } finally {

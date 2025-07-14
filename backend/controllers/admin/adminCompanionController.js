@@ -127,6 +127,8 @@ export async function listAcompanhantes(req, res) {
             return res.status(200).json({ message: 'Nenhuma acompanhante encontrada.' });
         }
 
+        console.log("Acompanhantes formatados:", formattedAcompanhantes);
+
         return res.status(200).json(formattedAcompanhantes);
     } catch (error) {
         console.error(error);

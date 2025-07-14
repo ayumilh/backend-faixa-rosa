@@ -203,9 +203,7 @@ export async function getCompanionMedia(req, res) {
 export async function updateCompanionDescriptionProfile(req, res) {
     try {
         const userId = req.user?.id;
-
         let data = req.body;
-        console.log("DADOS RECEBIDOS:", data);
 
 
         if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
@@ -342,14 +340,14 @@ export async function updateCompanionDescriptionProfile(req, res) {
 
         // Atualiza os dados físicos e demais dados do acompanhante (se necessário)
         const physicalData = {
-            gender: value.gender ?? companion.PhysicalCharacteristics?.gender ?? null,
-            genitalia: value.genitalia ?? companion.PhysicalCharacteristics?.genitalia ?? null,
+            gender: value.gender ? value.gender : undefined,
+            genitalia: value.genitalia ? value.genitalia : undefined,
             weight: value.weight ?? companion.PhysicalCharacteristics?.weight ?? 0,
             height: value.height ?? companion.PhysicalCharacteristics?.height ?? 0,
-            ethnicity: value.ethnicity ?? companion.PhysicalCharacteristics?.ethnicity ?? null,
-            eyeColor: value.eyeColor ?? companion.PhysicalCharacteristics?.eyeColor ?? null,
-            hairStyle: value.hairStyle ?? companion.PhysicalCharacteristics?.hairStyle ?? null,
-            hairLength: value.hairLength ?? companion.PhysicalCharacteristics?.hairLength ?? null,
+            ethnicity: value.ethnicity ? value.ethnicity : undefined,
+            eyeColor: value.eyeColor ? value.eyeColor : undefined,
+            hairStyle: value.hairStyle ? value.hairStyle : undefined,
+            hairLength: value.hairLength ? value.hairLength : undefined,
             shoeSize: value.shoeSize ?? companion.PhysicalCharacteristics?.shoeSize ?? "",
             hasSilicone: value.hasSilicone ?? false,
             hasTattoos: value.hasTattoos ?? false,
@@ -357,6 +355,7 @@ export async function updateCompanionDescriptionProfile(req, res) {
             smoker: value.smoker ?? false,
             hasComparisonMedia: videoUrl ? true : value.hasComparisonMedia ?? false,
         };
+
 
         await prisma.physicalCharacteristics.upsert({
             where: { companionId: companion.id },
@@ -660,7 +659,7 @@ export async function getCompanionServicesAndPrices(req, res) {
 
 
 // Adicionar Horários
-export async function updateWeeklySchedule(req, res){
+export async function updateWeeklySchedule(req, res) {
     const userId = req.user?.id;
     const { schedule } = req.body;
 
@@ -752,7 +751,7 @@ export async function updateWeeklySchedule(req, res){
         return res.status(500).json({ error: 'Erro ao processar os dados.', details: error.message });
     }
 };
-export async function getWeeklySchedule(req, res)  {
+export async function getWeeklySchedule(req, res) {
     try {
         const userId = req.user?.id;
 
