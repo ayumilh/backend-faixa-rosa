@@ -18,8 +18,13 @@ export async function signUpEmail(req, res) {
       userType
     } = req.body;
 
+
+    const allowedUserTypes = ["CONTRATANTE", "ACOMPANHANTE", "ADMIN"];
     if (!userName || !email || !userType) {
       return res.status(400).json({ error: 'userName, email, e userType são obrigatórios.' });
+    }
+    if (!allowedUserTypes.includes(userType)) {
+      return res.status(400).json({ error: 'Tipo de usuário inválido.' });
     }
 
     let formattedBirthDate = null;
@@ -207,6 +212,8 @@ export async function signUpEmail(req, res) {
           comparisonVideoUrl
         };
       }
+
+      return { user: createdUser };
     });
 
     const { user, companionId, contractorId, documentFrontUrl, documentBackUrl, comparisonVideoUrl, profilePicUrl } = transactionResult;
