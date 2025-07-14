@@ -278,6 +278,9 @@ export async function signInEmail(req, res) {
 
     const bodyBuffer = await result.arrayBuffer();
     const responseData = JSON.parse(Buffer.from(bodyBuffer).toString());
+    
+    console.log('🔴 LOGIN RESPONSE PRODUÇÃO:', responseData);
+
 
     const userId = responseData?.user?.id;
 
